@@ -1,5 +1,8 @@
 from dataclasses import replace
+from email import policy
+from email.parser import BytesParser
 from pathlib import Path
+import re
 import tempfile
 import time
 import unittest
@@ -21,16 +24,29 @@ class AuthTests(unittest.TestCase):
         self.addCleanup(self.client.__exit__, None, None, None)
         self.account = {"name": "Андрей", "email": "andrey@example.com", "password": "demo-password-2026"}
 
-    def register(self):
-        response = self.client.post("/auth/register", json=self.account)
-        self.assertEqual(response.status_code, 201, response.text)
+    def last_code(self, email=None):
+        files = sorted((self.settings.database_path.parent / "outbox").glob("*.eml"), key=lambda path: path.stat().st_mtime_ns, reverse=True)
+        for path in files:
+            message = BytesParser(policy=policy.default).parsebytes(path.read_bytes())
+            if email is None or message["To"] == email:
+                return re.search(r"\b[0-9]{6}\b", message.get_content()).group()
+        self.fail("Нет тестового письма")
+
+    def register_with(self, client, account):
+        response = client.post("/auth/register", json=account)
+        self.assertEqual(response.status_code, 202, response.text)
+        response = client.post("/auth/verify-email", json={"verification_id": response.json()["verification_id"], "code": self.last_code(account["email"])})
+        self.assertEqual(response.status_code, 200, response.text)
         return response
+
+    def register(self):
+        return self.register_with(self.client, self.account)
 
     def test_register_me_logout_and_revocation(self):
         response = self.register()
         user = response.json()["user"]
         self.assertEqual(user["name"], "Андрей")
-        self.assertEqual(set(user), {"id", "name", "email", "created_at"})
+        self.assertEqual(set(user), {"id", "name", "email", "created_at", "email_verified_at"})
         cookie = response.headers["set-cookie"]
         self.assertIn("HttpOnly", cookie)
         self.assertIn("SameSite=lax", cookie)
@@ -101,7 +117,7 @@ class AuthTests(unittest.TestCase):
         self.register()
         first_token = self.client.cookies.get("a1_session")
         self.client.cookies.clear()
-        self.client.post("/auth/register", json=dict(self.account, email="dasha@example.com", name="Даша"))
+        self.register_with(self.client, dict(self.account, email="dasha@example.com", name="Даша"))
         self.assertEqual(self.client.get("/auth/me").json()["user"]["email"], "dasha@example.com")
         self.client.post("/auth/logout")
         response = self.client.get("/auth/me", headers={"Cookie": "a1_session=" + first_token})
@@ -147,8 +163,7 @@ class AuthTests(unittest.TestCase):
 
     def test_secure_cookie(self):
         with TestClient(create_app(replace(self.settings, cookie_secure=True)), base_url="https://testserver") as client:
-            response = client.post("/auth/register", json=self.account)
-            self.assertEqual(response.status_code, 201)
+            response = self.register_with(client, self.account)
             self.assertIn("Secure", response.headers["set-cookie"])
             self.assertEqual(client.get("/auth/me").status_code, 200)
 

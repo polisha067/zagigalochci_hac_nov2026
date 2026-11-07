@@ -39,7 +39,23 @@ class Database:
                     count INTEGER NOT NULL,
                     expires_at INTEGER NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS pending_registrations (
+                    verification_id TEXT PRIMARY KEY,
+                    email TEXT NOT NULL UNIQUE,
+                    name TEXT NOT NULL,
+                    password_hash TEXT NOT NULL,
+                    existing_user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+                    code_hash TEXT NOT NULL,
+                    expires_at INTEGER NOT NULL,
+                    sent_at INTEGER NOT NULL,
+                    attempts INTEGER NOT NULL DEFAULT 0
+                );
             """)
+            columns = {row["name"] for row in connection.execute("PRAGMA table_info(users)")}
+            if "email_verified_at" not in columns:
+                connection.execute("ALTER TABLE users ADD COLUMN email_verified_at TEXT")
+            # Старые аккаунты не считаем подтверждёнными автоматически.
+            connection.execute("DELETE FROM sessions WHERE user_id IN (SELECT id FROM users WHERE email_verified_at IS NULL)")
 
     def consume_attempt(self, bucket, now, window, limit):
         # Одна транзакция не позволяет параллельным запросам обходить лимит.

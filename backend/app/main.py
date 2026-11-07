@@ -2,9 +2,9 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 import hashlib
 import secrets
-import sqlite3
 import time
 import uuid
+from typing import Union
 
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.exceptions import RequestValidationError
@@ -14,7 +14,9 @@ from pwdlib import PasswordHash
 
 from .config import Settings
 from .database import Database
-from .schemas import Credentials, ErrorResponse, RegisterRequest, UserResponse
+from .mailer import MailDeliveryError, Mailer
+from .schemas import Credentials, ErrorResponse, RegisterRequest, ResendRequest, UserResponse, VerificationRequired, VerifyEmailRequest
+from .verification import VerificationProblem, VerificationService
 
 
 def digest(value):
@@ -26,7 +28,7 @@ def error(status, code, message, headers=None):
 
 
 def public_user(row):
-    return {key: row[key] for key in ("id", "email", "name", "created_at")}
+    return {key: row[key] for key in ("id", "email", "name", "created_at", "email_verified_at")}
 
 
 def require_user(request: Request):
@@ -37,7 +39,7 @@ def require_user(request: Request):
         raise error(401, "not_authenticated", "Сначала войдите в аккаунт")
     with request.app.state.database.connect() as connection:
         row = connection.execute(
-            "SELECT u.* FROM users u JOIN sessions s ON s.user_id = u.id WHERE s.token_hash = ? AND s.expires_at > ?",
+            "SELECT u.* FROM users u JOIN sessions s ON s.user_id = u.id WHERE s.token_hash = ? AND s.expires_at > ? AND u.email_verified_at IS NOT NULL",
             (digest(token), int(time.time())),
         ).fetchone()
     if row is None:
@@ -55,17 +57,28 @@ def create_app(settings=None):
         app.state.password_hash = PasswordHash.recommended()
         # Для неизвестного email тоже проверяем хеш, чтобы не делать быстрый выход.
         app.state.dummy_hash = app.state.password_hash.hash(secrets.token_urlsafe(32))
+        app.state.mailer = Mailer(settings)
+        app.state.verification = VerificationService(database, settings, app.state.mailer)
         yield
 
     app = FastAPI(
         title="А1 — API команды",
-        version="0.1.0",
+        version="0.2.0",
         description="Регистрация и сессии. Запросы авторизации — JSON; браузер передаёт cookie с credentials: include.",
         lifespan=lifespan,
-        responses={code: {"model": ErrorResponse} for code in (401, 403, 409, 422, 429)},
+        responses={code: {"model": ErrorResponse} for code in (400, 401, 403, 409, 415, 422, 429, 503)},
     )
     app.state.settings = settings
     app.state.database = database
+
+    @app.exception_handler(VerificationProblem)
+    async def verification_error(request, exc):
+        headers = {"Retry-After": str(exc.retry)} if exc.retry else None
+        return JSONResponse({"error": {"code": exc.code, "message": exc.message, "fields": []}}, status_code=exc.status, headers=headers)
+
+    @app.exception_handler(MailDeliveryError)
+    async def delivery_error(request, exc):
+        return JSONResponse({"error": {"code": "mail_unavailable", "message": "Не удалось отправить письмо. Попробуйте позже", "fields": []}}, status_code=503)
 
     @app.exception_handler(HTTPException)
     async def http_error(request, exc):
@@ -84,7 +97,7 @@ def create_app(settings=None):
             origin = request.headers.get("origin")
             if (origin is not None and origin not in settings.allowed_origins) or (origin is None and request.headers.get("sec-fetch-site") == "cross-site"):
                 return JSONResponse({"error": {"code": "origin_not_allowed", "message": "Адрес сайта не разрешён", "fields": []}}, status_code=403)
-            if request.url.path in ("/auth/register", "/auth/login") and request.headers.get("content-type", "").split(";")[0].strip().lower() != "application/json":
+            if request.url.path != "/auth/logout" and request.headers.get("content-type", "").split(";")[0].strip().lower() != "application/json":
                 return JSONResponse({"error": {"code": "json_required", "message": "Передайте тело application/json", "fields": []}}, status_code=415)
         response = await call_next(request)
         if request.url.path.startswith("/auth/"):
@@ -100,7 +113,7 @@ def create_app(settings=None):
 
     def limit_attempts(request, action):
         ip = request.client.host if request.client else "unknown"
-        limit = settings.login_limit if action == "login" else settings.register_limit
+        limit = {"login": settings.login_limit, "register": settings.register_limit, "verify": settings.verify_limit, "resend": settings.resend_limit}[action]
         retry = database.consume_attempt(action + ":" + digest(ip), int(time.time()), settings.rate_window_seconds, limit)
         if retry:
             raise error(429, "too_many_attempts", "Слишком много попыток. Попробуйте позже", {"Retry-After": str(retry)})
@@ -125,32 +138,58 @@ def create_app(settings=None):
     def health():
         return {"status": "ok"}
 
-    @app.post("/auth/register", response_model=UserResponse, status_code=201, tags=["Авторизация"])
-    def register(payload: RegisterRequest, request: Request, response: Response):
+    @app.post("/auth/register", response_model=VerificationRequired, status_code=202, tags=["Авторизация"])
+    def register(payload: RegisterRequest, request: Request):
         limit_attempts(request, "register")
         password_hash = app.state.password_hash.hash(payload.password.get_secret_value())
-        user = {"id": str(uuid.uuid4()), "email": str(payload.email), "name": payload.name, "created_at": datetime.now(timezone.utc).isoformat()}
-        try:
-            with database.connect() as connection:
-                connection.execute(
-                    "INSERT INTO users (id, email, name, password_hash, created_at) VALUES (?, ?, ?, ?, ?)",
-                    (user["id"], user["email"], user["name"], password_hash, user["created_at"]),
-                )
-                token = new_session(connection, request, user["id"])
-        except sqlite3.IntegrityError:
-            raise error(409, "email_already_registered", "Аккаунт с такой почтой уже существует")
-        set_cookie(response, token)
-        return {"user": user}
+        return app.state.verification.issue(str(payload.email), payload.name, password_hash)
 
-    @app.post("/auth/login", response_model=UserResponse, tags=["Авторизация"])
+    @app.post("/auth/resend-verification", response_model=VerificationRequired, status_code=202, tags=["Авторизация"])
+    def resend_verification(payload: ResendRequest, request: Request):
+        limit_attempts(request, "resend")
+        return app.state.verification.resend(payload.verification_id)
+
+    @app.post("/auth/verify-email", response_model=UserResponse, tags=["Авторизация"])
+    def verify_email(payload: VerifyEmailRequest, request: Request, response: Response):
+        limit_attempts(request, "verify")
+        with database.connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            pending, failure = app.state.verification.check(connection, payload.verification_id, payload.code)
+            if failure is None:
+                now = datetime.now(timezone.utc).isoformat()
+                user_id = pending["existing_user_id"] or str(uuid.uuid4())
+                if pending["existing_user_id"]:
+                    connection.execute("UPDATE users SET email_verified_at = ? WHERE id = ?", (now, user_id))
+                else:
+                    connection.execute(
+                        "INSERT INTO users (id, email, name, password_hash, created_at, email_verified_at) VALUES (?, ?, ?, ?, ?, ?)",
+                        (user_id, pending["email"], pending["name"], pending["password_hash"], now, now),
+                    )
+                user = connection.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+                connection.execute("DELETE FROM pending_registrations WHERE verification_id = ?", (payload.verification_id,))
+                token = new_session(connection, request, user_id)
+        if failure:
+            raise failure
+        set_cookie(response, token)
+        return {"user": public_user(user)}
+
+    @app.post("/auth/login", response_model=Union[UserResponse, VerificationRequired], responses={202: {"model": VerificationRequired}}, tags=["Авторизация"])
     def login(payload: Credentials, request: Request, response: Response):
         limit_attempts(request, "login")
         with database.connect() as connection:
             row = connection.execute("SELECT * FROM users WHERE email = ?", (str(payload.email),)).fetchone()
-        stored_hash = row["password_hash"] if row else app.state.dummy_hash
+            pending = connection.execute("SELECT * FROM pending_registrations WHERE email = ?", (str(payload.email),)).fetchone()
+        known = row if row is not None else pending
+        stored_hash = known["password_hash"] if known else app.state.dummy_hash
         valid = app.state.password_hash.verify(payload.password.get_secret_value(), stored_hash)
-        if row is None or not valid:
+        if known is None or not valid:
             raise error(401, "invalid_credentials", "Неверная почта или пароль")
+        if row is None or row["email_verified_at"] is None:
+            response.status_code = 202
+            if pending is not None:
+                return app.state.verification.info(pending)
+            # Старые аккаунты проходят подтверждение после проверки своего пароля.
+            return app.state.verification.issue(row["email"], row["name"], row["password_hash"], row["id"])
         with database.connect() as connection:
             token = new_session(connection, request, row["id"])
         set_cookie(response, token)

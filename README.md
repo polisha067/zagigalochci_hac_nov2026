@@ -24,8 +24,13 @@ python -m uvicorn backend.app.main:app --reload
 ```
 
 Документация после запуска: `http://localhost:8000/docs`.
-Доступны `POST /auth/register`, `POST /auth/login`, `GET /auth/me`, `POST /auth/logout`.
+Регистрация теперь требует подтверждения почты: `POST /auth/register` возвращает
+202 и `verification_id`, затем `POST /auth/verify-email` принимает id и код.
+Повторная отправка — `POST /auth/resend-verification`.
+Также доступны `POST /auth/login`, `GET /auth/me`, `POST /auth/logout`.
 Фронт отправляет запросы с `credentials: "include"`.
+Без настройки SMTP письма сохраняются локально. Просмотр: `python -m backend.show_test_mail`.
+Настройка настоящей отправки и постоянной работы: **[backend/MAIL.md](backend/MAIL.md)**.
 
 ## Формулы расчёта перевозок — версия 0.1
 

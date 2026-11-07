@@ -36,10 +36,28 @@ class User(BaseModel):
     email: EmailStr
     name: str
     created_at: datetime
+    email_verified_at: datetime
 
 
 class UserResponse(BaseModel):
     user: User
+
+
+class VerificationRequired(BaseModel):
+    status: str = "verification_required"
+    verification_id: str
+    email: EmailStr
+    expires_in: int
+    resend_after: int
+
+
+class ResendRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    verification_id: str = Field(min_length=43, max_length=43, pattern=r"^[A-Za-z0-9_-]{43}$")
+
+
+class VerifyEmailRequest(ResendRequest):
+    code: str = Field(min_length=6, max_length=6, pattern=r"^[0-9]{6}$")
 
 
 class ErrorDetail(BaseModel):

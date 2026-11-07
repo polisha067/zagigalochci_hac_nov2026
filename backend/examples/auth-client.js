@@ -27,6 +27,10 @@ export function createAuthClient(apiBase = "http://localhost:8000") {
   return {
     register: ({ name, email, password }) =>
       request("/auth/register", "POST", { name, email, password }),
+    verifyEmail: ({ verification_id, code }) =>
+      request("/auth/verify-email", "POST", { verification_id, code }),
+    resendVerification: (verification_id) =>
+      request("/auth/resend-verification", "POST", { verification_id }),
     login: ({ email, password }) =>
       request("/auth/login", "POST", { email, password }),
     me: () => request("/auth/me"),
