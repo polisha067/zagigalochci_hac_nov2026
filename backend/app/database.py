@@ -1,0 +1,56 @@
+from contextlib import contextmanager
+import sqlite3
+
+
+class Database:
+    def __init__(self, path):
+        self.path = path
+
+    @contextmanager
+    def connect(self):
+        connection = sqlite3.connect(str(self.path), timeout=15)
+        connection.row_factory = sqlite3.Row
+        connection.execute("PRAGMA foreign_keys = ON")
+        try:
+            with connection:
+                yield connection
+        finally:
+            connection.close()
+
+    def initialize(self):
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        with self.connect() as connection:
+            connection.executescript("""
+                CREATE TABLE IF NOT EXISTS users (
+                    id TEXT PRIMARY KEY,
+                    email TEXT NOT NULL UNIQUE,
+                    name TEXT NOT NULL,
+                    password_hash TEXT NOT NULL,
+                    created_at TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS sessions (
+                    token_hash TEXT PRIMARY KEY,
+                    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    expires_at INTEGER NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS sessions_expiry ON sessions(expires_at);
+                CREATE TABLE IF NOT EXISTS auth_limits (
+                    bucket TEXT PRIMARY KEY,
+                    count INTEGER NOT NULL,
+                    expires_at INTEGER NOT NULL
+                );
+            """)
+
+    def consume_attempt(self, bucket, now, window, limit):
+        # Одна транзакция не позволяет параллельным запросам обходить лимит.
+        with self.connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            connection.execute("DELETE FROM auth_limits WHERE expires_at <= ?", (now,))
+            row = connection.execute("SELECT count, expires_at FROM auth_limits WHERE bucket = ?", (bucket,)).fetchone()
+            if row is not None and row["count"] >= limit:
+                return max(1, row["expires_at"] - now)
+            if row is None:
+                connection.execute("INSERT INTO auth_limits VALUES (?, 1, ?)", (bucket, now + window))
+            else:
+                connection.execute("UPDATE auth_limits SET count = count + 1 WHERE bucket = ?", (bucket,))
+        return None

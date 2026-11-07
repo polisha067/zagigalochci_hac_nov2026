@@ -1,0 +1,176 @@
+from contextlib import asynccontextmanager
+from datetime import datetime, timezone
+import hashlib
+import secrets
+import sqlite3
+import time
+import uuid
+
+from fastapi import Depends, FastAPI, HTTPException, Request, Response
+from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from pwdlib import PasswordHash
+
+from .config import Settings
+from .database import Database
+from .schemas import Credentials, ErrorResponse, RegisterRequest, UserResponse
+
+
+def digest(value):
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+def error(status, code, message, headers=None):
+    return HTTPException(status, detail={"code": code, "message": message, "fields": []}, headers=headers)
+
+
+def public_user(row):
+    return {key: row[key] for key in ("id", "email", "name", "created_at")}
+
+
+def require_user(request: Request):
+    """Подключать через Depends к будущим личным расчётам."""
+    settings = request.app.state.settings
+    token = request.cookies.get(settings.cookie_name)
+    if not token:
+        raise error(401, "not_authenticated", "Сначала войдите в аккаунт")
+    with request.app.state.database.connect() as connection:
+        row = connection.execute(
+            "SELECT u.* FROM users u JOIN sessions s ON s.user_id = u.id WHERE s.token_hash = ? AND s.expires_at > ?",
+            (digest(token), int(time.time())),
+        ).fetchone()
+    if row is None:
+        raise error(401, "not_authenticated", "Сессия недействительна или истекла. Войдите снова")
+    return public_user(row)
+
+
+def create_app(settings=None):
+    settings = settings or Settings.from_env()
+    database = Database(settings.database_path)
+
+    @asynccontextmanager
+    async def lifespan(app):
+        database.initialize()
+        app.state.password_hash = PasswordHash.recommended()
+        # Для неизвестного email тоже проверяем хеш, чтобы не делать быстрый выход.
+        app.state.dummy_hash = app.state.password_hash.hash(secrets.token_urlsafe(32))
+        yield
+
+    app = FastAPI(
+        title="А1 — API команды",
+        version="0.1.0",
+        description="Регистрация и сессии. Запросы авторизации — JSON; браузер передаёт cookie с credentials: include.",
+        lifespan=lifespan,
+        responses={code: {"model": ErrorResponse} for code in (401, 403, 409, 422, 429)},
+    )
+    app.state.settings = settings
+    app.state.database = database
+
+    @app.exception_handler(HTTPException)
+    async def http_error(request, exc):
+        detail = exc.detail if isinstance(exc.detail, dict) else {"code": "http_error", "message": str(exc.detail), "fields": []}
+        return JSONResponse({"error": detail}, status_code=exc.status_code, headers=exc.headers)
+
+    @app.exception_handler(RequestValidationError)
+    async def validation_error(request, exc):
+        # Не возвращаем input и ctx: они могут содержать введённый пароль.
+        fields = [{"field": ".".join(str(part) for part in item["loc"] if part != "body"), "message": item["msg"]} for item in exc.errors()]
+        return JSONResponse({"error": {"code": "validation_error", "message": "Проверьте заполненные поля", "fields": fields}}, status_code=422)
+
+    @app.middleware("http")
+    async def browser_security(request, call_next):
+        if request.url.path.startswith("/auth/") and request.method not in ("GET", "HEAD", "OPTIONS"):
+            origin = request.headers.get("origin")
+            if (origin is not None and origin not in settings.allowed_origins) or (origin is None and request.headers.get("sec-fetch-site") == "cross-site"):
+                return JSONResponse({"error": {"code": "origin_not_allowed", "message": "Адрес сайта не разрешён", "fields": []}}, status_code=403)
+            if request.url.path in ("/auth/register", "/auth/login") and request.headers.get("content-type", "").split(";")[0].strip().lower() != "application/json":
+                return JSONResponse({"error": {"code": "json_required", "message": "Передайте тело application/json", "fields": []}}, status_code=415)
+        response = await call_next(request)
+        if request.url.path.startswith("/auth/"):
+            response.headers["Cache-Control"] = "no-store"
+        return response
+
+    # CORS снаружи проверки Origin: фронт получает JSON ошибки и при разрешённом Origin.
+    app.add_middleware(
+        CORSMiddleware, allow_origins=list(settings.allowed_origins), allow_credentials=True,
+        allow_methods=["GET", "POST", "OPTIONS"], allow_headers=["Content-Type"],
+        expose_headers=["Retry-After"],
+    )
+
+    def limit_attempts(request, action):
+        ip = request.client.host if request.client else "unknown"
+        limit = settings.login_limit if action == "login" else settings.register_limit
+        retry = database.consume_attempt(action + ":" + digest(ip), int(time.time()), settings.rate_window_seconds, limit)
+        if retry:
+            raise error(429, "too_many_attempts", "Слишком много попыток. Попробуйте позже", {"Retry-After": str(retry)})
+
+    def new_session(connection, request, user_id):
+        now = int(time.time())
+        connection.execute("DELETE FROM sessions WHERE expires_at <= ?", (now,))
+        old = request.cookies.get(settings.cookie_name)
+        if old:
+            connection.execute("DELETE FROM sessions WHERE token_hash = ?", (digest(old),))
+        token = secrets.token_urlsafe(32)
+        connection.execute("INSERT INTO sessions VALUES (?, ?, ?)", (digest(token), user_id, now + settings.session_ttl_seconds))
+        return token
+
+    def set_cookie(response, token):
+        response.set_cookie(
+            settings.cookie_name, token, max_age=settings.session_ttl_seconds,
+            httponly=True, secure=settings.cookie_secure, samesite="lax", path="/",
+        )
+
+    @app.get("/health", tags=["Состояние"])
+    def health():
+        return {"status": "ok"}
+
+    @app.post("/auth/register", response_model=UserResponse, status_code=201, tags=["Авторизация"])
+    def register(payload: RegisterRequest, request: Request, response: Response):
+        limit_attempts(request, "register")
+        password_hash = app.state.password_hash.hash(payload.password.get_secret_value())
+        user = {"id": str(uuid.uuid4()), "email": str(payload.email), "name": payload.name, "created_at": datetime.now(timezone.utc).isoformat()}
+        try:
+            with database.connect() as connection:
+                connection.execute(
+                    "INSERT INTO users (id, email, name, password_hash, created_at) VALUES (?, ?, ?, ?, ?)",
+                    (user["id"], user["email"], user["name"], password_hash, user["created_at"]),
+                )
+                token = new_session(connection, request, user["id"])
+        except sqlite3.IntegrityError:
+            raise error(409, "email_already_registered", "Аккаунт с такой почтой уже существует")
+        set_cookie(response, token)
+        return {"user": user}
+
+    @app.post("/auth/login", response_model=UserResponse, tags=["Авторизация"])
+    def login(payload: Credentials, request: Request, response: Response):
+        limit_attempts(request, "login")
+        with database.connect() as connection:
+            row = connection.execute("SELECT * FROM users WHERE email = ?", (str(payload.email),)).fetchone()
+        stored_hash = row["password_hash"] if row else app.state.dummy_hash
+        valid = app.state.password_hash.verify(payload.password.get_secret_value(), stored_hash)
+        if row is None or not valid:
+            raise error(401, "invalid_credentials", "Неверная почта или пароль")
+        with database.connect() as connection:
+            token = new_session(connection, request, row["id"])
+        set_cookie(response, token)
+        return {"user": public_user(row)}
+
+    @app.get("/auth/me", response_model=UserResponse, tags=["Авторизация"])
+    def me(user=Depends(require_user)):
+        return {"user": user}
+
+    @app.post("/auth/logout", status_code=204, tags=["Авторизация"])
+    def logout(request: Request):
+        token = request.cookies.get(settings.cookie_name)
+        if token:
+            with database.connect() as connection:
+                connection.execute("DELETE FROM sessions WHERE token_hash = ?", (digest(token),))
+        response = Response(status_code=204)
+        response.delete_cookie(settings.cookie_name, path="/", httponly=True, secure=settings.cookie_secure, samesite="lax")
+        return response
+
+    return app
+
+
+app = create_app()

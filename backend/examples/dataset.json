@@ -1,0 +1,21 @@
+{
+  "origin": "Москва",
+  "destination": "Брянск",
+  "cargo": "мука",
+  "status": "synthetic",
+  "source": {
+    "description": "Вымышленные условия для проверки программы, не рыночные ставки",
+    "prepared_date": "2026-11-07"
+  },
+  "spot_road": {
+    "capacity_tonnes": 20,
+    "rate_rub_per_trip": 30000,
+    "delivery_days": 1
+  },
+  "contract_road": {
+    "capacity_tonnes": 20,
+    "rate_rub_per_trip": 26000,
+    "delivery_days": 1,
+    "minimum_paid_trips_per_week": 2
+  }
+}

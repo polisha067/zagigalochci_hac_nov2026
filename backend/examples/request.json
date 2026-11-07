@@ -1,0 +1,9 @@
+{
+  "origin": "Москва",
+  "destination": "Брянск",
+  "cargo": "мука",
+  "batch_tonnes": 10,
+  "shipments_per_week": 2,
+  "horizon_weeks": 4,
+  "max_delivery_days": 2
+}

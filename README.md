@@ -11,6 +11,22 @@ python3 backend/run_demo.py
 
 Инструкция и ограничения: [backend/README.md](backend/README.md). Тарифы в примере вымышленные.
 
+## Регистрация и вход — для фронтенда
+
+Добавлен сервер FastAPI с SQLite и сессиями в HttpOnly-cookie.
+Полный контракт для Искандера: **[backend/AUTH.md](backend/AUTH.md)**.
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r backend/requirements.txt
+python -m uvicorn backend.app.main:app --reload
+```
+
+Документация после запуска: `http://localhost:8000/docs`.
+Доступны `POST /auth/register`, `POST /auth/login`, `GET /auth/me`, `POST /auth/logout`.
+Фронт отправляет запросы с `credentials: "include"`.
+
 ## Формулы расчёта перевозок — версия 0.1
 
 Это согласуемая расчётная модель для первой версии проекта. Все цены и сроки
