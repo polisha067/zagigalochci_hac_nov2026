@@ -58,6 +58,11 @@ class CalculatorTests(unittest.TestCase):
         compare_delivery(self.request, self.dataset)
         self.assertEqual((self.request, self.dataset), before)
 
+    def test_legacy_format_rejects_unsupported_conditions(self):
+        for field in ("stops", "cargoes", "schedule"):
+            with self.subTest(field=field), self.assertRaisesRegex(ValueError, "Старый формат"):
+                compare_delivery(dict(self.request, **{field: []}), self.dataset)
+
 
 if __name__ == "__main__":
     unittest.main()

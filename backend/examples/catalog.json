@@ -1,0 +1,135 @@
+{
+  "id": "synthetic-pilot-v2",
+  "status": "synthetic",
+  "sources": [
+    {
+      "id": "synthetic-demo-2026",
+      "status": "synthetic",
+      "date": "2026-11-07",
+      "description": "Вымышленные тарифы и возможности для проверки формул; не предложения перевозчиков. Налоги и состав услуг сопоставимы."
+    }
+  ],
+  "cargo_types": {
+    "flour": {
+      "name": "Мука",
+      "handling_profile": "dry_food"
+    },
+    "sugar": {
+      "name": "Сахар",
+      "handling_profile": "dry_food"
+    }
+  },
+  "compatibility": {
+    "flour|sugar": true
+  },
+  "spot_road": {
+    "available": true,
+    "capacity_tonnes": 20,
+    "capacity_m3": 80,
+    "available_vehicles_per_departure": 10,
+    "allowed_cargo_types": [
+      "flour",
+      "sugar"
+    ],
+    "source_id": "synthetic-demo-2026",
+    "valid_from": "2026-01-01",
+    "valid_until": "2027-12-31",
+    "dispatch_wait_hours": 0,
+    "stop_fee_rub_per_vehicle": 1000,
+    "handling_rub_per_tonne": 0,
+    "legs": [
+      {
+        "origin": "Москва",
+        "destination": "Брянск",
+        "rate_rub_per_vehicle": 30000,
+        "travel_hours": 24
+      },
+      {
+        "origin": "Москва",
+        "destination": "Калуга",
+        "rate_rub_per_vehicle": 15000,
+        "travel_hours": 8
+      },
+      {
+        "origin": "Калуга",
+        "destination": "Брянск",
+        "rate_rub_per_vehicle": 19000,
+        "travel_hours": 12
+      }
+    ],
+    "tariff_timezone": "Europe/Moscow"
+  },
+  "contract_road": {
+    "available": true,
+    "capacity_tonnes": 20,
+    "capacity_m3": 80,
+    "available_vehicles_per_departure": 10,
+    "allowed_cargo_types": [
+      "flour",
+      "sugar"
+    ],
+    "source_id": "synthetic-demo-2026",
+    "valid_from": "2026-01-01",
+    "valid_until": "2027-12-31",
+    "dispatch_wait_hours": 0,
+    "stop_fee_rub_per_vehicle": 1000,
+    "handling_rub_per_tonne": 0,
+    "minimum_paid_trips_per_week": 2,
+    "fixed_cost_rub": 0,
+    "billing_timezone": "Europe/Moscow",
+    "minimum_policy": "full_iso_week",
+    "legs": [
+      {
+        "origin": "Москва",
+        "destination": "Брянск",
+        "rate_rub_per_vehicle": 26000,
+        "travel_hours": 24
+      },
+      {
+        "origin": "Москва",
+        "destination": "Калуга",
+        "rate_rub_per_vehicle": 13000,
+        "travel_hours": 8
+      },
+      {
+        "origin": "Калуга",
+        "destination": "Брянск",
+        "rate_rub_per_vehicle": 16000,
+        "travel_hours": 12
+      }
+    ],
+    "tariff_timezone": "Europe/Moscow"
+  },
+  "road_rail_road": {
+    "available": true,
+    "origin": "Москва",
+    "destination": "Брянск",
+    "allowed_cargo_types": [
+      "flour",
+      "sugar"
+    ],
+    "source_id": "synthetic-demo-2026",
+    "valid_from": "2026-01-01",
+    "valid_until": "2027-12-31",
+    "minimum_batch_tonnes": 20,
+    "capacity_tonnes": 20,
+    "capacity_m3": 80,
+    "max_units_per_departure": 10,
+    "first_mile_capacity_tonnes": 20,
+    "first_mile_capacity_m3": 80,
+    "last_mile_capacity_tonnes": 20,
+    "last_mile_capacity_m3": 80,
+    "first_mile_rub_per_vehicle": 5000,
+    "last_mile_rub_per_vehicle": 6000,
+    "rail_rub_per_unit": 20000,
+    "terminal_rub_per_unit": 4000,
+    "storage_rub_per_tonne_day": 0,
+    "terminal_storage_rub_per_tonne_day": 0,
+    "before_rail_hours": 6,
+    "rail_and_after_hours": 66,
+    "departure_mode": "on_demand",
+    "tariff_timezone": "Europe/Moscow",
+    "max_first_mile_vehicles_per_departure": 10,
+    "max_last_mile_vehicles_per_departure": 10
+  }
+}

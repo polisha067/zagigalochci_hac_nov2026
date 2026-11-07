@@ -1,0 +1,35 @@
+{
+  "dataset_id": "synthetic-pilot-v2",
+  "route": [
+    {
+      "city": "Москва",
+      "service_hours": 0
+    },
+    {
+      "city": "Брянск",
+      "service_hours": 0
+    }
+  ],
+  "cargoes": [
+    {
+      "id": "flour-1",
+      "cargo_type": "flour",
+      "weight_tonnes": 10,
+      "load_at": 0,
+      "unload_at": 1,
+      "splittable": true
+    }
+  ],
+  "schedule": {
+    "mode": "regular",
+    "start_at": "2026-11-09T00:00:00+03:00",
+    "end_at": "2026-12-07T00:00:00+03:00",
+    "frequency": {
+      "count": 2,
+      "every": 1,
+      "unit": "week"
+    }
+  },
+  "max_delivery_hours": 48,
+  "capacity_basis": "mass_only"
+}

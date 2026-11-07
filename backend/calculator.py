@@ -16,6 +16,10 @@ def number(data, field, *, integer=False, zero=False):
 
 def compare_delivery(request, dataset):
     """Чистая функция: одинаковые входные данные дают одинаковый результат."""
+    allowed = {"origin", "destination", "cargo", "batch_tonnes", "shipments_per_week", "horizon_weeks", "max_delivery_days"}
+    extra = set(request) - allowed
+    if extra:
+        raise ValueError("Старый формат не поддерживает поля: " + ", ".join(sorted(extra)) + ". Используйте новый POST /calculations")
     for field in ("origin", "destination", "cargo"):
         if not isinstance(request.get(field), str) or not request[field].strip():
             raise ValueError(f"{field}: заполните поле")

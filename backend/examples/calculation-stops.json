@@ -1,0 +1,43 @@
+{
+  "dataset_id": "synthetic-pilot-v2",
+  "route": [
+    {
+      "city": "Москва",
+      "service_hours": 1
+    },
+    {
+      "city": "Калуга",
+      "service_hours": 2
+    },
+    {
+      "city": "Брянск",
+      "service_hours": 1
+    }
+  ],
+  "cargoes": [
+    {
+      "id": "flour-1",
+      "cargo_type": "flour",
+      "weight_tonnes": 10,
+      "volume_m3": 20,
+      "load_at": 0,
+      "unload_at": 1,
+      "splittable": true
+    },
+    {
+      "id": "sugar-1",
+      "cargo_type": "sugar",
+      "weight_tonnes": 15,
+      "volume_m3": 30,
+      "load_at": 1,
+      "unload_at": 2,
+      "splittable": true
+    }
+  ],
+  "schedule": {
+    "mode": "once",
+    "ready_at": "2026-11-09T09:00:00+03:00"
+  },
+  "max_delivery_hours": 48,
+  "capacity_basis": "mass_and_volume"
+}

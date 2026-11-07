@@ -17,6 +17,8 @@ from .database import Database
 from .mailer import MailDeliveryError, Mailer
 from .schemas import Credentials, ErrorResponse, RegisterRequest, ResendRequest, UserResponse, VerificationRequired, VerifyEmailRequest
 from .verification import VerificationProblem, VerificationService
+from backend.calculation_models import CalculationRequest, CalculationResponse, MAX_SHIPMENTS
+from backend.transport_calculator import compare_transport, load_catalog
 
 
 def digest(value):
@@ -59,12 +61,13 @@ def create_app(settings=None):
         app.state.dummy_hash = app.state.password_hash.hash(secrets.token_urlsafe(32))
         app.state.mailer = Mailer(settings)
         app.state.verification = VerificationService(database, settings, app.state.mailer)
+        app.state.calculation_catalog = load_catalog(settings.calculation_catalog_path)
         yield
 
     app = FastAPI(
         title="А1 — API команды",
-        version="0.2.0",
-        description="Регистрация и сессии. Запросы авторизации — JSON; браузер передаёт cookie с credentials: include.",
+        version="0.3.0",
+        description="Регистрация, сессии и расчёт перевозок. Браузер передаёт cookie с credentials: include. Демонстрационные тарифы синтетические.",
         lifespan=lifespan,
         responses={code: {"model": ErrorResponse} for code in (400, 401, 403, 409, 415, 422, 429, 503)},
     )
@@ -93,14 +96,15 @@ def create_app(settings=None):
 
     @app.middleware("http")
     async def browser_security(request, call_next):
-        if request.url.path.startswith("/auth/") and request.method not in ("GET", "HEAD", "OPTIONS"):
+        private_api = request.url.path.startswith(("/auth/", "/calculation"))
+        if private_api and request.method not in ("GET", "HEAD", "OPTIONS"):
             origin = request.headers.get("origin")
             if (origin is not None and origin not in settings.allowed_origins) or (origin is None and request.headers.get("sec-fetch-site") == "cross-site"):
                 return JSONResponse({"error": {"code": "origin_not_allowed", "message": "Адрес сайта не разрешён", "fields": []}}, status_code=403)
             if request.url.path != "/auth/logout" and request.headers.get("content-type", "").split(";")[0].strip().lower() != "application/json":
                 return JSONResponse({"error": {"code": "json_required", "message": "Передайте тело application/json", "fields": []}}, status_code=415)
         response = await call_next(request)
-        if request.url.path.startswith("/auth/"):
+        if private_api:
             response.headers["Cache-Control"] = "no-store"
         return response
 
@@ -208,6 +212,31 @@ def create_app(settings=None):
         response = Response(status_code=204)
         response.delete_cookie(settings.cookie_name, path="/", httponly=True, secure=settings.cookie_secure, samesite="lax")
         return response
+
+    @app.get("/calculation-options", tags=["Расчёты"])
+    def calculation_options(user=Depends(require_user)):
+        catalog = app.state.calculation_catalog
+        cities = sorted({leg[key] for scheme in ("spot_road", "contract_road") for leg in (catalog.get(scheme) or {}).get("legs", []) for key in ("origin", "destination")})
+        return {
+            "schema_version": "0.2", "dataset_id": catalog["id"], "data_status": catalog.get("status", "unspecified"),
+            "cities": cities,
+            "cargo_types": [{"id": key, "name": value.get("name", key)} for key, value in catalog["cargo_types"].items()],
+            "schedule_modes": ["once", "regular", "explicit"], "frequency_units": ["day", "week", "month"],
+            "capacity_bases": ["mass_only", "mass_and_volume"],
+            "limits": {"shipments": MAX_SHIPMENTS, "route_points": 12, "cargoes": 20, "horizon_days": 3660},
+            "sources": catalog["sources"],
+            "note": "Наличие города в списке не гарантирует тариф на любое сочетание пунктов",
+        }
+
+    @app.post("/calculations", response_model=CalculationResponse, tags=["Расчёты"])
+    def calculate(payload: CalculationRequest, user=Depends(require_user)):
+        retry = database.consume_attempt("calculate:" + user["id"], int(time.time()), 60, 30)
+        if retry:
+            raise error(429, "too_many_attempts", "Не более 30 расчётов в минуту", {"Retry-After": str(retry)})
+        try:
+            return compare_transport(payload, app.state.calculation_catalog)
+        except ValueError as exc:
+            raise error(422, "calculation_error", str(exc))
 
     return app
 
