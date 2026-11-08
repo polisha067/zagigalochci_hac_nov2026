@@ -1,0 +1,22 @@
+{
+  "engine": "chukotavia",
+  "origin": "Анадырь",
+  "destination": "Провидения",
+  "cargoes": [
+    {
+      "id": "boxes",
+      "name": "Книги в коробках",
+      "weight_tonnes": 0.1,
+      "volume_m3": 0.5,
+      "packaging": "boxes",
+      "max_piece_weight_kg": 10,
+      "hazardous": false,
+      "temperature_control_required": false
+    }
+  ],
+  "schedule": {
+    "mode": "once",
+    "ready_at": "2026-11-08T09:00:00+12:00"
+  },
+  "max_delivery_hours": 168
+}

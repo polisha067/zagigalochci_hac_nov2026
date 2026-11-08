@@ -290,6 +290,24 @@ def compare_transport(payload, catalog=None):
     catalog = catalog if catalog is not None else load_catalog()
     if request.dataset_id != catalog["id"]:
         raise ValueError("Неизвестный dataset_id: выберите доступный серверный набор")
+    # Compatibility adapter for the original three-scheme form: cargo is free text here too.
+    from backend.network.cargo import normalized_name
+    import hashlib
+    original_request = request
+    questions, cargoes = [], []
+    for original in request.cargoes:
+        item = original.model_copy(deep=True)
+        if item.name is not None:
+            matches = [key for key, value in catalog["cargo_types"].items()
+                       if normalized_name(item.name) in {normalized_name(alias) for alias in [key, value.get("name",key), *value.get("aliases",[])]}]
+            if len(matches) == 1 and (item.cargo_type is None or item.cargo_type == matches[0]):
+                item.cargo_type = matches[0]
+            else:
+                item.cargo_type = "unresolved-" + hashlib.sha256(item.name.encode()).hexdigest()[:16]
+                questions.append({"cargo_id":item.id,"fields":["name"],"code":"cargo_requires_details",
+                                  "message":"Нужно уточнить свойства и допуск груза; для подробного ввода используйте сетевой расчёт с engine=network"})
+        cargoes.append(item)
+    request = request.model_copy(update={"cargoes":cargoes})
     events, start, end = build_schedule(request.schedule)
     rows = profile(request)
     mass = sum((dec(item.weight_tonnes) for item in request.cargoes), Decimal(0))
@@ -322,7 +340,8 @@ def compare_transport(payload, catalog=None):
     if request.schedule.mode == "regular":
         warnings.append("Готовность распределена равномерно внутри каждого интервала. Для точных дат используйте explicit.")
     return {
-        "schema_version": "0.2", "calculation_mode": "scenario", "request": request.model_dump(mode="json"),
+        "schema_version": "0.2", "calculation_mode": "scenario", "request": original_request.model_dump(mode="json"),
+        "input_status": "needs_clarification" if questions else "ready", "clarifications": questions,
         "dataset_id": catalog["id"], "data_status": catalog.get("status", "unspecified"),
         "shipments": len(events), "total_volume_tonnes": float(volume),
         "planning_period": {"start_at": start.isoformat(), "end_at": end.isoformat(), "end_exclusive": True},

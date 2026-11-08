@@ -4,9 +4,11 @@ import hashlib
 import secrets
 import time
 import uuid
-from typing import Union
+from typing import Literal, Optional, Union
+import json
+from pathlib import Path
 
-from fastapi import Depends, FastAPI, HTTPException, Request, Response
+from fastapi import Depends, FastAPI, HTTPException, Request, Response, Query
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -19,6 +21,14 @@ from .schemas import Credentials, ErrorResponse, RegisterRequest, ResendRequest,
 from .verification import VerificationProblem, VerificationService
 from backend.calculation_models import CalculationRequest, CalculationResponse, MAX_SHIPMENTS
 from backend.transport_calculator import compare_transport, load_catalog
+from backend.network.models import NetworkRequest, NetworkResponse
+from backend.network.russia import RussiaRequest, RussiaResponse, load_russia
+from backend.network.pipeline import PipelineRequest, PipelineResponse, calculate_pipeline
+from backend.network.engine import calculate_network
+from backend.network.graph import CATEGORIES, load_network
+from backend.network.observations import coverage
+from backend.network.asop import read_asop
+from backend.network.chukotavia import ChukotaviaData, ChukotaviaRequest, ChukotaviaResponse, calculate_chukotavia
 
 
 def digest(value):
@@ -62,12 +72,16 @@ def create_app(settings=None):
         app.state.mailer = Mailer(settings)
         app.state.verification = VerificationService(database, settings, app.state.mailer)
         app.state.calculation_catalog = load_catalog(settings.calculation_catalog_path)
+        app.state.network = load_network(settings.network_catalog_path)
+        app.state.chukotavia = ChukotaviaData()
+        river_network = load_network(Path(__file__).resolve().parents[1]/"data_sources/river/network.json")
+        app.state.networks = {river_network.catalog.id: river_network, app.state.network.catalog.id: app.state.network}
         yield
 
     app = FastAPI(
         title="А1 — API команды",
-        version="0.3.0",
-        description="Регистрация, сессии и расчёт перевозок. Браузер передаёт cookie с credentials: include. Демонстрационные тарифы синтетические.",
+        version="0.5.0",
+        description="Регистрация, сессии и расчёт перевозок. Браузер передаёт cookie с credentials: include. Учебная сеть использует синтетические тарифы; авиационный метод ЧукотАВИА — отдельный снимок опубликованных тарифов и расписаний без подтверждённого бронирования.",
         lifespan=lifespan,
         responses={code: {"model": ErrorResponse} for code in (400, 401, 403, 409, 415, 422, 429, 503)},
     )
@@ -96,12 +110,17 @@ def create_app(settings=None):
 
     @app.middleware("http")
     async def browser_security(request, call_next):
-        private_api = request.url.path.startswith(("/auth/", "/calculation"))
+        # root_path is added by the /api reverse proxy deployment.
+        path = request.scope["path"]
+        root_path = request.scope.get("root_path", "").rstrip("/")
+        if root_path and path.startswith(root_path + "/"):
+            path = path[len(root_path):]
+        private_api = path.startswith(("/auth/", "/calculation", "/network/"))
         if private_api and request.method not in ("GET", "HEAD", "OPTIONS"):
             origin = request.headers.get("origin")
             if (origin is not None and origin not in settings.allowed_origins) or (origin is None and request.headers.get("sec-fetch-site") == "cross-site"):
                 return JSONResponse({"error": {"code": "origin_not_allowed", "message": "Адрес сайта не разрешён", "fields": []}}, status_code=403)
-            if request.url.path != "/auth/logout" and request.headers.get("content-type", "").split(";")[0].strip().lower() != "application/json":
+            if path != "/auth/logout" and request.headers.get("content-type", "").split(";")[0].strip().lower() != "application/json":
                 return JSONResponse({"error": {"code": "json_required", "message": "Передайте тело application/json", "fields": []}}, status_code=415)
         response = await call_next(request)
         if private_api:
@@ -221,22 +240,123 @@ def create_app(settings=None):
             "schema_version": "0.2", "dataset_id": catalog["id"], "data_status": catalog.get("status", "unspecified"),
             "cities": cities,
             "cargo_types": [{"id": key, "name": value.get("name", key)} for key, value in catalog["cargo_types"].items()],
-            "schedule_modes": ["once", "regular", "explicit"], "frequency_units": ["day", "week", "month"],
+            "schedule_modes": ["once", "regular", "explicit"], "frequency_units": ["minute", "hour", "day", "week", "month"],
             "capacity_bases": ["mass_only", "mass_and_volume"],
             "limits": {"shipments": MAX_SHIPMENTS, "route_points": 12, "cargoes": 20, "horizon_days": 3660},
             "sources": catalog["sources"],
             "note": "Наличие города в списке не гарантирует тариф на любое сочетание пунктов",
+            "network_engine": {"engine":"network","endpoint":"/network/calculations","options":"/network/options","categories":[{"id":key,"name":name} for key,name in CATEGORIES]},
         }
 
-    @app.post("/calculations", response_model=CalculationResponse, tags=["Расчёты"])
-    def calculate(payload: CalculationRequest, user=Depends(require_user)):
+    def calculation_limit(user):
         retry = database.consume_attempt("calculate:" + user["id"], int(time.time()), 60, 30)
         if retry:
             raise error(429, "too_many_attempts", "Не более 30 расчётов в минуту", {"Retry-After": str(retry)})
+
+    def selected_network(network_id):
+        graph = app.state.networks.get(network_id)
+        if graph is None:
+            raise error(422, "unknown_network", "Неизвестный network_id: выберите сеть в /network/options")
+        return graph
+
+    @app.post("/calculations", response_model=Union[NetworkResponse, CalculationResponse, ChukotaviaResponse, RussiaResponse, PipelineResponse], tags=["Расчёты"])
+    def calculate(payload: Union[NetworkRequest, CalculationRequest, ChukotaviaRequest, RussiaRequest, PipelineRequest], user=Depends(require_user)):
+        calculation_limit(user)
         try:
-            return compare_transport(payload, app.state.calculation_catalog)
+            if isinstance(payload, PipelineRequest):
+                return calculate_pipeline(payload)
+            if isinstance(payload, RussiaRequest):
+                return load_russia().calculate(payload)
+            if isinstance(payload, ChukotaviaRequest):
+                return calculate_chukotavia(payload, app.state.chukotavia)
+            return calculate_network(payload,selected_network(payload.network_id)) if isinstance(payload,NetworkRequest) else compare_transport(payload, app.state.calculation_catalog)
         except ValueError as exc:
             raise error(422, "calculation_error", str(exc))
+
+    @app.post("/network/calculations",response_model=NetworkResponse,tags=["Сеть и цепочки"])
+    def network_calculate(payload: NetworkRequest,user=Depends(require_user)):
+        calculation_limit(user)
+        try:
+            return calculate_network(payload,selected_network(payload.network_id))
+        except ValueError as exc:
+            raise error(422,"calculation_error",str(exc))
+
+    @app.get("/network/options",tags=["Сеть и цепочки"])
+    def network_options(network_id: Optional[str] = None, user=Depends(require_user)):
+        graph=selected_network(network_id) if network_id else app.state.network
+        return {"schema_version":"0.3","network_id":graph.catalog.id,"fingerprint":graph.fingerprint,"coverage":graph.catalog.coverage,
+                "available_networks":[{"id":n.catalog.id,"coverage":n.catalog.coverage} for n in app.state.networks.values()],
+                "categories":[{"id":key,"name":name,"composed":key=="multimodal"} for key,name in CATEGORIES],
+                "hubs":[{"id":hub.id,"name":hub.name,"city":hub.city,"kind":hub.kind,"modes":hub.modes} for hub in graph.catalog.hubs],
+                "services":[{"id":s.id,"from_hub":s.from_hub,"to_hub":s.to_hub,"mode":s.mode} for s in graph.catalog.services],
+                "cargo_types":[{"id":key,"name":value.name,"aliases":value.aliases,"phase":value.phase,"packagings":value.packagings} for key,value in graph.catalog.cargo_types.items()],
+                "cargo_input":{"mode":"free_text","name_field":"name","suggestions_optional":True,"handling_profiles":[{"id":p,"name":{"dry_food":"Сухой пищевой груз","dry_general":"Сухой неопасный груз","test_liquid":"Учебная техническая жидкость"}.get(p,p)} for p in sorted({c.handling_profile for c in graph.catalog.cargo_types.values()})],"packagings":sorted({p for c in graph.catalog.cargo_types.values() for p in c.packagings})},
+                "schedule_options":{"modes":["once","regular","explicit"],"units":["minute","hour","day","week","month"],"every_supported":True,"explicit_dates_supported":True},
+                "limits":{"shipments":64,"legs":12,"paths":32,"group_sizes":4,"search_expansions":5000},
+                "settlement_planning":{"engine":"russia","options":"/network/russia/options","endpoint":"/network/russia/calculations","hubs":"/network/russia/hubs"},
+                "aviation_provider":{"id":"chukotavia","options":"/network/aviation/options","endpoint":"/network/aviation/calculations","booking_confirmed":False,"excluded_providers":["aerogruz"]},
+                "observations":coverage(settings.database_path.parent/"network-observations.sqlite3")}
+
+    @app.get("/network/russia/options", tags=["Общая сеть России"])
+    def russia_options(query: str = Query(default="", max_length=100), offset: int = Query(default=0, ge=0), limit: int = Query(default=50, ge=1, le=250), user=Depends(require_user)):
+        return load_russia().options(query, offset, limit)
+
+    @app.get("/network/russia/hubs", tags=["Общая сеть России"])
+    def russia_hubs(settlement: str = Query(max_length=100), user=Depends(require_user)):
+        network=load_russia();identifier=network.resolve(settlement)
+        if identifier is None:raise error(422,"unknown_settlement","Выберите населённый пункт из справочника")
+        return {"settlement":network.settlements[identifier],"hubs":[h for h in network.hubs.values() if h['settlement_id']==identifier],"automatic_hub_selection":True}
+
+    @app.get("/network/pipeline/options", tags=["Трубопровод"])
+    def pipeline_options(user=Depends(require_user)):
+        return load_russia().pipeline
+
+    @app.post("/network/pipeline/calculations", response_model=PipelineResponse, tags=["Трубопровод"])
+    def pipeline_calculate(payload: PipelineRequest, user=Depends(require_user)):
+        calculation_limit(user)
+        try:
+            return calculate_pipeline(payload)
+        except ValueError as exc:
+            raise error(422,"calculation_error",str(exc))
+
+    @app.get("/network/russia/reference-ports", tags=["Общая сеть России"])
+    def reference_ports(user=Depends(require_user)):
+        return {"ports":load_russia().reference_ports,"operational_services_inferred":False}
+
+    @app.post("/network/russia/calculations", response_model=RussiaResponse, tags=["Общая сеть России"])
+    def russia_calculate(payload: RussiaRequest, user=Depends(require_user)):
+        calculation_limit(user)
+        try:
+            return load_russia().calculate(payload)
+        except ValueError as exc:
+            raise error(422,"calculation_error",str(exc))
+
+    @app.get("/network/aviation/options", tags=["Авиация"])
+    def aviation_options(user=Depends(require_user)):
+        return app.state.chukotavia.options()
+
+    @app.post("/network/aviation/calculations", response_model=ChukotaviaResponse, tags=["Авиация"])
+    def aviation_calculate(payload: ChukotaviaRequest, user=Depends(require_user)):
+        calculation_limit(user)
+        try:
+            return calculate_chukotavia(payload, app.state.chukotavia)
+        except ValueError as exc:
+            raise error(422, "calculation_error", str(exc))
+
+    @app.get("/network/statistics/asop", tags=["Сеть и цепочки"])
+    def asop_statistics(
+        metric: Optional[Literal["port_inbound", "port_outbound", "basin", "direction", "dry_cargo", "liquid_cargo"]] = None,
+        year: Optional[int] = None,
+        period_kind: Literal["year", "Q1"] = "year",
+        source_file_id: Optional[str] = None,
+        include_flagged: bool = False,
+        user=Depends(require_user),
+    ):
+        return read_asop(settings.database_path.parent / "network-observations.sqlite3", metric, year, period_kind, source_file_id, include_flagged)
+
+    @app.get("/network/sources",tags=["Сеть и цепочки"])
+    def network_sources(user=Depends(require_user)):
+        return json.loads((Path(__file__).resolve().parents[1]/"data_sources/registry.json").read_text(encoding="utf-8"))
 
     return app
 

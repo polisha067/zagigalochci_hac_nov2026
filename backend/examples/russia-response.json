@@ -1,0 +1,2330 @@
+{
+  "schema_version": "1.0",
+  "engine": "russia",
+  "network_id": "russia-freight-2026-v1",
+  "network_fingerprint": "374e6431e57912aac1d43b10cb6f654c2f86655a686255465b9f183c974d4794",
+  "request": {
+    "engine": "russia",
+    "origin": "Москва",
+    "destination": "Брянск",
+    "stops": [],
+    "cargoes": [
+      {
+        "id": "flour",
+        "name": "Мука",
+        "cargo_type": null,
+        "properties": null,
+        "weight_tonnes": 10.0,
+        "volume_m3": 20.0,
+        "packaging": "bags",
+        "splittable": true,
+        "pickup_hub_id": null,
+        "delivery_hub_id": null,
+        "ready_offset_hours": 0.0,
+        "max_delivery_hours": null,
+        "shelf_life_hours": null,
+        "temperature_c": null,
+        "max_piece_tonnes": 0.025,
+        "max_piece_dimensions_m": [
+          0.5,
+          0.4,
+          0.2
+        ]
+      }
+    ],
+    "schedule": {
+      "mode": "once",
+      "ready_at": "2026-11-09T08:00:00+03:00"
+    },
+    "max_delivery_hours": 120.0,
+    "mass_basis": null,
+    "capacity_basis": "mass_and_volume",
+    "cost_basis": "including_vat",
+    "data_policy": "allow_assumptions",
+    "allowed_modes": [
+      "road",
+      "rail"
+    ],
+    "max_legs": 8,
+    "max_candidates": 8
+  },
+  "coverage": {
+    "settlements": 226,
+    "observed_settlements": 180,
+    "hubs": 410,
+    "connections_by_mode": {
+      "rail": 28056,
+      "road": 30108,
+      "air": 9997,
+      "river": 4,
+      "sea": 20,
+      "pipeline": 9
+    },
+    "observations": {
+      "usable": {
+        "rail": 28056,
+        "road": 29756,
+        "air": 6618
+      },
+      "missing_or_unusable": {
+        "air": 25602,
+        "rail": 4164,
+        "road": 2464
+      },
+      "rows": 96660
+    },
+    "ports_reference_only": 54,
+    "operational_connections_confirmed": false,
+    "geography": "Все пригодные направленные связи предоставленного набора; не все населённые пункты РФ",
+    "model": "Сценарная грузовая модель поверх исходной связности; реальные тарифы/даты провайдеров сохраняются отдельно",
+    "limitations": [
+      "FESCO: 5 рейсов FPKL и 15 рейсов FSKL из пользовательских PDF, только прямое направление; обратные прибытия не выведены из дат отхода.",
+      "FESCO: морской фрахт 200000 ₽/20-футовую единицу и параметры обработки/судна синтетические; предоставленные терминальные прайсы не считаются фрахтом.",
+      "FPKL 2640PK исключён: в строке не подтверждён терминал выгрузки. Время суток рейсов в PDF отсутствует и задано условно.",
+      "FSKL: опубликованные дедлайны документов и завоза учитываются отдельно в данных; условно документы готовы одновременно с обработанным грузом. Для FPKL дедлайн условный.",
+      "Отсутствующие связи не достраиваются по прямой линии.",
+      "Общие объёмы АСОП/Росстата не становятся тарифом или свободной мощностью."
+    ]
+  },
+  "settlements": [
+    "45000000000",
+    "15701000001"
+  ],
+  "clarifications": [],
+  "candidates": [
+    {
+      "id": "f7f0783ff09f7327",
+      "service_ids": [
+        "observation:rail:45000000000:15701000001"
+      ],
+      "modes": [
+        "rail"
+      ],
+      "group_size": 1,
+      "multimodal": false,
+      "status": "feasible",
+      "total_cost_rub": 23430.1,
+      "cost_rub_per_tonne": 2343.01,
+      "max_delivery_hours": 34.36,
+      "issues": [],
+      "complete": true,
+      "steps": [
+        {
+          "kind": "pickup_handling",
+          "hub_id": "tlc:45000000000",
+          "cargo_ids": [
+            "0:flour"
+          ],
+          "start_at": "2026-11-09T05:00:00+00:00",
+          "end_at": "2026-11-09T06:30:00+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "transport",
+          "service_id": "observation:rail:45000000000:15701000001",
+          "mode": "rail",
+          "from_hub": "tlc:45000000000",
+          "to_hub": "tlc:15701000001",
+          "cargo_ids": [
+            "0:flour"
+          ],
+          "weight_tonnes": 10.0,
+          "volume_m3": 20.0,
+          "units": 1,
+          "flow_hours": 0.0,
+          "ready_at": "2026-11-09T06:30:00+00:00",
+          "departure_at": "2026-11-10T00:00:00+00:00",
+          "arrival_at": "2026-11-10T13:51:36+00:00",
+          "wait_hours": 17.5,
+          "batch": 0
+        },
+        {
+          "kind": "delivery_handling",
+          "hub_id": "tlc:15701000001",
+          "cargo_ids": [
+            "0:flour"
+          ],
+          "start_at": "2026-11-10T13:51:36+00:00",
+          "end_at": "2026-11-10T15:21:36+00:00",
+          "batch": 0
+        }
+      ],
+      "deliveries": [
+        {
+          "cargo_instance_id": "0:flour",
+          "cargo_id": "flour",
+          "shipment": 0,
+          "weight_tonnes": 10.0,
+          "ready_at": "2026-11-09T05:00:00+00:00",
+          "delivered_at": "2026-11-10T15:21:36+00:00",
+          "delivery_hours": 34.36,
+          "hub_id": "tlc:15701000001"
+        }
+      ],
+      "cost_items": [
+        {
+          "kind": "pickup_handling",
+          "object_id": "tlc:45000000000",
+          "amount_rub": 2440.0,
+          "at": "2026-11-09T05:00:00+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "transport",
+          "object_id": "observation:rail:45000000000:15701000001",
+          "amount_rub": 18300.0,
+          "at": "2026-11-10T00:00:00+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "storage",
+          "object_id": "tlc:45000000000",
+          "amount_rub": 231.8,
+          "at": "2026-11-10T00:00:00+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "delivery_handling",
+          "object_id": "tlc:15701000001",
+          "amount_rub": 2440.0,
+          "at": "2026-11-10T13:51:36+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "storage",
+          "object_id": "tlc:15701000001",
+          "amount_rub": 18.3,
+          "at": "2026-11-10T15:21:36+00:00",
+          "batch": 0
+        }
+      ],
+      "source_ids": [
+        "russia-freight-assumptions-v1"
+      ],
+      "evidence_levels": [
+        "synthetic"
+      ],
+      "stop_actions": [],
+      "route_hubs": [
+        {
+          "id": "tlc:45000000000",
+          "settlement_id": "45000000000",
+          "name": "Сценарный ТЛЦ авто/ж/д — Москва",
+          "identity_status": "scenario"
+        },
+        {
+          "id": "tlc:15701000001",
+          "settlement_id": "15701000001",
+          "name": "Сценарный ТЛЦ авто/ж/д — Брянск",
+          "identity_status": "scenario"
+        }
+      ],
+      "connections": [
+        {
+          "id": "observation:rail:45000000000:15701000001",
+          "mode": "rail",
+          "kind": "observation",
+          "distance_km": 426.0,
+          "reference_metadata": {
+            "source_id": "source-01",
+            "observation_kind": "passenger_connectivity",
+            "freight_confirmed": false
+          },
+          "operational_status": "scenario"
+        }
+      ],
+      "calculation_mode": "scenario",
+      "booking_confirmed": false
+    },
+    {
+      "id": "ab2c4fb008d32029",
+      "service_ids": [
+        "observation:road:45000000000:15701000001"
+      ],
+      "modes": [
+        "road"
+      ],
+      "group_size": 1,
+      "multimodal": false,
+      "status": "feasible",
+      "total_cost_rub": 61463.6,
+      "cost_rub_per_tonne": 6146.36,
+      "max_delivery_hours": 14.1,
+      "issues": [],
+      "complete": true,
+      "steps": [
+        {
+          "kind": "pickup_handling",
+          "hub_id": "tlc:45000000000",
+          "cargo_ids": [
+            "0:flour"
+          ],
+          "start_at": "2026-11-09T05:00:00+00:00",
+          "end_at": "2026-11-09T06:30:00+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "transport",
+          "service_id": "observation:road:45000000000:15701000001",
+          "mode": "road",
+          "from_hub": "tlc:45000000000",
+          "to_hub": "tlc:15701000001",
+          "cargo_ids": [
+            "0:flour"
+          ],
+          "weight_tonnes": 10.0,
+          "volume_m3": 20.0,
+          "units": 1,
+          "flow_hours": 0.0,
+          "ready_at": "2026-11-09T06:30:00+00:00",
+          "departure_at": "2026-11-09T06:30:00+00:00",
+          "arrival_at": "2026-11-09T17:36:00+00:00",
+          "wait_hours": 0.0,
+          "batch": 0
+        },
+        {
+          "kind": "delivery_handling",
+          "hub_id": "tlc:15701000001",
+          "cargo_ids": [
+            "0:flour"
+          ],
+          "start_at": "2026-11-09T17:36:00+00:00",
+          "end_at": "2026-11-09T19:06:00+00:00",
+          "batch": 0
+        }
+      ],
+      "deliveries": [
+        {
+          "cargo_instance_id": "0:flour",
+          "cargo_id": "flour",
+          "shipment": 0,
+          "weight_tonnes": 10.0,
+          "ready_at": "2026-11-09T05:00:00+00:00",
+          "delivered_at": "2026-11-09T19:06:00+00:00",
+          "delivery_hours": 14.1,
+          "hub_id": "tlc:15701000001"
+        }
+      ],
+      "cost_items": [
+        {
+          "kind": "pickup_handling",
+          "object_id": "tlc:45000000000",
+          "amount_rub": 2440.0,
+          "at": "2026-11-09T05:00:00+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "transport",
+          "object_id": "observation:road:45000000000:15701000001",
+          "amount_rub": 56547.0,
+          "at": "2026-11-09T06:30:00+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "storage",
+          "object_id": "tlc:45000000000",
+          "amount_rub": 18.3,
+          "at": "2026-11-09T06:30:00+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "delivery_handling",
+          "object_id": "tlc:15701000001",
+          "amount_rub": 2440.0,
+          "at": "2026-11-09T17:36:00+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "storage",
+          "object_id": "tlc:15701000001",
+          "amount_rub": 18.3,
+          "at": "2026-11-09T19:06:00+00:00",
+          "batch": 0
+        }
+      ],
+      "source_ids": [
+        "russia-freight-assumptions-v1"
+      ],
+      "evidence_levels": [
+        "synthetic"
+      ],
+      "stop_actions": [],
+      "route_hubs": [
+        {
+          "id": "tlc:45000000000",
+          "settlement_id": "45000000000",
+          "name": "Сценарный ТЛЦ авто/ж/д — Москва",
+          "identity_status": "scenario"
+        },
+        {
+          "id": "tlc:15701000001",
+          "settlement_id": "15701000001",
+          "name": "Сценарный ТЛЦ авто/ж/д — Брянск",
+          "identity_status": "scenario"
+        }
+      ],
+      "connections": [
+        {
+          "id": "observation:road:45000000000:15701000001",
+          "mode": "road",
+          "kind": "observation",
+          "distance_km": 515.0,
+          "reference_metadata": {
+            "source_id": "source-01",
+            "observation_kind": "passenger_connectivity",
+            "freight_confirmed": false
+          },
+          "operational_status": "scenario"
+        }
+      ],
+      "calculation_mode": "scenario",
+      "booking_confirmed": false
+    },
+    {
+      "id": "3303212744f198d3",
+      "service_ids": [
+        "observation:rail:45000000000:46755000001",
+        "observation:road:46755000001:15701000001"
+      ],
+      "modes": [
+        "rail",
+        "road"
+      ],
+      "group_size": 1,
+      "multimodal": true,
+      "status": "feasible",
+      "total_cost_rub": 67551.4,
+      "cost_rub_per_tonne": 6755.14,
+      "max_delivery_hours": 34.72,
+      "issues": [],
+      "complete": true,
+      "steps": [
+        {
+          "kind": "pickup_handling",
+          "hub_id": "tlc:45000000000",
+          "cargo_ids": [
+            "0:flour"
+          ],
+          "start_at": "2026-11-09T05:00:00+00:00",
+          "end_at": "2026-11-09T06:30:00+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "transport",
+          "service_id": "observation:rail:45000000000:46755000001",
+          "mode": "rail",
+          "from_hub": "tlc:45000000000",
+          "to_hub": "tlc:46755000001",
+          "cargo_ids": [
+            "0:flour"
+          ],
+          "weight_tonnes": 10.0,
+          "volume_m3": 20.0,
+          "units": 1,
+          "flow_hours": 0.0,
+          "ready_at": "2026-11-09T06:30:00+00:00",
+          "departure_at": "2026-11-10T00:00:00+00:00",
+          "arrival_at": "2026-11-10T01:37:12+00:00",
+          "wait_hours": 17.5,
+          "batch": 0
+        },
+        {
+          "kind": "transfer",
+          "hub_id": "tlc:46755000001",
+          "cargo_ids": [
+            "0:flour"
+          ],
+          "start_at": "2026-11-10T01:37:12+00:00",
+          "end_at": "2026-11-10T06:07:12+00:00",
+          "batch": 0,
+          "transfer_id": "transfer:tlc:46755000001:rail:road"
+        },
+        {
+          "kind": "transport",
+          "service_id": "observation:road:46755000001:15701000001",
+          "mode": "road",
+          "from_hub": "tlc:46755000001",
+          "to_hub": "tlc:15701000001",
+          "cargo_ids": [
+            "0:flour"
+          ],
+          "weight_tonnes": 10.0,
+          "volume_m3": 20.0,
+          "units": 1,
+          "flow_hours": 0.0,
+          "ready_at": "2026-11-10T06:07:12+00:00",
+          "departure_at": "2026-11-10T06:07:12+00:00",
+          "arrival_at": "2026-11-10T14:13:12+00:00",
+          "wait_hours": 0.0,
+          "batch": 0
+        },
+        {
+          "kind": "delivery_handling",
+          "hub_id": "tlc:15701000001",
+          "cargo_ids": [
+            "0:flour"
+          ],
+          "start_at": "2026-11-10T14:13:12+00:00",
+          "end_at": "2026-11-10T15:43:12+00:00",
+          "batch": 0
+        }
+      ],
+      "deliveries": [
+        {
+          "cargo_instance_id": "0:flour",
+          "cargo_id": "flour",
+          "shipment": 0,
+          "weight_tonnes": 10.0,
+          "ready_at": "2026-11-09T05:00:00+00:00",
+          "delivered_at": "2026-11-10T15:43:12+00:00",
+          "delivery_hours": 34.72,
+          "hub_id": "tlc:15701000001"
+        }
+      ],
+      "cost_items": [
+        {
+          "kind": "pickup_handling",
+          "object_id": "tlc:45000000000",
+          "amount_rub": 2440.0,
+          "at": "2026-11-09T05:00:00+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "transport",
+          "object_id": "observation:rail:45000000000:46755000001",
+          "amount_rub": 18300.0,
+          "at": "2026-11-10T00:00:00+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "storage",
+          "object_id": "tlc:45000000000",
+          "amount_rub": 231.8,
+          "at": "2026-11-10T00:00:00+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "transfer",
+          "object_id": "tlc:46755000001",
+          "amount_rub": 3660.0,
+          "at": "2026-11-10T01:37:12+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "transport",
+          "object_id": "observation:road:46755000001:15701000001",
+          "amount_rub": 40406.4,
+          "at": "2026-11-10T06:07:12+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "storage",
+          "object_id": "tlc:46755000001",
+          "amount_rub": 54.9,
+          "at": "2026-11-10T06:07:12+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "delivery_handling",
+          "object_id": "tlc:15701000001",
+          "amount_rub": 2440.0,
+          "at": "2026-11-10T14:13:12+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "storage",
+          "object_id": "tlc:15701000001",
+          "amount_rub": 18.3,
+          "at": "2026-11-10T15:43:12+00:00",
+          "batch": 0
+        }
+      ],
+      "source_ids": [
+        "russia-freight-assumptions-v1"
+      ],
+      "evidence_levels": [
+        "synthetic"
+      ],
+      "stop_actions": [],
+      "route_hubs": [
+        {
+          "id": "tlc:45000000000",
+          "settlement_id": "45000000000",
+          "name": "Сценарный ТЛЦ авто/ж/д — Москва",
+          "identity_status": "scenario"
+        },
+        {
+          "id": "tlc:46755000001",
+          "settlement_id": "46755000001",
+          "name": "Сценарный ТЛЦ авто/ж/д — Одинцово",
+          "identity_status": "scenario"
+        },
+        {
+          "id": "tlc:15701000001",
+          "settlement_id": "15701000001",
+          "name": "Сценарный ТЛЦ авто/ж/д — Брянск",
+          "identity_status": "scenario"
+        }
+      ],
+      "connections": [
+        {
+          "id": "observation:rail:45000000000:46755000001",
+          "mode": "rail",
+          "kind": "observation",
+          "distance_km": 52.0,
+          "reference_metadata": {
+            "source_id": "source-01",
+            "observation_kind": "passenger_connectivity",
+            "freight_confirmed": false
+          },
+          "operational_status": "scenario"
+        },
+        {
+          "id": "observation:road:46755000001:15701000001",
+          "mode": "road",
+          "kind": "observation",
+          "distance_km": 368.0,
+          "reference_metadata": {
+            "source_id": "source-01",
+            "observation_kind": "passenger_connectivity",
+            "freight_confirmed": false
+          },
+          "operational_status": "scenario"
+        }
+      ],
+      "calculation_mode": "scenario",
+      "booking_confirmed": false
+    },
+    {
+      "id": "7365cc7f86f3e04b",
+      "service_ids": [
+        "observation:road:45000000000:29715000001",
+        "observation:road:29715000001:15701000001"
+      ],
+      "modes": [
+        "road",
+        "road"
+      ],
+      "group_size": 1,
+      "multimodal": false,
+      "status": "feasible",
+      "total_cost_rub": 51197.3,
+      "cost_rub_per_tonne": 5119.73,
+      "max_delivery_hours": 13.8,
+      "issues": [],
+      "complete": true,
+      "steps": [
+        {
+          "kind": "pickup_handling",
+          "hub_id": "tlc:45000000000",
+          "cargo_ids": [
+            "0:flour"
+          ],
+          "start_at": "2026-11-09T05:00:00+00:00",
+          "end_at": "2026-11-09T06:30:00+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "transport",
+          "service_id": "observation:road:45000000000:29715000001",
+          "mode": "road",
+          "from_hub": "tlc:45000000000",
+          "to_hub": "tlc:29715000001",
+          "cargo_ids": [
+            "0:flour"
+          ],
+          "weight_tonnes": 10.0,
+          "volume_m3": 20.0,
+          "units": 1,
+          "flow_hours": 0.0,
+          "ready_at": "2026-11-09T06:30:00+00:00",
+          "departure_at": "2026-11-09T06:30:00+00:00",
+          "arrival_at": "2026-11-09T09:21:00+00:00",
+          "wait_hours": 0.0,
+          "batch": 0
+        },
+        {
+          "kind": "transfer",
+          "hub_id": "tlc:29715000001",
+          "cargo_ids": [
+            "0:flour"
+          ],
+          "start_at": "2026-11-09T09:21:00+00:00",
+          "end_at": "2026-11-09T10:51:00+00:00",
+          "batch": 0,
+          "transfer_id": "transfer:tlc:29715000001:road:road"
+        },
+        {
+          "kind": "transport",
+          "service_id": "observation:road:29715000001:15701000001",
+          "mode": "road",
+          "from_hub": "tlc:29715000001",
+          "to_hub": "tlc:15701000001",
+          "cargo_ids": [
+            "0:flour"
+          ],
+          "weight_tonnes": 10.0,
+          "volume_m3": 20.0,
+          "units": 1,
+          "flow_hours": 0.0,
+          "ready_at": "2026-11-09T10:51:00+00:00",
+          "departure_at": "2026-11-09T10:51:00+00:00",
+          "arrival_at": "2026-11-09T17:18:00+00:00",
+          "wait_hours": 0.0,
+          "batch": 0
+        },
+        {
+          "kind": "delivery_handling",
+          "hub_id": "tlc:15701000001",
+          "cargo_ids": [
+            "0:flour"
+          ],
+          "start_at": "2026-11-09T17:18:00+00:00",
+          "end_at": "2026-11-09T18:48:00+00:00",
+          "batch": 0
+        }
+      ],
+      "deliveries": [
+        {
+          "cargo_instance_id": "0:flour",
+          "cargo_id": "flour",
+          "shipment": 0,
+          "weight_tonnes": 10.0,
+          "ready_at": "2026-11-09T05:00:00+00:00",
+          "delivered_at": "2026-11-09T18:48:00+00:00",
+          "delivery_hours": 13.8,
+          "hub_id": "tlc:15701000001"
+        }
+      ],
+      "cost_items": [
+        {
+          "kind": "pickup_handling",
+          "object_id": "tlc:45000000000",
+          "amount_rub": 2440.0,
+          "at": "2026-11-09T05:00:00+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "transport",
+          "object_id": "observation:road:45000000000:29715000001",
+          "amount_rub": 11638.8,
+          "at": "2026-11-09T06:30:00+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "storage",
+          "object_id": "tlc:45000000000",
+          "amount_rub": 18.3,
+          "at": "2026-11-09T06:30:00+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "transfer",
+          "object_id": "tlc:29715000001",
+          "amount_rub": 3660.0,
+          "at": "2026-11-09T09:21:00+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "transport",
+          "object_id": "observation:road:29715000001:15701000001",
+          "amount_rub": 30963.6,
+          "at": "2026-11-09T10:51:00+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "storage",
+          "object_id": "tlc:29715000001",
+          "amount_rub": 18.3,
+          "at": "2026-11-09T10:51:00+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "delivery_handling",
+          "object_id": "tlc:15701000001",
+          "amount_rub": 2440.0,
+          "at": "2026-11-09T17:18:00+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "storage",
+          "object_id": "tlc:15701000001",
+          "amount_rub": 18.3,
+          "at": "2026-11-09T18:48:00+00:00",
+          "batch": 0
+        }
+      ],
+      "source_ids": [
+        "russia-freight-assumptions-v1"
+      ],
+      "evidence_levels": [
+        "synthetic"
+      ],
+      "stop_actions": [],
+      "route_hubs": [
+        {
+          "id": "tlc:45000000000",
+          "settlement_id": "45000000000",
+          "name": "Сценарный ТЛЦ авто/ж/д — Москва",
+          "identity_status": "scenario"
+        },
+        {
+          "id": "tlc:29715000001",
+          "settlement_id": "29715000001",
+          "name": "Сценарный ТЛЦ авто/ж/д — Обнинск",
+          "identity_status": "scenario"
+        },
+        {
+          "id": "tlc:15701000001",
+          "settlement_id": "15701000001",
+          "name": "Сценарный ТЛЦ авто/ж/д — Брянск",
+          "identity_status": "scenario"
+        }
+      ],
+      "connections": [
+        {
+          "id": "observation:road:45000000000:29715000001",
+          "mode": "road",
+          "kind": "observation",
+          "distance_km": 106.0,
+          "reference_metadata": {
+            "source_id": "source-01",
+            "observation_kind": "passenger_connectivity",
+            "freight_confirmed": false
+          },
+          "operational_status": "scenario"
+        },
+        {
+          "id": "observation:road:29715000001:15701000001",
+          "mode": "road",
+          "kind": "observation",
+          "distance_km": 282.0,
+          "reference_metadata": {
+            "source_id": "source-01",
+            "observation_kind": "passenger_connectivity",
+            "freight_confirmed": false
+          },
+          "operational_status": "scenario"
+        }
+      ],
+      "calculation_mode": "scenario",
+      "booking_confirmed": false
+    },
+    {
+      "id": "87306a115bebe43f",
+      "service_ids": [
+        "observation:rail:45000000000:29715000001",
+        "observation:rail:29715000001:15701000001"
+      ],
+      "modes": [
+        "rail",
+        "rail"
+      ],
+      "group_size": 1,
+      "multimodal": false,
+      "status": "feasible",
+      "total_cost_rub": 45628.0,
+      "cost_rub_per_tonne": 4562.8,
+      "max_delivery_hours": 54.04,
+      "issues": [],
+      "complete": true,
+      "steps": [
+        {
+          "kind": "pickup_handling",
+          "hub_id": "tlc:45000000000",
+          "cargo_ids": [
+            "0:flour"
+          ],
+          "start_at": "2026-11-09T05:00:00+00:00",
+          "end_at": "2026-11-09T06:30:00+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "transport",
+          "service_id": "observation:rail:45000000000:29715000001",
+          "mode": "rail",
+          "from_hub": "tlc:45000000000",
+          "to_hub": "tlc:29715000001",
+          "cargo_ids": [
+            "0:flour"
+          ],
+          "weight_tonnes": 10.0,
+          "volume_m3": 20.0,
+          "units": 1,
+          "flow_hours": 0.0,
+          "ready_at": "2026-11-09T06:30:00+00:00",
+          "departure_at": "2026-11-10T00:00:00+00:00",
+          "arrival_at": "2026-11-10T04:30:00+00:00",
+          "wait_hours": 17.5,
+          "batch": 0
+        },
+        {
+          "kind": "transfer",
+          "hub_id": "tlc:29715000001",
+          "cargo_ids": [
+            "0:flour"
+          ],
+          "start_at": "2026-11-10T04:30:00+00:00",
+          "end_at": "2026-11-10T06:00:00+00:00",
+          "batch": 0,
+          "transfer_id": "transfer:tlc:29715000001:rail:rail"
+        },
+        {
+          "kind": "transport",
+          "service_id": "observation:rail:29715000001:15701000001",
+          "mode": "rail",
+          "from_hub": "tlc:29715000001",
+          "to_hub": "tlc:15701000001",
+          "cargo_ids": [
+            "0:flour"
+          ],
+          "weight_tonnes": 10.0,
+          "volume_m3": 20.0,
+          "units": 1,
+          "flow_hours": 0.0,
+          "ready_at": "2026-11-10T06:00:00+00:00",
+          "departure_at": "2026-11-11T00:00:00+00:00",
+          "arrival_at": "2026-11-11T09:32:24+00:00",
+          "wait_hours": 18.0,
+          "batch": 0
+        },
+        {
+          "kind": "delivery_handling",
+          "hub_id": "tlc:15701000001",
+          "cargo_ids": [
+            "0:flour"
+          ],
+          "start_at": "2026-11-11T09:32:24+00:00",
+          "end_at": "2026-11-11T11:02:24+00:00",
+          "batch": 0
+        }
+      ],
+      "deliveries": [
+        {
+          "cargo_instance_id": "0:flour",
+          "cargo_id": "flour",
+          "shipment": 0,
+          "weight_tonnes": 10.0,
+          "ready_at": "2026-11-09T05:00:00+00:00",
+          "delivered_at": "2026-11-11T11:02:24+00:00",
+          "delivery_hours": 54.04,
+          "hub_id": "tlc:15701000001"
+        }
+      ],
+      "cost_items": [
+        {
+          "kind": "pickup_handling",
+          "object_id": "tlc:45000000000",
+          "amount_rub": 2440.0,
+          "at": "2026-11-09T05:00:00+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "transport",
+          "object_id": "observation:rail:45000000000:29715000001",
+          "amount_rub": 18300.0,
+          "at": "2026-11-10T00:00:00+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "storage",
+          "object_id": "tlc:45000000000",
+          "amount_rub": 231.8,
+          "at": "2026-11-10T00:00:00+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "transfer",
+          "object_id": "tlc:29715000001",
+          "amount_rub": 3660.0,
+          "at": "2026-11-10T04:30:00+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "transport",
+          "object_id": "observation:rail:29715000001:15701000001",
+          "amount_rub": 18300.0,
+          "at": "2026-11-11T00:00:00+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "storage",
+          "object_id": "tlc:29715000001",
+          "amount_rub": 237.9,
+          "at": "2026-11-11T00:00:00+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "delivery_handling",
+          "object_id": "tlc:15701000001",
+          "amount_rub": 2440.0,
+          "at": "2026-11-11T09:32:24+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "storage",
+          "object_id": "tlc:15701000001",
+          "amount_rub": 18.3,
+          "at": "2026-11-11T11:02:24+00:00",
+          "batch": 0
+        }
+      ],
+      "source_ids": [
+        "russia-freight-assumptions-v1"
+      ],
+      "evidence_levels": [
+        "synthetic"
+      ],
+      "stop_actions": [],
+      "route_hubs": [
+        {
+          "id": "tlc:45000000000",
+          "settlement_id": "45000000000",
+          "name": "Сценарный ТЛЦ авто/ж/д — Москва",
+          "identity_status": "scenario"
+        },
+        {
+          "id": "tlc:29715000001",
+          "settlement_id": "29715000001",
+          "name": "Сценарный ТЛЦ авто/ж/д — Обнинск",
+          "identity_status": "scenario"
+        },
+        {
+          "id": "tlc:15701000001",
+          "settlement_id": "15701000001",
+          "name": "Сценарный ТЛЦ авто/ж/д — Брянск",
+          "identity_status": "scenario"
+        }
+      ],
+      "connections": [
+        {
+          "id": "observation:rail:45000000000:29715000001",
+          "mode": "rail",
+          "kind": "observation",
+          "distance_km": 136.0,
+          "reference_metadata": {
+            "source_id": "source-01",
+            "observation_kind": "passenger_connectivity",
+            "freight_confirmed": false
+          },
+          "operational_status": "scenario"
+        },
+        {
+          "id": "observation:rail:29715000001:15701000001",
+          "mode": "rail",
+          "kind": "observation",
+          "distance_km": 290.0,
+          "reference_metadata": {
+            "source_id": "source-01",
+            "observation_kind": "passenger_connectivity",
+            "freight_confirmed": false
+          },
+          "operational_status": "scenario"
+        }
+      ],
+      "calculation_mode": "scenario",
+      "booking_confirmed": false
+    },
+    {
+      "id": "d9fefae9ce131fe7",
+      "service_ids": [
+        "observation:rail:45000000000:46707000001",
+        "observation:road:46707000001:15701000001"
+      ],
+      "modes": [
+        "rail",
+        "road"
+      ],
+      "group_size": 1,
+      "multimodal": true,
+      "status": "feasible",
+      "total_cost_rub": 69747.4,
+      "cost_rub_per_tonne": 6974.74,
+      "max_delivery_hours": 34.99,
+      "issues": [],
+      "complete": true,
+      "steps": [
+        {
+          "kind": "pickup_handling",
+          "hub_id": "tlc:45000000000",
+          "cargo_ids": [
+            "0:flour"
+          ],
+          "start_at": "2026-11-09T05:00:00+00:00",
+          "end_at": "2026-11-09T06:30:00+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "transport",
+          "service_id": "observation:rail:45000000000:46707000001",
+          "mode": "rail",
+          "from_hub": "tlc:45000000000",
+          "to_hub": "tlc:46707000001",
+          "cargo_ids": [
+            "0:flour"
+          ],
+          "weight_tonnes": 10.0,
+          "volume_m3": 20.0,
+          "units": 1,
+          "flow_hours": 0.0,
+          "ready_at": "2026-11-09T06:30:00+00:00",
+          "departure_at": "2026-11-10T00:00:00+00:00",
+          "arrival_at": "2026-11-10T01:26:24+00:00",
+          "wait_hours": 17.5,
+          "batch": 0
+        },
+        {
+          "kind": "transfer",
+          "hub_id": "tlc:46707000001",
+          "cargo_ids": [
+            "0:flour"
+          ],
+          "start_at": "2026-11-10T01:26:24+00:00",
+          "end_at": "2026-11-10T05:56:24+00:00",
+          "batch": 0,
+          "transfer_id": "transfer:tlc:46707000001:rail:road"
+        },
+        {
+          "kind": "transport",
+          "service_id": "observation:road:46707000001:15701000001",
+          "mode": "road",
+          "from_hub": "tlc:46707000001",
+          "to_hub": "tlc:15701000001",
+          "cargo_ids": [
+            "0:flour"
+          ],
+          "weight_tonnes": 10.0,
+          "volume_m3": 20.0,
+          "units": 1,
+          "flow_hours": 0.0,
+          "ready_at": "2026-11-10T05:56:24+00:00",
+          "departure_at": "2026-11-10T05:56:24+00:00",
+          "arrival_at": "2026-11-10T14:29:24+00:00",
+          "wait_hours": 0.0,
+          "batch": 0
+        },
+        {
+          "kind": "delivery_handling",
+          "hub_id": "tlc:15701000001",
+          "cargo_ids": [
+            "0:flour"
+          ],
+          "start_at": "2026-11-10T14:29:24+00:00",
+          "end_at": "2026-11-10T15:59:24+00:00",
+          "batch": 0
+        }
+      ],
+      "deliveries": [
+        {
+          "cargo_instance_id": "0:flour",
+          "cargo_id": "flour",
+          "shipment": 0,
+          "weight_tonnes": 10.0,
+          "ready_at": "2026-11-09T05:00:00+00:00",
+          "delivered_at": "2026-11-10T15:59:24+00:00",
+          "delivery_hours": 34.99,
+          "hub_id": "tlc:15701000001"
+        }
+      ],
+      "cost_items": [
+        {
+          "kind": "pickup_handling",
+          "object_id": "tlc:45000000000",
+          "amount_rub": 2440.0,
+          "at": "2026-11-09T05:00:00+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "transport",
+          "object_id": "observation:rail:45000000000:46707000001",
+          "amount_rub": 18300.0,
+          "at": "2026-11-10T00:00:00+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "storage",
+          "object_id": "tlc:45000000000",
+          "amount_rub": 231.8,
+          "at": "2026-11-10T00:00:00+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "transfer",
+          "object_id": "tlc:46707000001",
+          "amount_rub": 3660.0,
+          "at": "2026-11-10T01:26:24+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "transport",
+          "object_id": "observation:road:46707000001:15701000001",
+          "amount_rub": 42602.4,
+          "at": "2026-11-10T05:56:24+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "storage",
+          "object_id": "tlc:46707000001",
+          "amount_rub": 54.9,
+          "at": "2026-11-10T05:56:24+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "delivery_handling",
+          "object_id": "tlc:15701000001",
+          "amount_rub": 2440.0,
+          "at": "2026-11-10T14:29:24+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "storage",
+          "object_id": "tlc:15701000001",
+          "amount_rub": 18.3,
+          "at": "2026-11-10T15:59:24+00:00",
+          "batch": 0
+        }
+      ],
+      "source_ids": [
+        "russia-freight-assumptions-v1"
+      ],
+      "evidence_levels": [
+        "synthetic"
+      ],
+      "stop_actions": [],
+      "route_hubs": [
+        {
+          "id": "tlc:45000000000",
+          "settlement_id": "45000000000",
+          "name": "Сценарный ТЛЦ авто/ж/д — Москва",
+          "identity_status": "scenario"
+        },
+        {
+          "id": "tlc:46707000001",
+          "settlement_id": "46707000001",
+          "name": "Сценарный ТЛЦ авто/ж/д — Видное",
+          "identity_status": "scenario"
+        },
+        {
+          "id": "tlc:15701000001",
+          "settlement_id": "15701000001",
+          "name": "Сценарный ТЛЦ авто/ж/д — Брянск",
+          "identity_status": "scenario"
+        }
+      ],
+      "connections": [
+        {
+          "id": "observation:rail:45000000000:46707000001",
+          "mode": "rail",
+          "kind": "observation",
+          "distance_km": 44.0,
+          "reference_metadata": {
+            "source_id": "source-01",
+            "observation_kind": "passenger_connectivity",
+            "freight_confirmed": false
+          },
+          "operational_status": "scenario"
+        },
+        {
+          "id": "observation:road:46707000001:15701000001",
+          "mode": "road",
+          "kind": "observation",
+          "distance_km": 388.0,
+          "reference_metadata": {
+            "source_id": "source-01",
+            "observation_kind": "passenger_connectivity",
+            "freight_confirmed": false
+          },
+          "operational_status": "scenario"
+        }
+      ],
+      "calculation_mode": "scenario",
+      "booking_confirmed": false
+    },
+    {
+      "id": "93b5f548feec605b",
+      "service_ids": [
+        "observation:road:45000000000:46755000001",
+        "observation:road:46755000001:15701000001"
+      ],
+      "modes": [
+        "road",
+        "road"
+      ],
+      "group_size": 1,
+      "multimodal": false,
+      "status": "feasible",
+      "total_cost_rub": 55101.3,
+      "cost_rub_per_tonne": 5510.13,
+      "max_delivery_hours": 13.95,
+      "issues": [],
+      "complete": true,
+      "steps": [
+        {
+          "kind": "pickup_handling",
+          "hub_id": "tlc:45000000000",
+          "cargo_ids": [
+            "0:flour"
+          ],
+          "start_at": "2026-11-09T05:00:00+00:00",
+          "end_at": "2026-11-09T06:30:00+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "transport",
+          "service_id": "observation:road:45000000000:46755000001",
+          "mode": "road",
+          "from_hub": "tlc:45000000000",
+          "to_hub": "tlc:46755000001",
+          "cargo_ids": [
+            "0:flour"
+          ],
+          "weight_tonnes": 10.0,
+          "volume_m3": 20.0,
+          "units": 1,
+          "flow_hours": 0.0,
+          "ready_at": "2026-11-09T06:30:00+00:00",
+          "departure_at": "2026-11-09T06:30:00+00:00",
+          "arrival_at": "2026-11-09T07:51:00+00:00",
+          "wait_hours": 0.0,
+          "batch": 0
+        },
+        {
+          "kind": "transfer",
+          "hub_id": "tlc:46755000001",
+          "cargo_ids": [
+            "0:flour"
+          ],
+          "start_at": "2026-11-09T07:51:00+00:00",
+          "end_at": "2026-11-09T09:21:00+00:00",
+          "batch": 0,
+          "transfer_id": "transfer:tlc:46755000001:road:road"
+        },
+        {
+          "kind": "transport",
+          "service_id": "observation:road:46755000001:15701000001",
+          "mode": "road",
+          "from_hub": "tlc:46755000001",
+          "to_hub": "tlc:15701000001",
+          "cargo_ids": [
+            "0:flour"
+          ],
+          "weight_tonnes": 10.0,
+          "volume_m3": 20.0,
+          "units": 1,
+          "flow_hours": 0.0,
+          "ready_at": "2026-11-09T09:21:00+00:00",
+          "departure_at": "2026-11-09T09:21:00+00:00",
+          "arrival_at": "2026-11-09T17:27:00+00:00",
+          "wait_hours": 0.0,
+          "batch": 0
+        },
+        {
+          "kind": "delivery_handling",
+          "hub_id": "tlc:15701000001",
+          "cargo_ids": [
+            "0:flour"
+          ],
+          "start_at": "2026-11-09T17:27:00+00:00",
+          "end_at": "2026-11-09T18:57:00+00:00",
+          "batch": 0
+        }
+      ],
+      "deliveries": [
+        {
+          "cargo_instance_id": "0:flour",
+          "cargo_id": "flour",
+          "shipment": 0,
+          "weight_tonnes": 10.0,
+          "ready_at": "2026-11-09T05:00:00+00:00",
+          "delivered_at": "2026-11-09T18:57:00+00:00",
+          "delivery_hours": 13.95,
+          "hub_id": "tlc:15701000001"
+        }
+      ],
+      "cost_items": [
+        {
+          "kind": "pickup_handling",
+          "object_id": "tlc:45000000000",
+          "amount_rub": 2440.0,
+          "at": "2026-11-09T05:00:00+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "transport",
+          "object_id": "observation:road:45000000000:46755000001",
+          "amount_rub": 6100.0,
+          "at": "2026-11-09T06:30:00+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "storage",
+          "object_id": "tlc:45000000000",
+          "amount_rub": 18.3,
+          "at": "2026-11-09T06:30:00+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "transfer",
+          "object_id": "tlc:46755000001",
+          "amount_rub": 3660.0,
+          "at": "2026-11-09T07:51:00+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "transport",
+          "object_id": "observation:road:46755000001:15701000001",
+          "amount_rub": 40406.4,
+          "at": "2026-11-09T09:21:00+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "storage",
+          "object_id": "tlc:46755000001",
+          "amount_rub": 18.3,
+          "at": "2026-11-09T09:21:00+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "delivery_handling",
+          "object_id": "tlc:15701000001",
+          "amount_rub": 2440.0,
+          "at": "2026-11-09T17:27:00+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "storage",
+          "object_id": "tlc:15701000001",
+          "amount_rub": 18.3,
+          "at": "2026-11-09T18:57:00+00:00",
+          "batch": 0
+        }
+      ],
+      "source_ids": [
+        "russia-freight-assumptions-v1"
+      ],
+      "evidence_levels": [
+        "synthetic"
+      ],
+      "stop_actions": [],
+      "route_hubs": [
+        {
+          "id": "tlc:45000000000",
+          "settlement_id": "45000000000",
+          "name": "Сценарный ТЛЦ авто/ж/д — Москва",
+          "identity_status": "scenario"
+        },
+        {
+          "id": "tlc:46755000001",
+          "settlement_id": "46755000001",
+          "name": "Сценарный ТЛЦ авто/ж/д — Одинцово",
+          "identity_status": "scenario"
+        },
+        {
+          "id": "tlc:15701000001",
+          "settlement_id": "15701000001",
+          "name": "Сценарный ТЛЦ авто/ж/д — Брянск",
+          "identity_status": "scenario"
+        }
+      ],
+      "connections": [
+        {
+          "id": "observation:road:45000000000:46755000001",
+          "mode": "road",
+          "kind": "observation",
+          "distance_km": 29.0,
+          "reference_metadata": {
+            "source_id": "source-01",
+            "observation_kind": "passenger_connectivity",
+            "freight_confirmed": false
+          },
+          "operational_status": "scenario"
+        },
+        {
+          "id": "observation:road:46755000001:15701000001",
+          "mode": "road",
+          "kind": "observation",
+          "distance_km": 368.0,
+          "reference_metadata": {
+            "source_id": "source-01",
+            "observation_kind": "passenger_connectivity",
+            "freight_confirmed": false
+          },
+          "operational_status": "scenario"
+        }
+      ],
+      "calculation_mode": "scenario",
+      "booking_confirmed": false
+    },
+    {
+      "id": "47431b7fb0f2c7e7",
+      "service_ids": [
+        "observation:rail:45000000000:46783000001",
+        "observation:rail:46783000001:15701000001"
+      ],
+      "modes": [
+        "rail",
+        "rail"
+      ],
+      "group_size": 1,
+      "multimodal": false,
+      "status": "feasible",
+      "total_cost_rub": 45671.92,
+      "cost_rub_per_tonne": 4567.19,
+      "max_delivery_hours": 58.0,
+      "issues": [],
+      "complete": true,
+      "steps": [
+        {
+          "kind": "pickup_handling",
+          "hub_id": "tlc:45000000000",
+          "cargo_ids": [
+            "0:flour"
+          ],
+          "start_at": "2026-11-09T05:00:00+00:00",
+          "end_at": "2026-11-09T06:30:00+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "transport",
+          "service_id": "observation:rail:45000000000:46783000001",
+          "mode": "rail",
+          "from_hub": "tlc:45000000000",
+          "to_hub": "tlc:46783000001",
+          "cargo_ids": [
+            "0:flour"
+          ],
+          "weight_tonnes": 10.0,
+          "volume_m3": 20.0,
+          "units": 1,
+          "flow_hours": 0.0,
+          "ready_at": "2026-11-09T06:30:00+00:00",
+          "departure_at": "2026-11-10T00:00:00+00:00",
+          "arrival_at": "2026-11-10T00:54:00+00:00",
+          "wait_hours": 17.5,
+          "batch": 0
+        },
+        {
+          "kind": "transfer",
+          "hub_id": "tlc:46783000001",
+          "cargo_ids": [
+            "0:flour"
+          ],
+          "start_at": "2026-11-10T00:54:00+00:00",
+          "end_at": "2026-11-10T02:24:00+00:00",
+          "batch": 0,
+          "transfer_id": "transfer:tlc:46783000001:rail:rail"
+        },
+        {
+          "kind": "transport",
+          "service_id": "observation:rail:46783000001:15701000001",
+          "mode": "rail",
+          "from_hub": "tlc:46783000001",
+          "to_hub": "tlc:15701000001",
+          "cargo_ids": [
+            "0:flour"
+          ],
+          "weight_tonnes": 10.0,
+          "volume_m3": 20.0,
+          "units": 1,
+          "flow_hours": 0.0,
+          "ready_at": "2026-11-10T02:24:00+00:00",
+          "departure_at": "2026-11-11T00:00:00+00:00",
+          "arrival_at": "2026-11-11T13:30:00+00:00",
+          "wait_hours": 21.6,
+          "batch": 0
+        },
+        {
+          "kind": "delivery_handling",
+          "hub_id": "tlc:15701000001",
+          "cargo_ids": [
+            "0:flour"
+          ],
+          "start_at": "2026-11-11T13:30:00+00:00",
+          "end_at": "2026-11-11T15:00:00+00:00",
+          "batch": 0
+        }
+      ],
+      "deliveries": [
+        {
+          "cargo_instance_id": "0:flour",
+          "cargo_id": "flour",
+          "shipment": 0,
+          "weight_tonnes": 10.0,
+          "ready_at": "2026-11-09T05:00:00+00:00",
+          "delivered_at": "2026-11-11T15:00:00+00:00",
+          "delivery_hours": 58.0,
+          "hub_id": "tlc:15701000001"
+        }
+      ],
+      "cost_items": [
+        {
+          "kind": "pickup_handling",
+          "object_id": "tlc:45000000000",
+          "amount_rub": 2440.0,
+          "at": "2026-11-09T05:00:00+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "transport",
+          "object_id": "observation:rail:45000000000:46783000001",
+          "amount_rub": 18300.0,
+          "at": "2026-11-10T00:00:00+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "storage",
+          "object_id": "tlc:45000000000",
+          "amount_rub": 231.8,
+          "at": "2026-11-10T00:00:00+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "transfer",
+          "object_id": "tlc:46783000001",
+          "amount_rub": 3660.0,
+          "at": "2026-11-10T00:54:00+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "transport",
+          "object_id": "observation:rail:46783000001:15701000001",
+          "amount_rub": 18300.0,
+          "at": "2026-11-11T00:00:00+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "storage",
+          "object_id": "tlc:46783000001",
+          "amount_rub": 281.82,
+          "at": "2026-11-11T00:00:00+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "delivery_handling",
+          "object_id": "tlc:15701000001",
+          "amount_rub": 2440.0,
+          "at": "2026-11-11T13:30:00+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "storage",
+          "object_id": "tlc:15701000001",
+          "amount_rub": 18.3,
+          "at": "2026-11-11T15:00:00+00:00",
+          "batch": 0
+        }
+      ],
+      "source_ids": [
+        "russia-freight-assumptions-v1"
+      ],
+      "evidence_levels": [
+        "synthetic"
+      ],
+      "stop_actions": [],
+      "route_hubs": [
+        {
+          "id": "tlc:45000000000",
+          "settlement_id": "45000000000",
+          "name": "Сценарный ТЛЦ авто/ж/д — Москва",
+          "identity_status": "scenario"
+        },
+        {
+          "id": "tlc:46783000001",
+          "settlement_id": "46783000001",
+          "name": "Сценарный ТЛЦ авто/ж/д — Химки",
+          "identity_status": "scenario"
+        },
+        {
+          "id": "tlc:15701000001",
+          "settlement_id": "15701000001",
+          "name": "Сценарный ТЛЦ авто/ж/д — Брянск",
+          "identity_status": "scenario"
+        }
+      ],
+      "connections": [
+        {
+          "id": "observation:rail:45000000000:46783000001",
+          "mode": "rail",
+          "kind": "observation",
+          "distance_km": 25.0,
+          "reference_metadata": {
+            "source_id": "source-01",
+            "observation_kind": "passenger_connectivity",
+            "freight_confirmed": false
+          },
+          "operational_status": "scenario"
+        },
+        {
+          "id": "observation:rail:46783000001:15701000001",
+          "mode": "rail",
+          "kind": "observation",
+          "distance_km": 415.0,
+          "reference_metadata": {
+            "source_id": "source-01",
+            "observation_kind": "passenger_connectivity",
+            "freight_confirmed": false
+          },
+          "operational_status": "scenario"
+        }
+      ],
+      "calculation_mode": "scenario",
+      "booking_confirmed": false
+    }
+  ],
+  "recommendation": "f7f0783ff09f7327",
+  "sources": [
+    {
+      "id": "source-01",
+      "url": "https://tochno.st/datasets/intercity_connectivity",
+      "roles": [
+        "connectivity_observation"
+      ],
+      "metadata": {
+        "id": "source-01",
+        "file_sha256": "4728d93b8d29925b433a84a7c91fedbe4665bc78e672a23dc185d01c1e41dbea",
+        "kind": "connectivity",
+        "imported_date": "2026-11-08",
+        "freight_services_created": 0,
+        "price_data_created": 0,
+        "rows": 96660,
+        "modes": {
+          "road": 32220,
+          "rail": 32220,
+          "air": 32220
+        },
+        "indicators": 0,
+        "cities": 180,
+        "missing_routes": 32230
+      }
+    },
+    {
+      "id": "russia-freight-assumptions-v1",
+      "status": "synthetic",
+      "roles": [
+        "hub",
+        "handling",
+        "transfer",
+        "freight_service",
+        "cargo_properties",
+        "tariff"
+      ],
+      "name": "Явная модель грузовой перевозки поверх наблюдений о связности",
+      "parameters": {
+        "road": {
+          "vehicle_tonnes": 20,
+          "vehicle_m3": 82,
+          "rub_per_vehicle_km": 90,
+          "minimum_vehicle_rub": 5000,
+          "passenger_time_multiplier": 1.5
+        },
+        "rail": {
+          "wagon_tonnes": 60,
+          "wagon_m3": 120,
+          "rub_per_tonne_km": 3,
+          "minimum_rub": 15000,
+          "passenger_time_multiplier": 1.8,
+          "dispatch_interval_hours": 24
+        },
+        "air_observation": {
+          "unit_tonnes": 1,
+          "unit_m3": 6,
+          "rub_per_kg": 450,
+          "minimum_rub": 10000,
+          "interval_hours": 24
+        },
+        "local_road_connector": {
+          "distance_km": 10,
+          "travel_hours": 1,
+          "status": "synthetic"
+        },
+        "handling": {
+          "fixed_hours": 1,
+          "tonnes_per_hour": 20,
+          "rub_per_tonne": 200,
+          "lanes": 2
+        },
+        "storage": {
+          "tonnes": 10000,
+          "m3": 50000,
+          "maximum_hours": 720,
+          "rub_per_tonne_hour": 1
+        },
+        "transfer": {
+          "same_mode_fixed_hours": 1,
+          "different_mode_fixed_hours": 4,
+          "rub_per_tonne": 300
+        },
+        "capacity": "8 units per departure or fleet; independent model, not bookable capacity",
+        "price_scope": "scenario includes modelled movement/handling/storage; no carrier quote",
+        "vat": ".22 scenario assumption except published inclusive ChukotAVIA and river tariffs"
+      },
+      "notes": [
+        "ТЛЦ/склад и его ёмкость — сценарные, а не подтверждение существования комплекса.",
+        "Связность пассажирских поездок не подтверждает грузовое сообщение.",
+        "Нет новых морских/речных соединений по одной лишь близости портов."
+      ]
+    },
+    {
+      "id": "trassa-express-river-2026",
+      "name": "Трасса-Экспресс: прайс-лист 2026",
+      "url": "https://trassa-express.com/PRAIS-LIST/",
+      "roles": [
+        "tariff"
+      ],
+      "status": "fact",
+      "observed_on": "2026-11-08",
+      "sha256": "0d9efc1a3bb59a3124cd148c9eed5037aeeb85e0ed05d1cf9b97c603fa1618f2",
+      "scope": "Факт публикации компонентных ставок, не подтверждение рейсов/бронирования.",
+      "published_rates_including_vat": {
+        "river_20": 133000,
+        "river_40": 247000,
+        "krasnoyarsk_loaded_handling_20": 12000,
+        "krasnoyarsk_loaded_handling_40": 20000,
+        "dudinka_loaded_handling_20": 20000,
+        "dudinka_loaded_handling_40": 30000,
+        "krasnoyarsk_storage_20_per_day": 300,
+        "krasnoyarsk_storage_40_per_day": 500,
+        "dudinka_storage_20_per_day": 400,
+        "dudinka_storage_40_per_day": 600
+      },
+      "vat_rate": 0.05
+    },
+    {
+      "id": "river-gap-scenario-v1",
+      "name": "Синтетическое заполнение пробелов речной схемы, версия 1",
+      "roles": [
+        "hub",
+        "handling",
+        "cargo_properties",
+        "freight_service",
+        "tariff"
+      ],
+      "status": "synthetic",
+      "parameters": [
+        {
+          "field": "navigation",
+          "value": [
+            "2026-06-01T00:00:00+07:00",
+            "2026-10-01T00:00:00+07:00"
+          ],
+          "status": "synthetic",
+          "reason": "Условный сезон для проверки; фактические даты навигации не опубликованы в прайсе."
+        },
+        {
+          "field": "departures",
+          "value": "Каждый четверг в 10:00 Красноярск, в 14:00 Дудинка, только в условный сезон",
+          "status": "synthetic"
+        },
+        {
+          "field": "travel_hours",
+          "value": {
+            "downstream": 144,
+            "upstream": 192
+          },
+          "status": "synthetic",
+          "reason": "6 суток вниз, 8 суток вверх, не расписание перевозчика."
+        },
+        {
+          "field": "cutoff_hours",
+          "value": 24,
+          "status": "synthetic"
+        },
+        {
+          "field": "container_20",
+          "value": {
+            "payload_tonnes": 18,
+            "usable_m3": 28,
+            "tare_tonnes": 2.3,
+            "gross_limit_tonnes": 24
+          },
+          "status": "synthetic"
+        },
+        {
+          "field": "container_40",
+          "value": {
+            "payload_tonnes": 24,
+            "usable_m3": 58,
+            "tare_tonnes": 3.8,
+            "gross_limit_tonnes": 30.48
+          },
+          "status": "synthetic"
+        },
+        {
+          "field": "max_piece",
+          "value": {
+            "tonnes": 2,
+            "dimensions_m": [
+              2,
+              2,
+              2
+            ],
+            "rotation": true
+          },
+          "status": "synthetic"
+        },
+        {
+          "field": "available_containers_per_departure",
+          "value": 8,
+          "status": "synthetic",
+          "reason": "Отдельный сценарный лимит каждой размерной альтернативы, не остаток мест реального судна."
+        },
+        {
+          "field": "handling",
+          "value": {
+            "fixed_hours": 2,
+            "tonnes_per_hour": 10,
+            "lanes": 2
+          },
+          "status": "synthetic"
+        },
+        {
+          "field": "terminal_storage",
+          "value": {
+            "tonnes": 500,
+            "m3": 1500,
+            "max_hours": 240
+          },
+          "status": "synthetic"
+        },
+        {
+          "field": "water",
+          "value": {
+            "vessel_draft_m": 2.0,
+            "max_draft_m": 2.5,
+            "ice_class_required": false
+          },
+          "status": "synthetic",
+          "reason": "Условный летний водный путь; не гидрологические измерения и не допуск судна."
+        },
+        {
+          "field": "cargo_admission",
+          "value": "Условно сухие неопасные грузы в bags/boxes, без температурного режима",
+          "status": "synthetic"
+        },
+        {
+          "field": "terminal_identity",
+          "value": "Условная площадка в Красноярске и сценарный узел на причале совхоза Полярный в Дудинке",
+          "status": "assumption",
+          "reason": "Название причала взято из прайса; реальная доступность/технология не подтверждены."
+        },
+        {
+          "field": "storage_rule",
+          "value": "Каждые начатые 24 часа: ceil(max(0,hours-free_hours)/24); Красноярск free=0, Дудинка free=72",
+          "status": "assumption",
+          "reason": "Ставки за контейнеро-сутки опубликованы. Способ округления и точный отсчёт требуют уточнения; 3 суток Дудинки взяты из строки о хранении более 3 суток."
+        },
+        {
+          "field": "tariff_year",
+          "value": "2026-01-01 <= date < 2027-01-01",
+          "status": "assumption",
+          "reason": "Страница подписана 2026 годом, точные даты ввода/отмены не опубликованы."
+        },
+        {
+          "field": "price_scope",
+          "value": "Контейнер клиента, без аренды, затарки, упаковки, авто подвоза и вывоза",
+          "status": "assumption",
+          "reason": "Эти расходы не включены в сценарий; нулевой платы за них перевозчик не подтверждал."
+        }
+      ]
+    },
+    {
+      "id": "chukotavia-51",
+      "title": "Перевозка грузов",
+      "url": "https://chukotavia.ru/ru/article/view/id/51/",
+      "observed_on": "2026-11-08",
+      "html_sha256": "7335ba6f9ac94838eef6bb56c584e1ab9e96752fcf655a19ea7a96e29a26085b",
+      "files": [],
+      "scope": "cargo_rules",
+      "roles": [
+        "tariff",
+        "schedule_reference"
+      ]
+    },
+    {
+      "id": "chukotavia-425",
+      "title": "ГРАФИК движения ВС Ми-8 на воздушной переправе по маршруту а/п Анадырь – «Окружной» – а/п Анадырь осень-зима 2025/2026 гг",
+      "url": "https://chukotavia.ru/ru/article/view/id/425/",
+      "observed_on": "2026-11-08",
+      "html_sha256": "a32a1dc51f87028b3b8e19fc3ac700747df1dbdc99418e8852da99a663ceeabc",
+      "files": [],
+      "scope": "conditional_ferry_schedule_not_applied",
+      "roles": [
+        "tariff",
+        "schedule_reference"
+      ]
+    },
+    {
+      "id": "chukotavia-511",
+      "title": "Действующий с 20 октября 2026г. план-график открытия предварительной продажи, бронирования на рейсы, предусмотренные расписанием АО «ЧукотАВИА» в сезоне «ЗИМА 2026 г»",
+      "url": "https://chukotavia.ru/ru/article/view/id/511/",
+      "observed_on": "2026-11-08",
+      "html_sha256": "2a1065fcc231f2d4adf6bf34092dfd594d791ee5f93ec46a712f838f9ae9095a",
+      "files": [],
+      "scope": "passenger_sales_window_not_cargo_cutoff",
+      "roles": [
+        "tariff",
+        "schedule_reference"
+      ]
+    },
+    {
+      "id": "chukotavia-512",
+      "title": "РАСПИСАНИЕ движения воздушных судов Ан-24, Ан-26 Б-100 АО «ЧукотАВИА» с 01.01.2026 г. по 31.12.2026 г.",
+      "url": "https://chukotavia.ru/ru/article/view/id/512/",
+      "observed_on": "2026-11-08",
+      "html_sha256": "eaad44eb0afbddda86230edd267542c3d66791aa76cff6637c7dad2af2b2f29a",
+      "files": [],
+      "scope": "schedule",
+      "roles": [
+        "tariff",
+        "schedule_reference"
+      ]
+    },
+    {
+      "id": "chukotavia-513",
+      "title": "РАСПИСАНИЕ движения воздушных судов DНС-6 АО «ЧукотАВИА» с 01.01.2026 г. по 31.12.2026 г.",
+      "url": "https://chukotavia.ru/ru/article/view/id/513/",
+      "observed_on": "2026-11-08",
+      "html_sha256": "4791b114827ef5429bb665d0bd3e746469f26b1376eee53ba4f202c3062539fe",
+      "files": [],
+      "scope": "schedule",
+      "roles": [
+        "tariff",
+        "schedule_reference"
+      ]
+    },
+    {
+      "id": "chukotavia-514",
+      "title": "РАСПИСАНИЕ движения воздушных судов МИ-8 АО «ЧукотАВИА» по национальным селам с 01.01.2026 г. по 31.12.2026 г",
+      "url": "https://chukotavia.ru/ru/article/view/id/514/",
+      "observed_on": "2026-11-08",
+      "html_sha256": "437e5246274099da3b0facf85d31f309f9f36d60a9ecc05baa90d5805f48d41a",
+      "files": [],
+      "scope": "schedule",
+      "roles": [
+        "tariff",
+        "schedule_reference"
+      ]
+    },
+    {
+      "id": "chukotavia-418",
+      "title": "Прейскурант стоимости авиационных услуг, цен и тарифов за наземное обслуживание ВС с 01 сетября 2026 года",
+      "url": "https://chukotavia.ru/ru/article/view/id/418/",
+      "observed_on": "2026-11-08",
+      "html_sha256": "0965fb6999d5a6e6aa9e3bbd48c88febb01bfdc2001742a62db7819e615f058c",
+      "files": [
+        {
+          "url": "https://chukotavia.ru/images/users/Прейскурант стоимости авиауслуг с 01_09_2026 года.pdf",
+          "title": "Прейскурант стоимости авиационных услуг, цен и тарифов за наземное обслуживание ВС с 01 сетября 2026 года",
+          "sha256": "06478eef075d72fc5a8f2bbfe9f5f6945b24f674159198d3e39ed08b4e45795f",
+          "bytes": 582328,
+          "use": "ground_handling_reference_not_automatic_cargo_surcharge"
+        }
+      ],
+      "scope": "ground_handling_reference_not_automatic_cargo_surcharge",
+      "roles": [
+        "tariff",
+        "schedule_reference"
+      ]
+    },
+    {
+      "id": "chukotavia-466",
+      "title": "Прейскурант стоимости авиационных услуг, цен и тарифов на наземное обслуживание ВС с 25 января 2026 года",
+      "url": "https://chukotavia.ru/ru/article/view/id/466/",
+      "observed_on": "2026-11-08",
+      "html_sha256": "a324f468cd054c661254271b32fc8d1849d84a2199493a02781d0cc9e53c1295",
+      "files": [
+        {
+          "url": "https://chukotavia.ru/images/users/Прейскурант стоимости авиационных услуг за наземное обслуживание ВС с 25 января 2026 года.pdf",
+          "title": "Прейскурант",
+          "sha256": "ddae08fdfceabe6336801a381462bea8324362058390bd0d37a700e842f90dae",
+          "bytes": 594461,
+          "use": "ground_handling_reference_not_automatic_cargo_surcharge"
+        }
+      ],
+      "scope": "ground_handling_reference_not_automatic_cargo_surcharge",
+      "roles": [
+        "tariff",
+        "schedule_reference"
+      ]
+    },
+    {
+      "id": "chukotavia-420",
+      "title": "Прейскурант стоимости авиационных услуг, цен и тарифов за наземное обслуживание ВС с 21 октября 2026 года",
+      "url": "https://chukotavia.ru/ru/article/view/id/420/",
+      "observed_on": "2026-11-08",
+      "html_sha256": "d871fee545a850a7b7f5766b72a042e78dc730f255bdfef994d349daab35604e",
+      "files": [
+        {
+          "url": "https://chukotavia.ru/images/users/file/%D0%9F%D1%80%D0%B5%D0%B9%D1%81%D0%BA%D1%83%D1%80%D0%B0%D0%BD%D1%82%20%D0%BE%D1%82%2021_10_2026.pdf",
+          "title": "Прейскурант стоимости авиационных услуг, цен и тарифов за наземное обслуживание ВС с 21 октября 2026 года",
+          "sha256": "c39686a58d9fcb6e3c63df3c0fdab33b91903307c97c1d7e55e58208d0dff048",
+          "bytes": 478860,
+          "use": "ground_handling_reference_not_automatic_cargo_surcharge"
+        }
+      ],
+      "scope": "ground_handling_reference_not_automatic_cargo_surcharge",
+      "roles": [
+        "tariff",
+        "schedule_reference"
+      ]
+    },
+    {
+      "id": "chukotavia-487",
+      "title": "Изменения в Прейскурант стоимости авиационных услуг, цен и тарифов за наземное обслуживание ВС с 02 марта 2026 года",
+      "url": "https://chukotavia.ru/ru/article/view/id/487/",
+      "observed_on": "2026-11-08",
+      "html_sha256": "259ce7ea819b59a361852046a2cf7e1cc8c29e82aa3a1b0685c5b03e6d73ef92",
+      "files": [
+        {
+          "url": "https://chukotavia.ru/images/users/Изменение в прейскурант.pdf",
+          "title": "Изменения в Прейскурант стоимости услуг, цен и тарифов за наземное обслуживание ВС с 02 марта 2026 года",
+          "sha256": "2b870786e885521bbcf4b2bf3d978045483378fccbbcc35f45e8441800985477",
+          "bytes": 85971,
+          "use": "ground_handling_reference_not_automatic_cargo_surcharge"
+        }
+      ],
+      "scope": "ground_handling_reference_not_automatic_cargo_surcharge",
+      "roles": [
+        "tariff",
+        "schedule_reference"
+      ]
+    },
+    {
+      "id": "chukotavia-472",
+      "title": "Изменения в Прейскурант стоимости авиационных услуг, цен и тарифов за наземное обслуживание ВС с 04 мая 2026 года",
+      "url": "https://chukotavia.ru/ru/article/view/id/472/",
+      "observed_on": "2026-11-08",
+      "html_sha256": "47b799ab2c550ad8778ac560efaa09393f9b3066ecd420e153d6c8145dcf1407",
+      "files": [
+        {
+          "url": "https://chukotavia.ru/images/users/file/%D0%9F%D1%80%D0%B5%D0%B9%D1%81%D0%BA%D1%83%D1%80%D0%B0%D0%BD%D1%82%20%D0%BE%D1%82%204%20%D0%BC%D0%B0%D1%8F.pdf",
+          "title": "Изменения в Прейскурант стоимости авиационных услуг, цен и тарифов за наземное обслуживание ВС с 04 мая 2026 года",
+          "sha256": "47798d4b823687480feb2323fd516561461cf146d40576ae04418379485235f6",
+          "bytes": 248758,
+          "use": "ground_handling_reference_not_automatic_cargo_surcharge"
+        }
+      ],
+      "scope": "ground_handling_reference_not_automatic_cargo_surcharge",
+      "roles": [
+        "tariff",
+        "schedule_reference"
+      ]
+    },
+    {
+      "id": "chukotavia-445",
+      "title": "Изменения в Прейскурант стоимости авиационных услуг, цен и тарифов за наземное обслуживание ВС с 01 июня 2026 года",
+      "url": "https://chukotavia.ru/ru/article/view/id/445/",
+      "observed_on": "2026-11-08",
+      "html_sha256": "61db050ecc1f8d1be320d031e20a0b71710820e9fc1680334f69480addd6990c",
+      "files": [
+        {
+          "url": "https://chukotavia.ru/images/users/file/%D0%98%D0%B7%D0%BC%D0%B5%D0%BD%D0%B5%D0%BD%D0%B8%D0%B5%20%D0%BF%D1%80%D0%B5%D0%B9%D1%81%D0%BA%D1%83%D1%80%D0%B0%D0%BD%D1%82%D0%B0.pdf",
+          "title": "Изменения в Прейскурант стоимости авиационных услуг, цен и тарифов за наземное обслуживание ВС с 01 июня 2026 года",
+          "sha256": "6a1fb6d6e35deb910b3e24c645af3ac19c7c869be5c4dda8b557ccc3bf2199b3",
+          "bytes": 131245,
+          "use": "ground_handling_reference_not_automatic_cargo_surcharge"
+        }
+      ],
+      "scope": "ground_handling_reference_not_automatic_cargo_surcharge",
+      "roles": [
+        "tariff",
+        "schedule_reference"
+      ]
+    },
+    {
+      "id": "chukotavia-488",
+      "title": "Изменения в Прейскурант стоимости авиационных услуг, цен и тарифов за наземное обслуживание ВС с 01 июля 2026 года",
+      "url": "https://chukotavia.ru/ru/article/view/id/488/",
+      "observed_on": "2026-11-08",
+      "html_sha256": "bda2ec69a06865f129fa026601cec0f6f05ee5d9b63e4894d14f399c06a2ab3e",
+      "files": [
+        {
+          "url": "https://chukotavia.ru/images/users/file/%D0%9F%D1%80%D0%B5%D0%B9%D1%81%D0%BA%D1%83%D1%80%D0%B0%D0%BD%D1%82(1).pdf",
+          "title": "Изменения в Прейскурант стоимости авиационных услуг, цен и тарифов за наземное обслуживание ВС с 01 июля 2026 года",
+          "sha256": "6b2a292e63aa7f395a9cc8c309f153004bb8af964851c2d33fe61b785d09336b",
+          "bytes": 140594,
+          "use": "ground_handling_reference_not_automatic_cargo_surcharge"
+        }
+      ],
+      "scope": "ground_handling_reference_not_automatic_cargo_surcharge",
+      "roles": [
+        "tariff",
+        "schedule_reference"
+      ]
+    },
+    {
+      "id": "chukotavia-468",
+      "title": "Прейскурант услуг по обеспечению дежурства экипажа Вс Ми-8 АО \"ЧукотАВИА\" и подготовки воздушного судна к дежурству в в аэропорту Залив Креста, Лаврентия, Провидения с 01.01.2026",
+      "url": "https://chukotavia.ru/ru/article/view/id/468/",
+      "observed_on": "2026-11-08",
+      "html_sha256": "b1bb957ad7a95eb6236d1d4dfd9632335e1f92e035d752f8f77df627da5a7691",
+      "files": [
+        {
+          "url": "https://chukotavia.ru/images/users/file/%D0%9F%D1%80%D0%B5%D0%B9%D1%81%D0%BA%D1%83%D1%80%D0%B0%D0%BD%D1%82.pdf",
+          "title": "Прейскурант услуг по обеспечению дежурства экипажа ВС Ми-8 АО \"ЧукотАВИА\" и подготовки воздушного судна к дежурству в аэропорту Залив Креста, Лаврентия, Провидения с 01.01.2026",
+          "sha256": "0aaaf6a4c99f0cdb91169c76e7f259effb805bf77427df6512d3095a88d69046",
+          "bytes": 86313,
+          "use": "ground_handling_reference_not_automatic_cargo_surcharge"
+        }
+      ],
+      "scope": "ground_handling_reference_not_automatic_cargo_surcharge",
+      "roles": [
+        "tariff",
+        "schedule_reference"
+      ]
+    },
+    {
+      "id": "chukotavia-442",
+      "title": "Тарифы на почтовые и грузовые перевозки с 01.01.2026 года",
+      "url": "https://chukotavia.ru/ru/article/view/id/442/",
+      "observed_on": "2026-11-08",
+      "html_sha256": "544de9fad189b85fd6c003d8a99aeb378e645f50772b8ae1e265e58f04e0f768",
+      "files": [
+        {
+          "url": "https://chukotavia.ru/images/users/Тарифы на почтовые и грузовые перевозки с 01_01_2026.pdf",
+          "title": "Тарифы на почтовые и грузовые перевозки с 01_01_2026 года",
+          "sha256": "c7f8cb07732b5b27757a48dfcca7c859e9ef1c4142ced92cda9482ae5004df6a",
+          "bytes": 611234,
+          "use": "cargo_tariff"
+        }
+      ],
+      "scope": "cargo_tariff",
+      "roles": [
+        "tariff",
+        "schedule_reference"
+      ]
+    },
+    {
+      "id": "chukotavia-463",
+      "title": "Тарифы на грузовые перевозки с 01.11.2026 года",
+      "url": "https://chukotavia.ru/ru/article/view/id/463/",
+      "observed_on": "2026-11-08",
+      "html_sha256": "d5c0d1e19231e95d2813ab4431c7a021d4eb9ade5b9ad4162b5f20c293cb476a",
+      "files": [
+        {
+          "url": "https://chukotavia.ru/images/users/file/tarif_01_11_2026.pdf",
+          "title": "Тарифы на грузовые перевозки с 01.11.2026 года",
+          "sha256": "0a131abcda9b9236a6eefc4ffaafabc059d8341c6d1b90f847485125f01e57a4",
+          "bytes": 730582,
+          "use": "cargo_tariff"
+        }
+      ],
+      "scope": "cargo_tariff",
+      "roles": [
+        "tariff",
+        "schedule_reference"
+      ]
+    },
+    {
+      "id": "chukotavia-305",
+      "title": "ПАССАЖИРОВ, БАГАЖА И ГРУЗОВ АО «ЧукотАВИА»",
+      "url": "https://chukotavia.ru/ru/article/view/id/305/",
+      "observed_on": "2026-11-08",
+      "html_sha256": "365f7fdc9afc580e21c7ae0a7e3b97638af74966b47ecf3d67552015068d05a4",
+      "files": [
+        {
+          "url": "https://chukotavia.ru/images/users/ПРАВИЛА ПЕРЕВОЗОК(1).pdf",
+          "title": "ПРАВИЛА ВОЗДУШНЫХ ПЕРЕВОЗОК ПАССАЖИРОВ, БАГАЖА И ГРУЗОВ АО «ЧукотАВИА»",
+          "sha256": "d40d39eb9e71f4f7b253af5ace1bff5ea83f76476f345572103bd60a8d3882ea",
+          "bytes": 700836,
+          "use": "cargo_rules"
+        },
+        {
+          "url": "https://chukotavia.ru/images/users/file/ChukotAVIA_6360_23-09-2026_12-18-12.pdf",
+          "title": "Изменения в \"Правила воздушных перевозок пассажиров, багажа, грузов\" с 23 сентября 2026 года.pdf",
+          "sha256": "e9122e6e383807aab4161f41738c26688e0e14f588a18169eac87b126d00007e",
+          "bytes": 211134,
+          "use": "cargo_rules"
+        },
+        {
+          "url": "https://chukotavia.ru/images/users/PP22052019.pdf",
+          "title": "Права авиапассажиров при задержке рейсов",
+          "sha256": "3d57b0e640aad5552cc28fbfeffbbaf8ce364fef54bcef9a1090facb2ba6574d",
+          "bytes": 132432,
+          "use": "excluded_passenger_information"
+        },
+        {
+          "url": "https://chukotavia.ru/images/users/Расписание бесплатного автобуса до гостиницы и кафе(1).pdf",
+          "title": "Расписание бесплатного автобуса до гостиницы и кафе",
+          "sha256": "bfbc688dde0be4ecd73c893973b57a6b7f7bbb9384742ee0a738bfb5050655ce",
+          "bytes": 1397940,
+          "use": "excluded_passenger_information"
+        }
+      ],
+      "scope": "cargo_rules_with_september_amendment",
+      "roles": [
+        "tariff",
+        "schedule_reference"
+      ]
+    },
+    {
+      "id": "fesco-fskl-2",
+      "name": "fskl-2.pdf",
+      "url": "https://www.fesco.ru/ru/clients/schedule/tariffs/",
+      "local_file_sha256": "cbb8b93a51409a9bf2a6288ebc8e003591167f6d15c8b4460a14d6ada4223b0d",
+      "reviewed_on": "2026-11-08",
+      "roles": [
+        "schedule_reference"
+      ],
+      "scope": "Даты из предоставленного PDF; время 12:00, доступный тоннаж, тариф движения и операции — допущения."
+    },
+    {
+      "id": "fesco-fpkl-2",
+      "name": "fpkl-2.pdf",
+      "url": "https://www.fesco.ru/ru/clients/schedule/tariffs/",
+      "local_file_sha256": "293ce965eb987b2da192d2c9ce75faded5f11e6e73f4aba20c02e55b22fa588b",
+      "reviewed_on": "2026-11-08",
+      "roles": [
+        "schedule_reference"
+      ],
+      "scope": "Даты из предоставленного PDF; время 12:00, доступный тоннаж, тариф движения и операции — допущения."
+    },
+    {
+      "id": "pipeline-fas-857-25",
+      "url": "https://www.consultant.ru/document/cons_doc_LAW_520601/2ff7a8c72de3994f30496a0ccbb1ddafdaddf518/",
+      "roles": [
+        "tariff"
+      ]
+    },
+    {
+      "id": "pipeline-fas-operations",
+      "url": "https://www.consultant.ru/document/cons_doc_LAW_520601/def06aaf49031753b14c7fd3066ba01246b8883d/",
+      "roles": [
+        "tariff"
+      ]
+    },
+    {
+      "id": "pipeline-contract-2026",
+      "url": "https://ptport.ru/customers/uslugi-po-transportirovke/tipovye-formy-dogovorov/dogovornaya-rabota-2026/",
+      "roles": [
+        "reference_points"
+      ]
+    },
+    {
+      "id": "pipeline-physical-lengths",
+      "url": "https://sst.ru/upload/presentations/reference-list.pdf",
+      "roles": [
+        "physical_distance_reference"
+      ]
+    }
+  ],
+  "input_status": "ready",
+  "warnings": [
+    "Цены/ресурсы сценарной модели явно заданы в источнике russia-freight-assumptions-v1. Это не бронирование перевозки.",
+    "Подтверждённые тарифы авиации/трубопровода могут покрывать только часть затрат; они не выдаются за полную цену.",
+    "Поиск ограничен числом кандидатов и этапов; глобальный минимум не доказан."
+  ],
+  "shipments": 1,
+  "status": "calculated",
+  "search": {
+    "expansions": 10681,
+    "truncated": true,
+    "scope": "bounded_candidate_search_not_global_optimum"
+  },
+  "stops": [],
+  "selected_subgraph": {
+    "hubs": 6,
+    "services": 13,
+    "transfers": 6
+  }
+}

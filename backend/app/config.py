@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 class Settings:
     database_path: Path = Path(__file__).resolve().parents[1] / "data/auth.sqlite3"
     calculation_catalog_path: Path = Path(__file__).resolve().parents[1] / "examples/catalog.json"
+    network_catalog_path: Path = Path(__file__).resolve().parents[1] / "examples/network.json"
     allowed_origins: Tuple[str, ...] = (
         "http://localhost:5173", "http://localhost:3000", "http://localhost:8000",
         "http://127.0.0.1:5173", "http://127.0.0.1:3000", "http://127.0.0.1:8000",
@@ -77,6 +78,7 @@ class Settings:
         return cls(
             database_path=Path(os.getenv("DATABASE_PATH", str(defaults.database_path))),
             calculation_catalog_path=Path(os.getenv("CALCULATION_CATALOG_PATH", str(defaults.calculation_catalog_path))),
+            network_catalog_path=Path(os.getenv("NETWORK_CATALOG_PATH", str(defaults.network_catalog_path))),
             allowed_origins=origins,
             cookie_secure=secure_raw == "true",
             session_ttl_seconds=int(os.getenv("SESSION_TTL_SECONDS", defaults.session_ttl_seconds)),

@@ -1,0 +1,171 @@
+{
+  "schema_version": "0.3",
+  "engine": "network",
+  "calculation_mode": "scenario",
+  "network_id": "synthetic-network-v1",
+  "network_fingerprint": "97193fb012d8cbbf42d36d0db7dc74b863c68e217fca95f1b8141af07a17e620",
+  "coverage": "Только учебная сеть. Хабы и грузовые услуги вымышленные; покрытие России не заявляется.",
+  "request": {
+    "engine": "network",
+    "network_id": "synthetic-network-v1",
+    "origin_hub_id": "origin",
+    "destination_hub_id": "destination",
+    "cargoes": [
+      {
+        "id": "flour-1",
+        "name": "Новая пищевая крупа",
+        "cargo_type": null,
+        "properties": null,
+        "weight_tonnes": 10.0,
+        "volume_m3": 20.0,
+        "packaging": "bags",
+        "splittable": true,
+        "pickup_hub_id": null,
+        "delivery_hub_id": null,
+        "ready_offset_hours": 0.0,
+        "max_delivery_hours": null,
+        "shelf_life_hours": null,
+        "temperature_c": null,
+        "max_piece_tonnes": 0.025,
+        "max_piece_dimensions_m": [
+          0.5,
+          0.4,
+          0.2
+        ]
+      }
+    ],
+    "schedule": {
+      "mode": "once",
+      "ready_at": "2026-11-09T08:00:00+03:00"
+    },
+    "max_delivery_hours": 240.0,
+    "capacity_basis": "mass_and_volume",
+    "cost_basis": "including_vat",
+    "data_policy": "allow_assumptions",
+    "service_ids": null,
+    "required_modes": [
+      "road",
+      "sea",
+      "air"
+    ],
+    "via_hub_ids": [],
+    "stop_dwell_hours": {},
+    "group_sizes": [
+      1
+    ],
+    "max_legs": 6,
+    "max_paths": 16
+  },
+  "shipments": 1,
+  "total_volume_tonnes": 10.0,
+  "categories": [
+    {
+      "id": "road",
+      "name": "Автомобильный",
+      "implemented": true,
+      "candidate_count": 0,
+      "best_candidate_id": null,
+      "status": "not_confirmed_in_loaded_network"
+    },
+    {
+      "id": "rail",
+      "name": "Железнодорожный",
+      "implemented": true,
+      "candidate_count": 0,
+      "best_candidate_id": null,
+      "status": "not_confirmed_in_loaded_network"
+    },
+    {
+      "id": "sea",
+      "name": "Морской",
+      "implemented": true,
+      "candidate_count": 0,
+      "best_candidate_id": null,
+      "status": "not_confirmed_in_loaded_network"
+    },
+    {
+      "id": "river",
+      "name": "Речной",
+      "implemented": true,
+      "candidate_count": 0,
+      "best_candidate_id": null,
+      "status": "not_confirmed_in_loaded_network"
+    },
+    {
+      "id": "air",
+      "name": "Воздушный",
+      "implemented": true,
+      "candidate_count": 0,
+      "best_candidate_id": null,
+      "status": "not_confirmed_in_loaded_network"
+    },
+    {
+      "id": "pipeline",
+      "name": "Трубопроводный",
+      "implemented": true,
+      "candidate_count": 0,
+      "best_candidate_id": null,
+      "status": "not_confirmed_in_loaded_network"
+    },
+    {
+      "id": "multimodal",
+      "name": "Мультимодальный",
+      "implemented": true,
+      "candidate_count": 0,
+      "best_candidate_id": null,
+      "status": "not_confirmed_in_loaded_network"
+    }
+  ],
+  "candidates": [],
+  "recommendation": null,
+  "search": {
+    "explicit": false,
+    "truncated": false,
+    "expansions": 0,
+    "scope": "awaiting_cargo_details"
+  },
+  "assumptions": [
+    "Это сценарная оценка, не статистический прогноз и не бронирование мест у перевозчика",
+    "Остаток консолидации не отбрасывается; все исходные позиции должны быть доставлены",
+    "Обработка в одном посещении хаба последовательна: выгрузка, переход, приём нового груза",
+    "Ресурсы общие для всех отправок внутри кандидата, но независимы между альтернативами и запросами",
+    "Переупаковка и смена физического состояния не выполняются автоматически",
+    "Рабочие окна, сезонность, ледовые ограничения и время возврата ресурса берутся из данных, а не выводятся из общей статистики",
+    "Погодные и пассажирские показатели не используются как доказательство грузовой услуги"
+  ],
+  "warnings": [
+    "Отсутствие кандидата не доказывает отсутствие перевозки в России: проверена только загруженная сеть и заданные пределы поиска."
+  ],
+  "sources": [
+    {
+      "id": "synthetic-network-fixture",
+      "status": "synthetic",
+      "date": "2026-11-08",
+      "description": "Синтетические площадки, соединения, ограничения и тарифы для тестов шести физических видов и мультимодальных цепочек. Не реальные услуги/рейсы."
+    }
+  ],
+  "input_status": "needs_clarification",
+  "cargo_resolution": [
+    {
+      "cargo_id": "flour-1",
+      "name": "Новая пищевая крупа",
+      "resolution": "needs_clarification",
+      "resolved_type_id": null,
+      "properties_status": "assumption",
+      "source_ids": []
+    }
+  ],
+  "clarifications": [
+    {
+      "cargo_id": "flour-1",
+      "code": "missing_cargo_properties",
+      "fields": [
+        "properties.phase",
+        "properties.hazardous",
+        "properties.handling_profile",
+        "properties.temperature_control_required"
+      ],
+      "message": "Уточните состояние груза, опасность, условия обращения и необходимость температурного режима"
+    }
+  ]
+}

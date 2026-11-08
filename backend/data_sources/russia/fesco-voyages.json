@@ -1,0 +1,407 @@
+{
+  "id": "fesco-user-pdf-voyages-v1",
+  "sources": [
+    {
+      "id": "fesco-fskl-2",
+      "name": "fskl-2.pdf",
+      "url": "https://www.fesco.ru/ru/clients/schedule/tariffs/",
+      "local_file_sha256": "cbb8b93a51409a9bf2a6288ebc8e003591167f6d15c8b4460a14d6ada4223b0d",
+      "reviewed_on": "2026-11-08",
+      "roles": [
+        "schedule_reference"
+      ],
+      "scope": "Даты из предоставленного PDF; время 12:00, доступный тоннаж, тариф движения и операции — допущения."
+    },
+    {
+      "id": "fesco-fpkl-2",
+      "name": "fpkl-2.pdf",
+      "url": "https://www.fesco.ru/ru/clients/schedule/tariffs/",
+      "local_file_sha256": "293ce965eb987b2da192d2c9ce75faded5f11e6e73f4aba20c02e55b22fa588b",
+      "reviewed_on": "2026-11-08",
+      "roles": [
+        "schedule_reference"
+      ],
+      "scope": "Даты из предоставленного PDF; время 12:00, доступный тоннаж, тариф движения и операции — допущения."
+    }
+  ],
+  "hubs": [
+    {
+      "id": "fesco-spb-pkt",
+      "settlement_name": "Санкт-Петербург",
+      "name": "FESCO: ПКТ",
+      "source_id": "fesco-fskl-2"
+    },
+    {
+      "id": "fesco-kaliningrad-kmtp",
+      "settlement_name": "Калининград",
+      "name": "FESCO: КМТП",
+      "source_id": "fesco-fskl-2"
+    },
+    {
+      "id": "fesco-vladivostok",
+      "settlement_name": "Владивосток",
+      "name": "FESCO: площадка отправления, точный терминал не подтверждён",
+      "source_id": "fesco-fpkl-2"
+    },
+    {
+      "id": "fesco-pk-pkmtp",
+      "settlement_name": "Петропавловск-Камчатский",
+      "name": "FESCO: ПКМТП",
+      "source_id": "fesco-fpkl-2"
+    },
+    {
+      "id": "fesco-pk-seroglazka",
+      "settlement_name": "Петропавловск-Камчатский",
+      "name": "FESCO: Сероглазка",
+      "source_id": "fesco-fpkl-2"
+    }
+  ],
+  "voyages": [
+    {
+      "id": "fesco-fpkl:2637PK",
+      "from_hub": "fesco-vladivostok",
+      "to_hub": "fesco-pk-pkmtp",
+      "departure_at": "2026-10-27T12:00:00+10:00",
+      "arrival_at": "2026-11-01T12:00:00+12:00",
+      "reference_metadata": {
+        "source_id": "fesco-fpkl-2",
+        "voyage": "2637PK",
+        "calendar_dates": "published",
+        "clock_time": "synthetic_no_time_in_pdf",
+        "movement_tariff": "synthetic"
+      }
+    },
+    {
+      "id": "fesco-fpkl:2638PK",
+      "from_hub": "fesco-vladivostok",
+      "to_hub": "fesco-pk-seroglazka",
+      "departure_at": "2026-11-09T12:00:00+10:00",
+      "arrival_at": "2026-11-14T12:00:00+12:00",
+      "reference_metadata": {
+        "source_id": "fesco-fpkl-2",
+        "voyage": "2638PK",
+        "calendar_dates": "published",
+        "clock_time": "synthetic_no_time_in_pdf",
+        "movement_tariff": "synthetic"
+      }
+    },
+    {
+      "id": "fesco-fpkl:2639PK",
+      "from_hub": "fesco-vladivostok",
+      "to_hub": "fesco-pk-pkmtp",
+      "departure_at": "2026-11-12T12:00:00+10:00",
+      "arrival_at": "2026-11-17T12:00:00+12:00",
+      "reference_metadata": {
+        "source_id": "fesco-fpkl-2",
+        "voyage": "2639PK",
+        "calendar_dates": "published",
+        "clock_time": "synthetic_no_time_in_pdf",
+        "movement_tariff": "synthetic"
+      }
+    },
+    {
+      "id": "fesco-fpkl:2641PK",
+      "from_hub": "fesco-vladivostok",
+      "to_hub": "fesco-pk-seroglazka",
+      "departure_at": "2026-11-23T12:00:00+10:00",
+      "arrival_at": "2026-11-28T12:00:00+12:00",
+      "reference_metadata": {
+        "source_id": "fesco-fpkl-2",
+        "voyage": "2641PK",
+        "calendar_dates": "published",
+        "clock_time": "synthetic_no_time_in_pdf",
+        "movement_tariff": "synthetic"
+      }
+    },
+    {
+      "id": "fesco-fpkl:2642PK",
+      "from_hub": "fesco-vladivostok",
+      "to_hub": "fesco-pk-pkmtp",
+      "departure_at": "2026-12-04T12:00:00+10:00",
+      "arrival_at": "2026-12-09T12:00:00+12:00",
+      "reference_metadata": {
+        "source_id": "fesco-fpkl-2",
+        "voyage": "2642PK",
+        "calendar_dates": "published",
+        "clock_time": "synthetic_no_time_in_pdf",
+        "movement_tariff": "synthetic"
+      }
+    },
+    {
+      "id": "fesco-fskl:26NVR41",
+      "from_hub": "fesco-spb-pkt",
+      "to_hub": "fesco-kaliningrad-kmtp",
+      "departure_at": "2026-11-01T12:00:00+03:00",
+      "arrival_at": "2026-11-04T12:00:00+02:00",
+      "reference_metadata": {
+        "source_id": "fesco-fskl-2",
+        "voyage": "26NVR41",
+        "calendar_dates": "published",
+        "clock_time": "synthetic_no_time_in_pdf",
+        "movement_tariff": "synthetic",
+        "document_cutoff_at": "2026-10-30T12:00:00+03:00",
+        "cargo_cutoff_at": "2026-10-30T14:00:00+03:00",
+        "cutoff_rule": "Оба требования должны быть выполнены; условно документы готовы после обработки вместе с грузом."
+      },
+      "cutoff_at": "2026-10-30T12:00:00+03:00"
+    },
+    {
+      "id": "fesco-fskl:26NVK36",
+      "from_hub": "fesco-spb-pkt",
+      "to_hub": "fesco-kaliningrad-kmtp",
+      "departure_at": "2026-11-03T12:00:00+03:00",
+      "arrival_at": "2026-11-05T12:00:00+02:00",
+      "reference_metadata": {
+        "source_id": "fesco-fskl-2",
+        "voyage": "26NVK36",
+        "calendar_dates": "published",
+        "clock_time": "synthetic_no_time_in_pdf",
+        "movement_tariff": "synthetic",
+        "document_cutoff_at": "2026-11-02T12:00:00+03:00",
+        "cargo_cutoff_at": "2026-11-02T14:00:00+03:00",
+        "cutoff_rule": "Оба требования должны быть выполнены; условно документы готовы после обработки вместе с грузом."
+      },
+      "cutoff_at": "2026-11-02T12:00:00+03:00"
+    },
+    {
+      "id": "fesco-fskl:26NM081S",
+      "from_hub": "fesco-spb-pkt",
+      "to_hub": "fesco-kaliningrad-kmtp",
+      "departure_at": "2026-11-05T12:00:00+03:00",
+      "arrival_at": "2026-11-07T12:00:00+02:00",
+      "reference_metadata": {
+        "source_id": "fesco-fskl-2",
+        "voyage": "26NM081S",
+        "calendar_dates": "published",
+        "clock_time": "synthetic_no_time_in_pdf",
+        "movement_tariff": "synthetic",
+        "document_cutoff_at": "2026-11-02T12:00:00+03:00",
+        "cargo_cutoff_at": "2026-11-02T12:00:00+03:00",
+        "cutoff_rule": "Оба требования должны быть выполнены; условно документы готовы после обработки вместе с грузом."
+      },
+      "cutoff_at": "2026-11-02T12:00:00+03:00"
+    },
+    {
+      "id": "fesco-fskl:26NVR42",
+      "from_hub": "fesco-spb-pkt",
+      "to_hub": "fesco-kaliningrad-kmtp",
+      "departure_at": "2026-11-10T12:00:00+03:00",
+      "arrival_at": "2026-11-12T12:00:00+02:00",
+      "reference_metadata": {
+        "source_id": "fesco-fskl-2",
+        "voyage": "26NVR42",
+        "calendar_dates": "published",
+        "clock_time": "synthetic_no_time_in_pdf",
+        "movement_tariff": "synthetic",
+        "document_cutoff_at": "2026-11-06T12:00:00+03:00",
+        "cargo_cutoff_at": "2026-11-06T14:00:00+03:00",
+        "cutoff_rule": "Оба требования должны быть выполнены; условно документы готовы после обработки вместе с грузом."
+      },
+      "cutoff_at": "2026-11-06T12:00:00+03:00"
+    },
+    {
+      "id": "fesco-fskl:26NVK37",
+      "from_hub": "fesco-spb-pkt",
+      "to_hub": "fesco-kaliningrad-kmtp",
+      "departure_at": "2026-11-11T12:00:00+03:00",
+      "arrival_at": "2026-11-13T12:00:00+02:00",
+      "reference_metadata": {
+        "source_id": "fesco-fskl-2",
+        "voyage": "26NVK37",
+        "calendar_dates": "published",
+        "clock_time": "synthetic_no_time_in_pdf",
+        "movement_tariff": "synthetic",
+        "document_cutoff_at": "2026-11-09T12:00:00+03:00",
+        "cargo_cutoff_at": "2026-11-09T14:00:00+03:00",
+        "cutoff_rule": "Оба требования должны быть выполнены; условно документы готовы после обработки вместе с грузом."
+      },
+      "cutoff_at": "2026-11-09T12:00:00+03:00"
+    },
+    {
+      "id": "fesco-fskl:26NM083S",
+      "from_hub": "fesco-spb-pkt",
+      "to_hub": "fesco-kaliningrad-kmtp",
+      "departure_at": "2026-11-12T12:00:00+03:00",
+      "arrival_at": "2026-11-14T12:00:00+02:00",
+      "reference_metadata": {
+        "source_id": "fesco-fskl-2",
+        "voyage": "26NM083S",
+        "calendar_dates": "published",
+        "clock_time": "synthetic_no_time_in_pdf",
+        "movement_tariff": "synthetic",
+        "document_cutoff_at": "2026-11-10T12:00:00+03:00",
+        "cargo_cutoff_at": "2026-11-10T12:00:00+03:00",
+        "cutoff_rule": "Оба требования должны быть выполнены; условно документы готовы после обработки вместе с грузом."
+      },
+      "cutoff_at": "2026-11-10T12:00:00+03:00"
+    },
+    {
+      "id": "fesco-fskl:26NVR43",
+      "from_hub": "fesco-spb-pkt",
+      "to_hub": "fesco-kaliningrad-kmtp",
+      "departure_at": "2026-11-16T12:00:00+03:00",
+      "arrival_at": "2026-11-18T12:00:00+02:00",
+      "reference_metadata": {
+        "source_id": "fesco-fskl-2",
+        "voyage": "26NVR43",
+        "calendar_dates": "published",
+        "clock_time": "synthetic_no_time_in_pdf",
+        "movement_tariff": "synthetic",
+        "document_cutoff_at": "2026-11-13T12:00:00+03:00",
+        "cargo_cutoff_at": "2026-11-13T14:00:00+03:00",
+        "cutoff_rule": "Оба требования должны быть выполнены; условно документы готовы после обработки вместе с грузом."
+      },
+      "cutoff_at": "2026-11-13T12:00:00+03:00"
+    },
+    {
+      "id": "fesco-fskl:26NVK38",
+      "from_hub": "fesco-spb-pkt",
+      "to_hub": "fesco-kaliningrad-kmtp",
+      "departure_at": "2026-11-18T12:00:00+03:00",
+      "arrival_at": "2026-11-20T12:00:00+02:00",
+      "reference_metadata": {
+        "source_id": "fesco-fskl-2",
+        "voyage": "26NVK38",
+        "calendar_dates": "published",
+        "clock_time": "synthetic_no_time_in_pdf",
+        "movement_tariff": "synthetic",
+        "document_cutoff_at": "2026-11-16T12:00:00+03:00",
+        "cargo_cutoff_at": "2026-11-16T14:00:00+03:00",
+        "cutoff_rule": "Оба требования должны быть выполнены; условно документы готовы после обработки вместе с грузом."
+      },
+      "cutoff_at": "2026-11-16T12:00:00+03:00"
+    },
+    {
+      "id": "fesco-fskl:26NM085S",
+      "from_hub": "fesco-spb-pkt",
+      "to_hub": "fesco-kaliningrad-kmtp",
+      "departure_at": "2026-11-19T12:00:00+03:00",
+      "arrival_at": "2026-11-21T12:00:00+02:00",
+      "reference_metadata": {
+        "source_id": "fesco-fskl-2",
+        "voyage": "26NM085S",
+        "calendar_dates": "published",
+        "clock_time": "synthetic_no_time_in_pdf",
+        "movement_tariff": "synthetic",
+        "document_cutoff_at": "2026-11-16T12:00:00+03:00",
+        "cargo_cutoff_at": "2026-11-16T12:00:00+03:00",
+        "cutoff_rule": "Оба требования должны быть выполнены; условно документы готовы после обработки вместе с грузом."
+      },
+      "cutoff_at": "2026-11-16T12:00:00+03:00"
+    },
+    {
+      "id": "fesco-fskl:26NVR44",
+      "from_hub": "fesco-spb-pkt",
+      "to_hub": "fesco-kaliningrad-kmtp",
+      "departure_at": "2026-11-23T12:00:00+03:00",
+      "arrival_at": "2026-11-25T12:00:00+02:00",
+      "reference_metadata": {
+        "source_id": "fesco-fskl-2",
+        "voyage": "26NVR44",
+        "calendar_dates": "published",
+        "clock_time": "synthetic_no_time_in_pdf",
+        "movement_tariff": "synthetic",
+        "document_cutoff_at": "2026-11-20T12:00:00+03:00",
+        "cargo_cutoff_at": "2026-11-20T14:00:00+03:00",
+        "cutoff_rule": "Оба требования должны быть выполнены; условно документы готовы после обработки вместе с грузом."
+      },
+      "cutoff_at": "2026-11-20T12:00:00+03:00"
+    },
+    {
+      "id": "fesco-fskl:26NVK39",
+      "from_hub": "fesco-spb-pkt",
+      "to_hub": "fesco-kaliningrad-kmtp",
+      "departure_at": "2026-11-25T12:00:00+03:00",
+      "arrival_at": "2026-11-27T12:00:00+02:00",
+      "reference_metadata": {
+        "source_id": "fesco-fskl-2",
+        "voyage": "26NVK39",
+        "calendar_dates": "published",
+        "clock_time": "synthetic_no_time_in_pdf",
+        "movement_tariff": "synthetic",
+        "document_cutoff_at": "2026-11-23T12:00:00+03:00",
+        "cargo_cutoff_at": "2026-11-23T14:00:00+03:00",
+        "cutoff_rule": "Оба требования должны быть выполнены; условно документы готовы после обработки вместе с грузом."
+      },
+      "cutoff_at": "2026-11-23T12:00:00+03:00"
+    },
+    {
+      "id": "fesco-fskl:26NM087S",
+      "from_hub": "fesco-spb-pkt",
+      "to_hub": "fesco-kaliningrad-kmtp",
+      "departure_at": "2026-11-26T12:00:00+03:00",
+      "arrival_at": "2026-11-28T12:00:00+02:00",
+      "reference_metadata": {
+        "source_id": "fesco-fskl-2",
+        "voyage": "26NM087S",
+        "calendar_dates": "published",
+        "clock_time": "synthetic_no_time_in_pdf",
+        "movement_tariff": "synthetic",
+        "document_cutoff_at": "2026-11-23T12:00:00+03:00",
+        "cargo_cutoff_at": "2026-11-23T12:00:00+03:00",
+        "cutoff_rule": "Оба требования должны быть выполнены; условно документы готовы после обработки вместе с грузом."
+      },
+      "cutoff_at": "2026-11-23T12:00:00+03:00"
+    },
+    {
+      "id": "fesco-fskl:26NVR45",
+      "from_hub": "fesco-spb-pkt",
+      "to_hub": "fesco-kaliningrad-kmtp",
+      "departure_at": "2026-11-29T12:00:00+03:00",
+      "arrival_at": "2026-12-01T12:00:00+02:00",
+      "reference_metadata": {
+        "source_id": "fesco-fskl-2",
+        "voyage": "26NVR45",
+        "calendar_dates": "published",
+        "clock_time": "synthetic_no_time_in_pdf",
+        "movement_tariff": "synthetic",
+        "document_cutoff_at": "2026-11-27T12:00:00+03:00",
+        "cargo_cutoff_at": "2026-11-27T14:00:00+03:00",
+        "cutoff_rule": "Оба требования должны быть выполнены; условно документы готовы после обработки вместе с грузом."
+      },
+      "cutoff_at": "2026-11-27T12:00:00+03:00"
+    },
+    {
+      "id": "fesco-fskl:26NVK40",
+      "from_hub": "fesco-spb-pkt",
+      "to_hub": "fesco-kaliningrad-kmtp",
+      "departure_at": "2026-12-02T12:00:00+03:00",
+      "arrival_at": "2026-12-04T12:00:00+02:00",
+      "reference_metadata": {
+        "source_id": "fesco-fskl-2",
+        "voyage": "26NVK40",
+        "calendar_dates": "published",
+        "clock_time": "synthetic_no_time_in_pdf",
+        "movement_tariff": "synthetic",
+        "document_cutoff_at": "2026-11-30T12:00:00+03:00",
+        "cargo_cutoff_at": "2026-11-30T14:00:00+03:00",
+        "cutoff_rule": "Оба требования должны быть выполнены; условно документы готовы после обработки вместе с грузом."
+      },
+      "cutoff_at": "2026-11-30T12:00:00+03:00"
+    },
+    {
+      "id": "fesco-fskl:26NM089S",
+      "from_hub": "fesco-spb-pkt",
+      "to_hub": "fesco-kaliningrad-kmtp",
+      "departure_at": "2026-12-03T12:00:00+03:00",
+      "arrival_at": "2026-12-05T12:00:00+02:00",
+      "reference_metadata": {
+        "source_id": "fesco-fskl-2",
+        "voyage": "26NM089S",
+        "calendar_dates": "published",
+        "clock_time": "synthetic_no_time_in_pdf",
+        "movement_tariff": "synthetic",
+        "document_cutoff_at": "2026-11-30T12:00:00+03:00",
+        "cargo_cutoff_at": "2026-11-30T12:00:00+03:00",
+        "cutoff_rule": "Оба требования должны быть выполнены; условно документы готовы после обработки вместе с грузом."
+      },
+      "cutoff_at": "2026-11-30T12:00:00+03:00"
+    }
+  ],
+  "limitations": [
+    "FESCO: 5 рейсов FPKL и 15 рейсов FSKL из пользовательских PDF, только прямое направление; обратные прибытия не выведены из дат отхода.",
+    "FESCO: морской фрахт 200000 ₽/20-футовую единицу и параметры обработки/судна синтетические; предоставленные терминальные прайсы не считаются фрахтом.",
+    "FPKL 2640PK исключён: в строке не подтверждён терминал выгрузки. Время суток рейсов в PDF отсутствует и задано условно.",
+    "FSKL: опубликованные дедлайны документов и завоза учитываются отдельно в данных; условно документы готовы одновременно с обработанным грузом. Для FPKL дедлайн условный."
+  ]
+}

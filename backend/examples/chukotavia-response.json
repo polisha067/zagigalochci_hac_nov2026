@@ -1,0 +1,322 @@
+{
+  "schema_version": "0.1",
+  "engine": "chukotavia",
+  "dataset_fingerprint": "eeecb4da770bf2db1aa84447d1e0da1bfdf161ee4b94ebcb3a7e69f8200d3523",
+  "status": "conditional",
+  "request": {
+    "engine": "chukotavia",
+    "origin": "Анадырь",
+    "destination": "Провидения",
+    "via": [],
+    "cargoes": [
+      {
+        "id": "boxes",
+        "name": "Книги в коробках",
+        "weight_tonnes": 0.1,
+        "volume_m3": 0.5,
+        "packaging": "boxes",
+        "max_piece_weight_kg": 10.0,
+        "hazardous": false,
+        "temperature_control_required": false
+      }
+    ],
+    "schedule": {
+      "mode": "once",
+      "ready_at": "2026-11-08T09:00:00+12:00"
+    },
+    "max_delivery_hours": 168.0,
+    "cost_basis": "including_vat",
+    "scenario": null
+  },
+  "overview": {
+    "shipment_count": 1,
+    "weight_kg_per_shipment": 100.0,
+    "volume_m3_per_shipment": 0.5,
+    "volumetric_weight_kg_per_shipment": "83.33333333333333333333333333",
+    "chargeable_weight_kg_per_shipment": "100.0",
+    "volume_formula": "volume_m3 * 1000000 / 6000",
+    "weight_rounding": "not_assumed",
+    "planned_volume_tonnes": 0.1,
+    "total_cost_rub": null,
+    "assumptions": {},
+    "cost_basis": "including_vat",
+    "all_candidates_booking_confirmed": false
+  },
+  "shipments": [
+    {
+      "number": 1,
+      "ready_at": "2026-11-07T21:00:00+00:00",
+      "status": "conditional",
+      "candidates": [
+        {
+          "id": "schedule-512-1-1-v0-0-1-2026-11-10",
+          "flight": "АД 113 АН-24 (АН-26) (DНС-6)",
+          "origin_code": "АНЫ",
+          "destination_code": "ПРД",
+          "via": [],
+          "departure_at": "2026-11-10T10:00:00+12:00",
+          "arrival_at": "2026-11-10T12:00:00+12:00",
+          "travel_minutes": 120,
+          "waiting_hours": 49.0,
+          "published_tariff": {
+            "id": "tariff-463-155",
+            "source_id": "chukotavia-463",
+            "row": 155,
+            "page": 4,
+            "origin": "Анадырь",
+            "destination": "Провидения",
+            "rate_excluding_vat_rub_per_kg": "622",
+            "rate_including_vat_rub_per_kg": "758.84",
+            "vat_rate": "0.22",
+            "valid_from": "2026-11-01",
+            "valid_until_exclusive": null,
+            "status": "fact",
+            "scope": "published_cargo_tariff_not_booking",
+            "minimum_charge_kg": null,
+            "rounding_rule": null
+          },
+          "rate_rub_per_kg": "758.84",
+          "transport_component_estimate_rub": 75884.0,
+          "total_cost_rub": null,
+          "arrival_is_cargo_delivery": false,
+          "booking_confirmed": false,
+          "capacity_kg": null,
+          "status": "conditional",
+          "scenario_delivery_at": null,
+          "scenario_delivery_hours": null,
+          "scenario_within_deadline": null,
+          "deadline_confirmed": false,
+          "source_ids": [
+            "chukotavia-512",
+            "chukotavia-463"
+          ]
+        },
+        {
+          "id": "schedule-512-1-1-v0-0-1-2026-11-24",
+          "flight": "АД 113 АН-24 (АН-26) (DНС-6)",
+          "origin_code": "АНЫ",
+          "destination_code": "ПРД",
+          "via": [],
+          "departure_at": "2026-11-24T10:00:00+12:00",
+          "arrival_at": "2026-11-24T12:00:00+12:00",
+          "travel_minutes": 120,
+          "waiting_hours": 385.0,
+          "published_tariff": {
+            "id": "tariff-463-155",
+            "source_id": "chukotavia-463",
+            "row": 155,
+            "page": 4,
+            "origin": "Анадырь",
+            "destination": "Провидения",
+            "rate_excluding_vat_rub_per_kg": "622",
+            "rate_including_vat_rub_per_kg": "758.84",
+            "vat_rate": "0.22",
+            "valid_from": "2026-11-01",
+            "valid_until_exclusive": null,
+            "status": "fact",
+            "scope": "published_cargo_tariff_not_booking",
+            "minimum_charge_kg": null,
+            "rounding_rule": null
+          },
+          "rate_rub_per_kg": "758.84",
+          "transport_component_estimate_rub": 75884.0,
+          "total_cost_rub": null,
+          "arrival_is_cargo_delivery": false,
+          "booking_confirmed": false,
+          "capacity_kg": null,
+          "status": "conditional",
+          "scenario_delivery_at": null,
+          "scenario_delivery_hours": null,
+          "scenario_within_deadline": null,
+          "deadline_confirmed": false,
+          "source_ids": [
+            "chukotavia-512",
+            "chukotavia-463"
+          ]
+        },
+        {
+          "id": "schedule-512-1-1-v0-0-1-2026-12-08",
+          "flight": "АД 113 АН-24 (АН-26) (DНС-6)",
+          "origin_code": "АНЫ",
+          "destination_code": "ПРД",
+          "via": [],
+          "departure_at": "2026-12-08T10:00:00+12:00",
+          "arrival_at": "2026-12-08T12:00:00+12:00",
+          "travel_minutes": 120,
+          "waiting_hours": 721.0,
+          "published_tariff": {
+            "id": "tariff-463-155",
+            "source_id": "chukotavia-463",
+            "row": 155,
+            "page": 4,
+            "origin": "Анадырь",
+            "destination": "Провидения",
+            "rate_excluding_vat_rub_per_kg": "622",
+            "rate_including_vat_rub_per_kg": "758.84",
+            "vat_rate": "0.22",
+            "valid_from": "2026-11-01",
+            "valid_until_exclusive": null,
+            "status": "fact",
+            "scope": "published_cargo_tariff_not_booking",
+            "minimum_charge_kg": null,
+            "rounding_rule": null
+          },
+          "rate_rub_per_kg": "758.84",
+          "transport_component_estimate_rub": 75884.0,
+          "total_cost_rub": null,
+          "arrival_is_cargo_delivery": false,
+          "booking_confirmed": false,
+          "capacity_kg": null,
+          "status": "conditional",
+          "scenario_delivery_at": null,
+          "scenario_delivery_hours": null,
+          "scenario_within_deadline": null,
+          "deadline_confirmed": false,
+          "source_ids": [
+            "chukotavia-512",
+            "chukotavia-463"
+          ]
+        },
+        {
+          "id": "schedule-512-1-1-v0-0-1-2026-12-22",
+          "flight": "АД 113 АН-24 (АН-26) (DНС-6)",
+          "origin_code": "АНЫ",
+          "destination_code": "ПРД",
+          "via": [],
+          "departure_at": "2026-12-22T10:00:00+12:00",
+          "arrival_at": "2026-12-22T12:00:00+12:00",
+          "travel_minutes": 120,
+          "waiting_hours": 1057.0,
+          "published_tariff": {
+            "id": "tariff-463-155",
+            "source_id": "chukotavia-463",
+            "row": 155,
+            "page": 4,
+            "origin": "Анадырь",
+            "destination": "Провидения",
+            "rate_excluding_vat_rub_per_kg": "622",
+            "rate_including_vat_rub_per_kg": "758.84",
+            "vat_rate": "0.22",
+            "valid_from": "2026-11-01",
+            "valid_until_exclusive": null,
+            "status": "fact",
+            "scope": "published_cargo_tariff_not_booking",
+            "minimum_charge_kg": null,
+            "rounding_rule": null
+          },
+          "rate_rub_per_kg": "758.84",
+          "transport_component_estimate_rub": 75884.0,
+          "total_cost_rub": null,
+          "arrival_is_cargo_delivery": false,
+          "booking_confirmed": false,
+          "capacity_kg": null,
+          "status": "conditional",
+          "scenario_delivery_at": null,
+          "scenario_delivery_hours": null,
+          "scenario_within_deadline": null,
+          "deadline_confirmed": false,
+          "source_ids": [
+            "chukotavia-512",
+            "chukotavia-463"
+          ]
+        }
+      ],
+      "selection": null,
+      "missing": [
+        "cargo_capacity",
+        "cargo_acceptance",
+        "mandatory_charge_scope",
+        "charge_rounding",
+        "minimum_charge_rule",
+        "cargo_cutoff",
+        "origin_processing",
+        "destination_processing"
+      ],
+      "cargo_details_to_clarify": [],
+      "special_cargo_ids": []
+    }
+  ],
+  "recommendation": null,
+  "sources": [
+    {
+      "id": "chukotavia-305",
+      "title": "ПАССАЖИРОВ, БАГАЖА И ГРУЗОВ АО «ЧукотАВИА»",
+      "url": "https://chukotavia.ru/ru/article/view/id/305/",
+      "observed_on": "2026-11-08",
+      "html_sha256": "365f7fdc9afc580e21c7ae0a7e3b97638af74966b47ecf3d67552015068d05a4",
+      "files": [
+        {
+          "url": "https://chukotavia.ru/images/users/ПРАВИЛА ПЕРЕВОЗОК(1).pdf",
+          "title": "ПРАВИЛА ВОЗДУШНЫХ ПЕРЕВОЗОК ПАССАЖИРОВ, БАГАЖА И ГРУЗОВ АО «ЧукотАВИА»",
+          "sha256": "d40d39eb9e71f4f7b253af5ace1bff5ea83f76476f345572103bd60a8d3882ea",
+          "bytes": 700836,
+          "use": "cargo_rules"
+        },
+        {
+          "url": "https://chukotavia.ru/images/users/file/ChukotAVIA_6360_23-09-2026_12-18-12.pdf",
+          "title": "Изменения в \"Правила воздушных перевозок пассажиров, багажа, грузов\" с 23 сентября 2026 года.pdf",
+          "sha256": "e9122e6e383807aab4161f41738c26688e0e14f588a18169eac87b126d00007e",
+          "bytes": 211134,
+          "use": "cargo_rules"
+        },
+        {
+          "url": "https://chukotavia.ru/images/users/PP22052019.pdf",
+          "title": "Права авиапассажиров при задержке рейсов",
+          "sha256": "3d57b0e640aad5552cc28fbfeffbbaf8ce364fef54bcef9a1090facb2ba6574d",
+          "bytes": 132432,
+          "use": "excluded_passenger_information"
+        },
+        {
+          "url": "https://chukotavia.ru/images/users/Расписание бесплатного автобуса до гостиницы и кафе(1).pdf",
+          "title": "Расписание бесплатного автобуса до гостиницы и кафе",
+          "sha256": "bfbc688dde0be4ecd73c893973b57a6b7f7bbb9384742ee0a738bfb5050655ce",
+          "bytes": 1397940,
+          "use": "excluded_passenger_information"
+        }
+      ],
+      "scope": "cargo_rules_with_september_amendment"
+    },
+    {
+      "id": "chukotavia-463",
+      "title": "Тарифы на грузовые перевозки с 01.11.2026 года",
+      "url": "https://chukotavia.ru/ru/article/view/id/463/",
+      "observed_on": "2026-11-08",
+      "html_sha256": "d5c0d1e19231e95d2813ab4431c7a021d4eb9ade5b9ad4162b5f20c293cb476a",
+      "files": [
+        {
+          "url": "https://chukotavia.ru/images/users/file/tarif_01_11_2026.pdf",
+          "title": "Тарифы на грузовые перевозки с 01.11.2026 года",
+          "sha256": "0a131abcda9b9236a6eefc4ffaafabc059d8341c6d1b90f847485125f01e57a4",
+          "bytes": 730582,
+          "use": "cargo_tariff"
+        }
+      ],
+      "scope": "cargo_tariff"
+    },
+    {
+      "id": "chukotavia-51",
+      "title": "Перевозка грузов",
+      "url": "https://chukotavia.ru/ru/article/view/id/51/",
+      "observed_on": "2026-11-08",
+      "html_sha256": "7335ba6f9ac94838eef6bb56c584e1ab9e96752fcf655a19ea7a96e29a26085b",
+      "files": [],
+      "scope": "cargo_rules"
+    },
+    {
+      "id": "chukotavia-512",
+      "title": "РАСПИСАНИЕ движения воздушных судов Ан-24, Ан-26 Б-100 АО «ЧукотАВИА» с 01.01.2026 г. по 31.12.2026 г.",
+      "url": "https://chukotavia.ru/ru/article/view/id/512/",
+      "observed_on": "2026-11-08",
+      "html_sha256": "eaad44eb0afbddda86230edd267542c3d66791aa76cff6637c7dad2af2b2f29a",
+      "files": [],
+      "scope": "schedule"
+    }
+  ],
+  "limitations": [
+    "Перевозка дозагрузкой в свободный тоннаж без гарантированной даты; расписание не подтверждает место для груза.",
+    "Цена ниже — только опубликованный грузовой тариф. Полная стоимость, обязательные сборы, обработка и автодоставка не подтверждены.",
+    "Приём конкретного груза, упаковка, габариты мест и совместимость разных грузов требуют проверки.",
+    "Срок от готовности до получения не подтверждён; плановое прибытие самолёта не равно выдаче груза.",
+    "Снимок расписания действует только на опубликованные даты 2026 года; отмены и оперативные изменения не отслеживаются."
+  ]
+}
