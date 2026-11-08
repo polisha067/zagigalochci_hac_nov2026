@@ -5,10 +5,12 @@ from pydantic import ValidationError
 from backend.calculation_models import CalculationRequest, CalculationResponse
 
 from .schemas import (
+    AssistantTurn,
     CalculationReply,
     ChatRequest,
     ChatResponse,
     ClarificationReply,
+    ClarificationTurn,
     DeliveryDraft,
     DeliveryTurn,
     InformationReply,
@@ -16,7 +18,7 @@ from .schemas import (
 )
 
 
-TurnPlanner = Callable[[ChatRequest], Union[DeliveryTurn, InformationTurn]]
+TurnPlanner = Callable[[ChatRequest], AssistantTurn]
 Calculate = Callable[[CalculationRequest], Union[dict, CalculationResponse]]
 
 FIELD_LABELS = {
@@ -91,16 +93,32 @@ def _calculation_request(draft, dataset_id):
     })
 
 
-def _summary(result):
-    lines = [f"Плановый объём — {result.total_volume_tonnes:g} т. Число отправок — {result.shipments}."]
-    if result.recommendation is None:
+def _summary(result, draft):
+    lines = [f"Сценарный расчёт. Плановый объём — {result.total_volume_tonnes:g} т. Отправок — {result.shipments}."]
+    chosen = next((scheme for scheme in result.schemes if scheme.scheme == result.recommendation), None)
+    if chosen is None:
         lines.append("Среди рассчитанных схем подходящий вариант не определён.")
     else:
-        name = SCHEME_LABELS.get(result.recommendation, result.recommendation)
-        lines.append(f"Рекомендация расчёта — {name}.")
+        name = SCHEME_LABELS[chosen.scheme]
+        cost = f"{chosen.total_cost_rub:,.2f}".replace(",", " ").replace(".", ",").removesuffix(",00") if chosen.total_cost_rub is not None else None
+        duration = f"{chosen.max_delivery_hours:g} ч" if chosen.max_delivery_hours is not None else "неизвестен"
+        lines.append(f"Рекомендация — {name}. Стоимость — {cost + ' ₽' if cost else 'неизвестна'}. Максимальный срок — {duration}.")
+    for scheme in result.schemes:
+        if scheme.status == "feasible":
+            continue
+        cost_note = " Стоимость неизвестна." if scheme.total_cost_rub is None else ""
+        missing = f" Недостающие данные — {', '.join(scheme.missing_fields)}." if scheme.missing_fields else ""
+        lines.append(f"{SCHEME_LABELS[scheme.scheme].capitalize()} — {scheme.reason.rstrip('.')}.{cost_note}{missing}")
+
+    dates = (draft.schedule.ready_at, draft.schedule.start_at, draft.schedule.end_at)
+    offsets = sorted({date.strftime("%z") for date in dates if date is not None})
+    if offsets:
+        zones = ", ".join(f"UTC{offset[:3]}:{offset[3:5]}" for offset in offsets)
+        lines.append(f"Смещение времени в расписании — {zones}.")
     if result.data_status == "synthetic":
         lines.append("Расчёт выполнен на синтетических данных.")
-    return " ".join(lines)
+    lines.extend(result.warnings)
+    return "\n\n".join(lines)
 
 
 def handle_chat(
@@ -122,6 +140,10 @@ def handle_chat(
         return InformationReply(
             kind="information", reply=turn.reply, draft=request.draft, sources=turn.sources
         )
+    if isinstance(turn, ClarificationTurn):
+        return ClarificationReply(
+            kind="clarification", reply=turn.reply, draft=turn.draft, missing_fields=turn.missing_fields
+        )
     if not isinstance(turn, DeliveryTurn):
         raise InvalidAssistantTurn
 
@@ -141,4 +163,4 @@ def handle_chat(
     except ValidationError as exc:
         raise InvalidDeliveryDraft(exc) from exc
     result = CalculationResponse.model_validate(calculate(payload))
-    return CalculationReply(kind="calculation", reply=_summary(result), draft=draft, calculation=result)
+    return CalculationReply(kind="calculation", reply=_summary(result, draft), draft=draft, calculation=result)

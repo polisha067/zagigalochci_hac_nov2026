@@ -6,12 +6,15 @@ import time
 import uuid
 from typing import Optional, Union
 
+import httpx
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pwdlib import PasswordHash
 
+from .assistant.ollama_client import OllamaClient
+from .assistant.planner import DeliveryPlanner
 from .assistant.schemas import ChatRequest, ChatResponse
 from .assistant.service import (
     AssistantUnavailable,
@@ -26,7 +29,7 @@ from .mailer import MailDeliveryError, Mailer
 from .schemas import Credentials, ErrorResponse, RegisterRequest, ResendRequest, UserResponse, VerificationRequired, VerifyEmailRequest
 from .verification import VerificationProblem, VerificationService
 from backend.calculation_models import CalculationRequest, CalculationResponse, MAX_SHIPMENTS
-from backend.transport_calculator import compare_transport, load_catalog
+from backend.transport_calculator import catalog_cities, compare_transport, load_catalog
 
 
 def digest(value):
@@ -70,7 +73,23 @@ def create_app(settings=None, *, assistant_planner: Optional[TurnPlanner] = None
         app.state.mailer = Mailer(settings)
         app.state.verification = VerificationService(database, settings, app.state.mailer)
         app.state.calculation_catalog = load_catalog(settings.calculation_catalog_path)
-        yield
+        if assistant_planner is not None:
+            app.state.assistant_planner = assistant_planner
+            yield
+        else:
+            with httpx.Client(
+                base_url=settings.ollama_url,
+                timeout=httpx.Timeout(
+                    settings.ollama_timeout_seconds,
+                    connect=min(5, settings.ollama_timeout_seconds),
+                    pool=min(5, settings.ollama_timeout_seconds),
+                ),
+                limits=httpx.Limits(max_connections=4, max_keepalive_connections=4),
+                trust_env=False,
+            ) as http:
+                client = OllamaClient(http, settings.ollama_model)
+                app.state.assistant_planner = DeliveryPlanner(client, app.state.calculation_catalog)
+                yield
 
     app = FastAPI(
         title="А1 — API команды",
@@ -230,10 +249,9 @@ def create_app(settings=None, *, assistant_planner: Optional[TurnPlanner] = None
     @app.get("/calculation-options", tags=["Расчёты"])
     def calculation_options(user=Depends(require_user)):
         catalog = app.state.calculation_catalog
-        cities = sorted({leg[key] for scheme in ("spot_road", "contract_road") for leg in (catalog.get(scheme) or {}).get("legs", []) for key in ("origin", "destination")})
         return {
             "schema_version": "0.2", "dataset_id": catalog["id"], "data_status": catalog.get("status", "unspecified"),
-            "cities": cities,
+            "cities": catalog_cities(catalog),
             "cargo_types": [{"id": key, "name": value.get("name", key)} for key, value in catalog["cargo_types"].items()],
             "schedule_modes": ["once", "regular", "explicit"], "frequency_units": ["day", "week", "month"],
             "capacity_bases": ["mass_only", "mass_and_volume"],
@@ -260,10 +278,13 @@ def create_app(settings=None, *, assistant_planner: Optional[TurnPlanner] = None
         responses={502: {"model": ErrorResponse}},
     )
     def assistant_chat(payload: ChatRequest, user=Depends(require_user)):
+        retry = database.consume_attempt("assistant:" + user["id"], int(time.time()), 60, 30)
+        if retry:
+            raise error(429, "too_many_attempts", "Не более 30 сообщений в минуту", {"Retry-After": str(retry)})
         try:
             return handle_chat(
                 payload,
-                plan_turn=assistant_planner,
+                plan_turn=app.state.assistant_planner,
                 dataset_id=app.state.calculation_catalog["id"],
                 calculate=lambda request: calculate_for_user(request, user["id"]),
             )

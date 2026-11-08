@@ -1,4 +1,5 @@
 import os
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Tuple
@@ -36,6 +37,9 @@ class Settings:
     smtp_username: str = ""
     smtp_password: str = field(default="", repr=False)
     mail_from: str = "no-reply@example.com"
+    ollama_url: str = "http://127.0.0.1:11434"
+    ollama_model: str = "qwen3:8b"
+    ollama_timeout_seconds: int = 90
 
     def __post_init__(self):
         for origin in self.allowed_origins:
@@ -59,6 +63,14 @@ class Settings:
             raise ValueError("VERIFICATION_SECRET должен содержать минимум 32 символа")
         if self.production and (self.mail_backend != "smtp" or not self.verification_secret or not self.cookie_secure):
             raise ValueError("Для production нужны SMTP, VERIFICATION_SECRET и Secure-cookie")
+        ollama = urlsplit(self.ollama_url)
+        if (ollama.scheme not in ("http", "https") or not ollama.hostname or ollama.path not in ("", "/")
+                or ollama.query or ollama.fragment or ollama.username is not None or ollama.password is not None):
+            raise ValueError("OLLAMA_URL должен быть базовым HTTP-адресом без пути и учётных данных")
+        if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:/-]{0,199}", self.ollama_model):
+            raise ValueError("Укажите корректное имя модели в OLLAMA_MODEL")
+        if not 1 <= self.ollama_timeout_seconds <= 300:
+            raise ValueError("OLLAMA_TIMEOUT_SECONDS должен быть от 1 до 300 секунд")
 
     @classmethod
     def from_env(cls):
@@ -89,4 +101,7 @@ class Settings:
             smtp_password=os.getenv("SMTP_PASSWORD", ""),
             mail_from=os.getenv("MAIL_FROM", "no-reply@example.com"),
             verification_secret=os.getenv("VERIFICATION_SECRET", ""),
+            ollama_url=os.getenv("OLLAMA_URL", defaults.ollama_url),
+            ollama_model=os.getenv("OLLAMA_MODEL", defaults.ollama_model),
+            ollama_timeout_seconds=int(os.getenv("OLLAMA_TIMEOUT_SECONDS", defaults.ollama_timeout_seconds)),
         )

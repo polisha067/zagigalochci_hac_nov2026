@@ -45,6 +45,18 @@ def load_catalog(path=None):
     return catalog
 
 
+def catalog_cities(catalog):
+    cities = {
+        leg[key]
+        for scheme in ("spot_road", "contract_road")
+        for leg in (catalog.get(scheme) or {}).get("legs", [])
+        for key in ("origin", "destination")
+    }
+    rail = catalog.get("road_rail_road") or {}
+    cities.update(rail[key] for key in ("origin", "destination") if rail.get(key))
+    return sorted(cities)
+
+
 def unload_at(item, request):
     return len(request.route) - 1 if item.unload_at is None else item.unload_at
 

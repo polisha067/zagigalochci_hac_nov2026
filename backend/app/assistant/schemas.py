@@ -78,6 +78,15 @@ class InformationTurn(InputModel):
     sources: List[DocumentSource] = Field(default_factory=list, max_length=10)
 
 
+class ClarificationTurn(InputModel):
+    reply: ReplyText
+    draft: DeliveryDraft
+    missing_fields: List[str] = Field(min_length=1)
+
+
+AssistantTurn = Union[DeliveryTurn, InformationTurn, ClarificationTurn]
+
+
 class ReplyBase(InputModel):
     reply: ReplyText
     draft: Optional[DeliveryDraft]
