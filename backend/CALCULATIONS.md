@@ -1,3 +1,5 @@
+> **Контракт 0.2 — совместимость.** Для нового фронта и ИИ-ассистента используйте [RUSSIA_NETWORK.md](RUSSIA_NETWORK.md). Формулы и API ниже относятся к прежнему сравнению трёх схем.
+
 > Этот документ относится к прежнему расчёту трёх схем (0.2). Новый сетевой расчёт: [архитектура](NETWORK.md), [формулы](NETWORK_FORMULAS.md), [API](NETWORK_API.md).
 
 # Расчёт для фронтенда — контракт 0.2
@@ -58,7 +60,7 @@ HTTP 200 означает, что запрос обработан; отдель�
 ```
 
 Файл: [`examples/calculation-request.json`](examples/calculation-request.json).
-Полный образец ответа: [`examples/calculation-response.json`](examples/calculation-response.json).
+Ответ воспроизводится командой `python -m backend.export_examples --kind examples` в `backend/data/generated/examples/calculation-response.json`.
 Результат: 8 отправок, 80 т; авто 240 000 ₽, договор 208 000 ₽,
 ж/д цепочка 140 000 ₽ и 156 часов. При лимите 48 часов выбирается договор.
 При увеличении лимита до 156 часов на том же условном наборе выбирается ж/д.
@@ -118,7 +120,7 @@ HTTP 200 означает, что запрос обработан; отдель�
 По умолчанию 0; это явно показывается как допущение.
 
 Пример: [calculation-stops.json](examples/calculation-stops.json).
-Образец ответа: [calculation-stops-response.json](examples/calculation-stops-response.json).
+Ответ для остановок восстанавливается тем же генератором в `backend/data/generated/examples/calculation-stops-response.json`.
 Москва → Калуга → Брянск: в Москве загружаем 10 т муки и выгружаем в Калуге;
 там забираем 15 т сахара и доставляем в Брянск. Итог 25 т груза, но максимальная
 загрузка участка 15 т: достаточно одной машины на 20 т. Движение 8 + 12 ч,

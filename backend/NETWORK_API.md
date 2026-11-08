@@ -1,3 +1,5 @@
+> **API по точным ID хабов и услуг.** Для новой формы по населённым пунктам используйте [RUSSIA_NETWORK.md](RUSSIA_NETWORK.md), engine `russia`.
+
 # API сетевого расчёта для Искандера и Даши
 
 > Речной сценарий Красноярск ↔ Дудинка: опубликованные компонентные тарифы + явно заданные синтетические условия. Подключение и формулы — [RIVER.md](RIVER.md).
@@ -61,7 +63,7 @@
 
 ## Ответ и отрисовка
 
-Полные воспроизводимые ответы: `examples/network-response.json`, `examples/network-four-modes-response.json`.
+Полные ответы восстанавливаются командой `python -m backend.export_examples --kind examples` в `backend/data/generated/examples/`. Отдельные копии каждого ответа в Git не хранятся.
 
 - `shipments`, `total_volume_tonnes` — общий план. Это сценарный объём, не обученный прогноз.
 - `network_id`, `network_fingerprint`, `coverage`, `request` — контекст воспроизведения.

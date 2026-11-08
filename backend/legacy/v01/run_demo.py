@@ -1,11 +1,11 @@
-"""Запуск из корня репозитория: python3 backend/run_demo.py."""
+"""Запуск из корня репозитория: python -m backend.legacy.v01.run_demo."""
 
 import argparse
 import json
 from pathlib import Path
 import sys
 
-from calculator import compare_delivery
+from backend.legacy.v01.calculator import compare_delivery
 
 
 def main():
