@@ -20,6 +20,7 @@ Swagger: http://localhost:8000/docs. Настройки из backend/.env чит
 - [MAIL.md](MAIL.md): настоящая отправка и локальные тестовые письма.
 - **[CALCULATIONS.md](CALCULATIONS.md)**: POST /calculations, GET /calculation-options,
   поля формы, расписания, единицы, готовый JavaScript-клиент и примеры ответов.
+- [ASSISTANT.md](ASSISTANT.md): контракт чата, передача черновика и тесты интеграции.
 - [FORMULAS.md](FORMULAS.md): реализованные формулы 0.2.
 - [EDGE_CASES.md](EDGE_CASES.md): ограничения, краевые случаи и границы модели.
 

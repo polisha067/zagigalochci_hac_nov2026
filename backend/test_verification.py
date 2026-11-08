@@ -1,3 +1,4 @@
+from contextlib import closing
 from dataclasses import replace
 import hashlib
 import sqlite3
@@ -158,7 +159,7 @@ class VerificationTests(unittest.TestCase):
 
     def test_migration_preserves_old_account_and_revokes_old_session(self):
         old_path = self.settings.database_path.parent / "old.sqlite3"
-        with sqlite3.connect(str(old_path)) as connection:
+        with closing(sqlite3.connect(str(old_path))) as connection, connection:
             connection.executescript("""
                 CREATE TABLE users (id TEXT PRIMARY KEY, email TEXT NOT NULL UNIQUE, name TEXT NOT NULL, password_hash TEXT NOT NULL, created_at TEXT NOT NULL);
                 CREATE TABLE sessions (token_hash TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id), expires_at INTEGER NOT NULL);

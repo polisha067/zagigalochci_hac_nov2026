@@ -4,7 +4,7 @@ import hashlib
 import secrets
 import time
 import uuid
-from typing import Union
+from typing import Optional, Union
 
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.exceptions import RequestValidationError
@@ -12,6 +12,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pwdlib import PasswordHash
 
+from .assistant.schemas import ChatRequest, ChatResponse
+from .assistant.service import (
+    AssistantUnavailable,
+    InvalidAssistantTurn,
+    InvalidDeliveryDraft,
+    TurnPlanner,
+    handle_chat,
+)
 from .config import Settings
 from .database import Database
 from .mailer import MailDeliveryError, Mailer
@@ -49,7 +57,7 @@ def require_user(request: Request):
     return public_user(row)
 
 
-def create_app(settings=None):
+def create_app(settings=None, *, assistant_planner: Optional[TurnPlanner] = None):
     settings = settings or Settings.from_env()
     database = Database(settings.database_path)
 
@@ -96,13 +104,19 @@ def create_app(settings=None):
 
     @app.middleware("http")
     async def browser_security(request, call_next):
-        private_api = request.url.path.startswith(("/auth/", "/calculation"))
+        private_api = request.url.path.startswith(("/auth/", "/calculation", "/assistant/"))
         if private_api and request.method not in ("GET", "HEAD", "OPTIONS"):
             origin = request.headers.get("origin")
             if (origin is not None and origin not in settings.allowed_origins) or (origin is None and request.headers.get("sec-fetch-site") == "cross-site"):
-                return JSONResponse({"error": {"code": "origin_not_allowed", "message": "Адрес сайта не разрешён", "fields": []}}, status_code=403)
+                return JSONResponse(
+                    {"error": {"code": "origin_not_allowed", "message": "Адрес сайта не разрешён", "fields": []}},
+                    status_code=403, headers={"Cache-Control": "no-store"},
+                )
             if request.url.path != "/auth/logout" and request.headers.get("content-type", "").split(";")[0].strip().lower() != "application/json":
-                return JSONResponse({"error": {"code": "json_required", "message": "Передайте тело application/json", "fields": []}}, status_code=415)
+                return JSONResponse(
+                    {"error": {"code": "json_required", "message": "Передайте тело application/json", "fields": []}},
+                    status_code=415, headers={"Cache-Control": "no-store"},
+                )
         response = await call_next(request)
         if private_api:
             response.headers["Cache-Control"] = "no-store"
@@ -228,15 +242,41 @@ def create_app(settings=None):
             "note": "Наличие города в списке не гарантирует тариф на любое сочетание пунктов",
         }
 
-    @app.post("/calculations", response_model=CalculationResponse, tags=["Расчёты"])
-    def calculate(payload: CalculationRequest, user=Depends(require_user)):
-        retry = database.consume_attempt("calculate:" + user["id"], int(time.time()), 60, 30)
+    def calculate_for_user(payload: CalculationRequest, user_id: str):
+        retry = database.consume_attempt("calculate:" + user_id, int(time.time()), 60, 30)
         if retry:
             raise error(429, "too_many_attempts", "Не более 30 расчётов в минуту", {"Retry-After": str(retry)})
         try:
             return compare_transport(payload, app.state.calculation_catalog)
         except ValueError as exc:
             raise error(422, "calculation_error", str(exc))
+
+    @app.post("/calculations", response_model=CalculationResponse, tags=["Расчёты"])
+    def calculate(payload: CalculationRequest, user=Depends(require_user)):
+        return calculate_for_user(payload, user["id"])
+
+    @app.post(
+        "/assistant/chat", response_model=ChatResponse, tags=["Ассистент"],
+        responses={502: {"model": ErrorResponse}},
+    )
+    def assistant_chat(payload: ChatRequest, user=Depends(require_user)):
+        try:
+            return handle_chat(
+                payload,
+                plan_turn=assistant_planner,
+                dataset_id=app.state.calculation_catalog["id"],
+                calculate=lambda request: calculate_for_user(request, user["id"]),
+            )
+        except AssistantUnavailable as exc:
+            raise error(
+                503, "assistant_unavailable", "Ассистент недоступен. Можно воспользоваться формой расчёта."
+            ) from exc
+        except InvalidAssistantTurn as exc:
+            raise error(
+                502, "assistant_invalid_response", "Ассистент вернул некорректный ответ. Попробуйте ещё раз."
+            ) from exc
+        except InvalidDeliveryDraft as exc:
+            raise RequestValidationError(exc.fields) from exc
 
     return app
 
