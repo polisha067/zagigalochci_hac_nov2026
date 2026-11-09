@@ -31,9 +31,11 @@ function readPending(): Pending | null {
 }
 export function Auth({
   onUser,
+  onBack,
   initialMessage = "",
 }: {
   onUser: (u: User) => void;
+  onBack: () => void;
   initialMessage?: string;
 }) {
   const [pending, setPending] = useState<Pending | null>(readPending);
@@ -284,6 +286,9 @@ export function Auth({
     <div className="page auth-page">
       <header className="app-header auth-header">
         <Brand />
+        <button className="text-button" type="button" onClick={onBack}>
+          К расчёту
+        </button>
       </header>
       <main className="auth-layout">
         <section className="auth-intro">

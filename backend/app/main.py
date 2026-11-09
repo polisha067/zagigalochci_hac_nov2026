@@ -43,20 +43,30 @@ def public_user(row):
     return {key: row[key] for key in ("id", "email", "name", "created_at", "email_verified_at")}
 
 
-def require_user(request: Request):
-    """Подключать через Depends к будущим личным расчётам."""
+def find_user(request: Request):
     settings = request.app.state.settings
     token = request.cookies.get(settings.cookie_name)
     if not token:
-        raise error(401, "not_authenticated", "Сначала войдите в аккаунт")
+        return None
     with request.app.state.database.connect() as connection:
         row = connection.execute(
             "SELECT u.* FROM users u JOIN sessions s ON s.user_id = u.id WHERE s.token_hash = ? AND s.expires_at > ? AND u.email_verified_at IS NOT NULL",
             (digest(token), int(time.time())),
         ).fetchone()
-    if row is None:
-        raise error(401, "not_authenticated", "Сессия недействительна или истекла. Войдите снова")
-    return public_user(row)
+    return public_user(row) if row is not None else None
+
+
+def require_user(request: Request):
+    user = find_user(request)
+    if user is None:
+        settings = request.app.state.settings
+        message = (
+            "Сессия недействительна или истекла. Войдите снова"
+            if request.cookies.get(settings.cookie_name)
+            else "Сначала войдите в аккаунт"
+        )
+        raise error(401, "not_authenticated", message)
+    return user
 
 
 def create_app(settings=None):
@@ -248,8 +258,9 @@ def create_app(settings=None):
             "network_engine": {"engine":"network","endpoint":"/network/calculations","options":"/network/options","categories":[{"id":key,"name":name} for key,name in CATEGORIES]},
         }
 
-    def calculation_limit(user):
-        retry = database.consume_attempt("calculate:" + user["id"], int(time.time()), 60, 30)
+    def calculation_limit(user, guest_ip=None):
+        scope = user["id"] if user else "guest:" + digest(guest_ip)
+        retry = database.consume_attempt("calculate:" + scope, int(time.time()), 60, 30)
         if retry:
             raise error(429, "too_many_attempts", "Не более 30 расчётов в минуту", {"Retry-After": str(retry)})
 
@@ -282,7 +293,7 @@ def create_app(settings=None):
             raise error(422,"calculation_error",str(exc))
 
     @app.get("/network/options",tags=["Сеть и цепочки"])
-    def network_options(network_id: Optional[str] = None, user=Depends(require_user)):
+    def network_options(network_id: Optional[str] = None):
         graph=selected_network(network_id) if network_id else app.state.network
         return {"schema_version":"0.3","network_id":graph.catalog.id,"fingerprint":graph.fingerprint,"coverage":graph.catalog.coverage,
                 "available_networks":[{"id":n.catalog.id,"coverage":n.catalog.coverage} for n in app.state.networks.values()],
@@ -298,7 +309,7 @@ def create_app(settings=None):
                 "observations":coverage(settings.database_path.parent/"network-observations.sqlite3")}
 
     @app.get("/network/russia/options", tags=["Общая сеть России"])
-    def russia_options(query: str = Query(default="", max_length=100), offset: int = Query(default=0, ge=0), limit: int = Query(default=50, ge=1, le=250), user=Depends(require_user)):
+    def russia_options(query: str = Query(default="", max_length=100), offset: int = Query(default=0, ge=0), limit: int = Query(default=50, ge=1, le=250)):
         return load_russia().options(query, offset, limit)
 
     @app.get("/network/russia/hubs", tags=["Общая сеть России"])
@@ -324,8 +335,8 @@ def create_app(settings=None):
         return {"ports":load_russia().reference_ports,"operational_services_inferred":False}
 
     @app.post("/network/russia/calculations", response_model=RussiaResponse, tags=["Общая сеть России"])
-    def russia_calculate(payload: RussiaRequest, user=Depends(require_user)):
-        calculation_limit(user)
+    def russia_calculate(payload: RussiaRequest, request: Request, user=Depends(find_user)):
+        calculation_limit(user, request.client.host if request.client else "unknown")
         try:
             return load_russia().calculate(payload)
         except ValueError as exc:
