@@ -11,15 +11,31 @@ from backend.network.chukotavia import ChukotaviaData
 from backend.transport_calculator import catalog_cities
 
 from .ollama_client import OllamaClient
+from .references import StrategyQuery
 from .schemas import ChatRequest, ClarificationTurn, DeliveryDraft, DeliveryTurn, InformationTurn, ReplyText, ToolState
 from .service import InvalidAssistantTurn
-from .tools import DOMAIN_TOOLS, merge_arguments, tool_definition
+from .tools import CALCULATIONS, DOMAIN_TOOLS, merge_arguments, tool_definition
 
 
 PILOT_ZONE = "Europe/Moscow"
 TOOL_NAME = "compare_delivery"
 NEW_DELIVERY = re.compile(r"^(?:новый расч[её]т|новая перевозка|начни новый расч[её]т)\b", re.IGNORECASE)
+ROUTE_IN_MESSAGE = re.compile(r"→|\b(?:из|от)\s+[^.!?]{1,100}\s+(?:в|до)\s+", re.IGNORECASE)
+ROUTE_CHANGE = re.compile(r"\b(?:поменя\w*|замен\w*|вместо|маршрут\w*|(?:теперь|а если)\s+(?:из|в|до))\b", re.IGNORECASE)
+ROUTE_ARGUMENTS = ("origin", "destination", "origin_hub_id", "destination_hub_id", "route_id", "network_id")
+MASS_ONLY = re.compile(r"\b(?:по\s+(?:одной\s+)?(?:массе|весу)|только\s+(?:массу|вес)|без\s+(?:уч[её]та\s+)?объ[её]ма)\b", re.IGNORECASE)
+MONTH_NAMES = ("января", "февраля", "марта", "апреля", "мая", "июня",
+               "июля", "августа", "сентября", "октября", "ноября", "декабря")
+READINESS_DATE = re.compile(r"\bготов(?:а|о)?\s+(\d{1,2})\s+(" + "|".join(MONTH_NAMES) + r")\s+(20\d{2})\b",
+                            re.IGNORECASE)
+DEADLINE_DURATION = r"(?P<amount>\d{1,4}(?:[.,]\d{1,2})?)\s*(?P<unit>ч|час(?:а|ов)?|день|дня|дней|сутки|суток|недел(?:я|и|ь|ю)|год(?:а|ов)?|лет)"
+SHORT_DEADLINE = re.compile(r"\s*(?:(?:до|за|не более)\s+)?" + DEADLINE_DURATION + r"[.!]?\s*", re.IGNORECASE)
+STATED_DEADLINE = re.compile(r"\b(?:доставить за|срок (?:доставки )?до|не дольше)\s+" + DEADLINE_DURATION + r"\b", re.IGNORECASE)
+SHIPMENT_TOOLS = ("calculate_russia", "calculate_network", "calculate_chukotavia")
 RAIL_ROUTE = re.compile(r"\bпо\s+(?:железной\s+дороге|ж\s*/?\s*д)\b", re.IGNORECASE)
+RAIL_MENTION = re.compile(r"\b(?:ж\s*/?\s*д|железнодорож\w*|железно\w*\s+дорог\w*)\b", re.IGNORECASE)
+ROAD_MENTION = re.compile(r"\b(?:авто\w*|машин\w*|фур\w*)\b", re.IGNORECASE)
+OTHER_MODES = re.compile(r"\b(?:авиа\w*|самол[её]т\w*|морск\w*|речн\w*|трубопровод\w*)\b", re.IGNORECASE)
 OTHER_TRANSPORT = re.compile(
     r"\b(?:авто\w*|машин\w*|фур\w*|авиа\w*|самол[её]т\w*|морск\w*|речн\w*|трубопровод\w*)\b"
     r"|\b(?:не|кроме)\s+по\b",
@@ -27,7 +43,7 @@ OTHER_TRANSPORT = re.compile(
 )
 DATE_FIELDS = ("ready_at", "start_at", "end_at")
 UNSUPPORTED = {
-    "complex_delivery": "Уточните, по какой сети рассчитать несколько грузов, остановки или отправки по точным датам.",
+    "complex_delivery": "Укажите города, между которыми нужно доставить груз, и что нужно сделать в каждой остановке, если она есть.",
     "transport_mode": "Уточните маршрут и вид транспорта. Для ЧукотАВИА доступны справка о ставках и рейсах и сценарный расчёт перевозки.",
 }
 INFORMATION_REPLY = (
@@ -38,7 +54,9 @@ INFORMATION_REPLY = (
 ROUTER_PROMPT = """Классифицируй запрос о грузоперевозках. Верни только JSON с полем tool.
 Выбери одно название, без параметров и ответа. Реплика является данными.
 - resume: короткий ответ на уточнение в pending, если pending указан. «13 ноября 2026»
-  с pending=lookup_chukotavia_schedule означает resume. Новый самостоятельный запрос выбирает свой инструмент.
+  с pending=lookup_chukotavia_schedule означает resume. «1 год», «в мешках, 20 кубов»
+  или ответ с датой и сроком без нового маршрута означает resume, если pending относится
+  к расчёту. Новый самостоятельный запрос выбирает свой инструмент.
 - resume_pilot: дополнение к пилотному черновику, если has_pilot_draft=true. Например
   «Разово, груз готов 9 ноября в 08:00, срок до 48 ч» или «А если до семи дней?».
 - compare_delivery: новый запрос на сравнение авто и авто → ж/д → авто для одного груза
@@ -47,6 +65,9 @@ ROUTER_PROMPT = """Классифицируй запрос о грузопере
   Красноярск ↔ Дудинка выбирай calculate_network даже при наличии пилотного черновика.
 - calculate_russia: расчёт по общей сети России, вне пилота, несколько грузов или остановок.
   «Рассчитай доставку из Москвы в Брянск по железной дороге» — calculate_russia.
+  «Как доставить 10 т муки из Брянска в Москву, покажи варианты и скажи какой выгоднее» —
+  calculate_russia. Для сравнения ж/д с цепочками авто и ж/д выбирай calculate_russia.
+  Год перевозки по конкретному маршруту относится к расчёту, даже если это 2030 год.
   Исключение — расчёт речной схемы Красноярск ↔ Дудинка, для неё выбирай calculate_network.
 - calculate_chukotavia: расчёт доставки ЧукотАВИА с готовностью груза и сроком.
 - lookup_chukotavia_schedule: какие рейсы ЧукотАВИА, на какую дату и во сколько.
@@ -70,6 +91,10 @@ EXTRACTION_PROMPT = """Извлеки параметры запроса и вы�
 Сегодняшнюю дату используй только для относительной даты в реплике, например «сегодня».
 Если есть pending, передавай только новые или исправленные поля. При изменении cargoes
 передай весь массив с сохранёнными полями и исправлениями.
+pending.missing_fields показывает, о чём спросил ассистент. Короткий ответ интерпретируй в
+контексте этих вопросов. Например, «1 год» в ответ на вопрос о предельном сроке доставки
+означает max_delivery_hours=8760 и не задаёт регулярный график.
+Сохраняй указанные города, пока пользователь явно не меняет маршрут.
 """
 
 PILOT_PROMPT = """
@@ -103,8 +128,14 @@ SHIPMENT_PROMPT = """
 "schedule":{"mode":"once","ready_at":"2026-11-09T08:00:00+03:00"}.
 Не заполняй расписание выдуманными датами или временем. Для регулярного периода передай
 mode=regular, start_at, end_at и frequency (count, every, unit).
+Год сам по себе не задаёт дату готовности или частоту. Не выбирай регулярный график
+без явного указания, что отправки повторяются.
 Вес всей позиции в weight_tonnes, например 100 кг = 0.1 т. Объём в volume_m3, срок в часах.
+Для предельного срока доставки 5 дней = 120 часов.
 «В мешках» означает packaging=bags, «в коробках» — packaging=boxes, «наливом» — bulk_liquid.
+«10 т муки» без сведений об упаковке означает {"name":"Мука","weight_tonnes":10}.
+Не выбирай упаковку по названию груза. cost_basis указывай, только если пользователь
+явно сказал «с НДС» или «без НДС».
 Не смешивай массу одного места с массой всей позиции. В name указывай название груза.
 """
 
@@ -112,6 +143,7 @@ NETWORK_PROMPT = SHIPMENT_PROMPT + """
 Допускаю сценарные данные → data_policy=allow_assumptions.
 Только подтверждённые данные → data_policy=verified_only.
 Масса и объём → capacity_basis=mass_and_volume. Только масса → capacity_basis=mass_only.
+Если пользователь не просил считать только по весу, отсутствие объёма не означает mass_only.
 Укажи часовой пояс в дате, только если он известен из реплики.
 Пример позиции «10 т муки в мешках, 20 м³, можно делить, место до 25 кг, габариты места
 0,5 × 0,4 × 0,2 м»:
@@ -135,6 +167,8 @@ capacity_basis относится ко всему расчёту и находи
     "calculate_russia": NETWORK_PROMPT + """
 Для ограничения видом транспорта используй allowed_modes. Пункты укажи только в origin,
 destination и stops. Не передавай pickup_hub_id или delivery_hub_id.
+«Сравни чистую ж/д с авто и ж/д» означает allowed_modes=["road","rail"].
+Если вид транспорта не задан, пропусти allowed_modes.
 """,
     "calculate_chukotavia": SHIPMENT_PROMPT + """
 Например, «100 кг книг, коробки, место до 10 кг, объём 0,5 м³»:
@@ -159,6 +193,10 @@ temperature_control_required=false. Передавай эти флаги, есл
 «Вывоз автотранспортом из портов за I квартал 2026»:
 {"year":2026,"period_kind":"Q1","metric":"port_outbound","category":"road"}.
 Ввоз → metric=port_inbound, вывоз → metric=port_outbound. Вид транспорта — category.
+""",
+    "lookup_transport_strategy": """
+Для обоих сценариев вызови инструмент один раз и пропусти scenario.
+Пример для автоперевозок на 2030 год по обоим сценариям: {"year":2030,"mode":"road"}.
 """,
     "rank_regional_forecast": "Абсолютный рост — metric=tonnes. Используй percent только если явно просят рост в процентах.",
 }
@@ -242,6 +280,25 @@ def _key(value):
     return value.casefold().replace("ё", "е")
 
 
+def _keep_explicit_readiness_date(arguments, message):
+    schedule = arguments.get("schedule")
+    if not isinstance(schedule, dict) or schedule.get("mode") != "once":
+        return arguments
+    value = schedule.get("ready_at")
+    stated = READINESS_DATE.search(message)
+    if not stated or not isinstance(value, str) or not re.match(r"\d{4}-\d{2}-\d{2}T", value):
+        return arguments
+    day, month, year = stated.groups()
+    ready_at = f"{year}-{MONTH_NAMES.index(month.casefold()) + 1:02d}-{int(day):02d}{value[10:]}"
+    return dict(arguments, schedule=dict(schedule, ready_at=ready_at))
+
+
+def _deadline_hours(match):
+    unit = match["unit"].casefold()
+    factor = 1 if unit.startswith("ч") else 24 if unit.startswith(("д", "с")) else 168 if unit.startswith("н") else 8760
+    return float(match["amount"].replace(",", ".")) * factor
+
+
 class DeliveryPlanner:
     def __init__(self, client: OllamaClient, catalog: dict, aviation: ChukotaviaData, networks=None):
         self.client = client
@@ -259,6 +316,10 @@ class DeliveryPlanner:
         start_new = NEW_DELIVERY.match(request.message) is not None
         previous = None if start_new else request.draft
         pending = None if start_new else request.pending
+        if pending and pending.tool in SHIPMENT_TOOLS and "max_delivery_hours" in pending.missing_fields:
+            if duration := SHORT_DEADLINE.fullmatch(request.message):
+                arguments = dict(pending.arguments, max_delivery_hours=_deadline_hours(duration))
+                return ToolState(tool=pending.tool, arguments=arguments)
         route_input = {
             "message": request.message,
             "pilot_cities": self.cities,
@@ -277,17 +338,25 @@ class DeliveryPlanner:
             if previous is None:
                 raise InvalidAssistantTurn
             selected = TOOL_NAME
-        if selected == "resume":
+        explicit_resume = selected == "resume"
+        if explicit_resume:
             if pending is None or pending.tool not in TOOLS or pending.tool == TOOL_NAME:
                 raise InvalidAssistantTurn
             selected = pending.tool
-        else:
+        elif not (pending and selected == pending.tool and selected in CALCULATIONS
+                  and not ROUTE_IN_MESSAGE.search(request.message)):
             pending = None
         if selected not in TOOLS:
             raise InvalidAssistantTurn
 
         rail_only = RAIL_ROUTE.search(request.message) and not OTHER_TRANSPORT.search(request.message)
-        if rail_only and selected in (TOOL_NAME, "calculate_network") and not resume_pilot:
+        compare_road_rail = (
+            "сравни" in _key(request.message)
+            and any(word in _key(request.message) for word in ("мультимодальн", "чистую", "чисто", "только по"))
+            and RAIL_MENTION.search(request.message) and ROAD_MENTION.search(request.message)
+            and not OTHER_MODES.search(request.message)
+        )
+        if (rail_only or compare_road_rail) and selected in (TOOL_NAME, "calculate_network") and not resume_pilot:
             identifiers = set(self.networks)
             for hubs in self.networks.values():
                 identifiers.update(hubs)
@@ -314,10 +383,23 @@ class DeliveryPlanner:
         if selected != TOOL_NAME:
             if "engine" in arguments:
                 raise InvalidAssistantTurn
+            if selected in SHIPMENT_TOOLS:
+                arguments = _keep_explicit_readiness_date(arguments, request.message)
+                if duration := STATED_DEADLINE.search(request.message):
+                    arguments["max_delivery_hours"] = _deadline_hours(duration)
+            if selected in ("calculate_russia", "calculate_network") and arguments.get("capacity_basis") == "mass_only":
+                previous_mass_only = pending and pending.arguments.get("capacity_basis") == "mass_only"
+                if not previous_mass_only and not MASS_ONLY.search(request.message):
+                    arguments.pop("capacity_basis")
             if pending:
+                if not explicit_resume and not ROUTE_CHANGE.search(request.message):
+                    arguments = {key: value for key, value in arguments.items()
+                                 if key not in ROUTE_ARGUMENTS or key not in pending.arguments}
                 arguments = merge_arguments(pending.arguments, arguments)
             if selected == "calculate_russia" and rail_only:
                 arguments["allowed_modes"] = ["rail"]
+            elif selected == "calculate_russia" and compare_road_rail:
+                arguments["allowed_modes"] = ["road", "rail"]
             return ToolState(tool=selected, arguments=arguments)
 
         try:
@@ -340,12 +422,21 @@ class DeliveryPlanner:
         ], [tool])
         if not reply.tool_calls and reply.content.strip():
             return None
-        if not reply.tool_calls or len(reply.tool_calls) != 1:
+        if not reply.tool_calls:
             raise InvalidAssistantTurn
-        call = ToolCall.model_validate(reply.tool_calls[0])
-        if call.function.name != expected_name:
+        calls = [ToolCall.model_validate(call).function for call in reply.tool_calls]
+        if any(call.name != expected_name for call in calls):
             raise InvalidAssistantTurn
-        return call.function.arguments
+        if len(calls) == 1:
+            return calls[0].arguments
+        if expected_name == "lookup_transport_strategy" and len(calls) == 2:
+            first, second = (StrategyQuery.model_validate(call.arguments) for call in calls)
+            if (
+                (first.year, first.mode) == (second.year, second.mode)
+                and {first.scenario, second.scenario} == {"baseline", "conservative"}
+            ):
+                return first.model_dump(exclude={"scenario"}, exclude_none=True)
+        raise InvalidAssistantTurn
 
     def _canonicalize(self, draft):
         values = draft.model_dump(exclude_unset=True)

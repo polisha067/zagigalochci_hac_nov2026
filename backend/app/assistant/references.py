@@ -129,6 +129,18 @@ class StrategyQuery(InputModel):
     scenario: Optional[Literal["baseline", "conservative"]] = None
 
 
+STRATEGY_MODE_NAMES = {
+    "road": "автомобильный транспорт",
+    "rail": "железнодорожный транспорт",
+    "river": "внутренний водный транспорт",
+    "overall_excluding_pipeline": "все виды транспорта, кроме трубопроводного",
+}
+STRATEGY_SCENARIOS = {
+    "baseline": ("Базовый", "благоприятные условия для развития экономики"),
+    "conservative": ("Консервативный", "более осторожная оценка развития экономики и спроса на перевозки"),
+}
+
+
 def _information(dataset_id, title, rows, lines, assumptions, sources, **details):
     return InformationTurn(
         reply="\n".join([title, *lines, *assumptions]),
@@ -395,17 +407,39 @@ def strategy(query):
     data = snapshot(STRATEGY_PATH)
     rows = [row for row in data["scenario_values"] if row["year"] == query.year
             and query.mode in (None, row["mode"]) and query.scenario in (None, row["scenario"])]
-    lines = [
-        f"{'Базовый' if row['scenario'] == 'baseline' else 'Консервативный'}, "
-        f"{'внутренний водный' if row['mode'] == 'river' else MODE_LABELS[row['mode']]} — {number(row['value_million_tonnes'])} млн т."
-        for row in rows
-    ]
+    title = f"Годовой объём грузоперевозок по России в {query.year} году"
+    if query.mode:
+        title += f" ({STRATEGY_MODE_NAMES[query.mode]})"
+    lines = []
+    for row in rows:
+        scenario, _ = STRATEGY_SCENARIOS[row["scenario"]]
+        mode = "" if query.mode else f", {STRATEGY_MODE_NAMES[row['mode']]}"
+        lines.append(f"{scenario} сценарий{mode} — {number(row['value_million_tonnes'])} млн т.")
+
+    scenarios = {row["scenario"]: row["value_million_tonnes"] for row in rows}
+    if len(rows) == 2 and len(scenarios) == 2 and rows[0]["mode"] == rows[1]["mode"]:
+        baseline = scenarios["baseline"]
+        difference = abs(baseline - scenarios["conservative"])
+        if difference and baseline:
+            percent = round(difference * 100 / baseline, 1)
+            lines.append(f"Разница между сценариями — {number(difference)} млн т, "
+                         f"или {number(percent)}% от объёма в базовом сценарии.")
+
+    assumptions = []
+    if not rows:
+        lines.append("В снимке стратегии нет значений для этого запроса.")
+    elif all(row["status"] == "historical_baseline_in_strategy" for row in rows):
+        assumptions.append(f"{query.year} год — исходный уровень, с которым авторы стратегии сравнивали прогнозы.")
+    else:
+        for key, (name, description) in STRATEGY_SCENARIOS.items():
+            if key in scenarios:
+                assumptions.append(f"{name} сценарий — {description}.")
+        assumptions.append("Это оценки на год из Транспортной стратегии 2021 года. У каждого сценария свои допущения о спросе на перевозки.")
     page_numbers = ", ".join(map(str, sorted({row["page"] for row in rows})))
     return _information(
-        data["dataset_id"], f"Транспортная стратегия 2021 года, Россия в целом, {query.year}. "
-        f"Значений в снимке — {len(rows)}.", rows, lines,
-        [data["notes"][1], data["notes"][3]],
-        [source_ref(data, STRATEGY_PATH, title=data["document_title"],
+        data["dataset_id"], title + ".", rows, lines, assumptions,
+        [source_ref({"source_url": data["source_url"], "date": data["document_date"]}, STRATEGY_PATH,
+                    title=data["document_title"],
                     section=f"Страницы PDF {page_numbers}" if page_numbers else None)],
     )
 

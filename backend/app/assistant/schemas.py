@@ -47,6 +47,7 @@ class DeliveryDraft(InputModel):
 class ToolState(InputModel):
     tool: Text
     arguments: dict
+    missing_fields: list[Text] = Field(default_factory=list, max_length=200)
 
     @field_validator("arguments")
     @classmethod

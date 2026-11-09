@@ -337,6 +337,68 @@ class AssistantApiTests(unittest.TestCase):
         self.assertEqual(extraction["tools"][0]["function"]["name"], "calculate_russia")
         self.assertNotIn("pending", json.loads(extraction["messages"][-1]["content"]))
 
+    def test_russia_comparison_asks_for_all_missing_inputs_and_resumes(self):
+        self.connect_ollama(
+            self.domain_reply("calculate_russia", origin="Брянск", destination="Москва",
+                              allowed_modes=["road", "rail", "sea"],
+                              capacity_basis="mass_only",
+                              cargoes=[{"name": "Мука", "weight_tonnes": 10}]),
+            self.domain_reply("calculate_russia", origin="Москва", destination="Новосибирск", max_delivery_hours=120,
+                              schedule={"mode": "once", "ready_at": "2026-11-10T08:00:00+03:00"},
+                              cargoes=[{"packaging": "bags", "volume_m3": 20, "splittable": True}]),
+        )
+        first = self.client.post("/assistant/chat", json={
+            "message": "Как доставить 10 т муки из Брянска в Москву? Сравни чистую ж/д и мультимодальные варианты с авто и ж/д.",
+        })
+        self.assertEqual(first.status_code, 200, first.text)
+        data = first.json()
+        self.assertEqual(data["kind"], "clarification")
+        self.assertEqual(set(data["missing_fields"]), {
+            "schedule", "max_delivery_hours", "cargoes.0.packaging", "cargoes.0.volume_m3", "cargoes.0.splittable",
+        })
+        self.assertNotIn("cargoes", data["reply"])
+        self.assertIn("когда груз будет готов", data["reply"])
+        self.assertIn("можно ли разделить партию", data["reply"])
+        self.assertEqual(data["pending"]["missing_fields"], data["missing_fields"])
+        self.assertEqual(data["pending"]["arguments"]["allowed_modes"], ["road", "rail"])
+
+        second = self.client.post("/assistant/chat", json={
+            "message": "Разово, груз готов 12 ноября 2026 в 8 по Москве. До 120 часов, в мешках, 20 кубов, делить можно.",
+            "pending": data["pending"],
+        })
+        self.assertEqual(second.status_code, 200, second.text)
+        result = second.json()
+        self.assertEqual(result["kind"], "calculation")
+        self.assertEqual(result["calculation"]["request"]["cargoes"][0]["weight_tonnes"], 10)
+        self.assertEqual(result["calculation"]["request"]["allowed_modes"], ["road", "rail"])
+        self.assertEqual(result["calculation"]["request"]["origin"], "Брянск")
+        self.assertEqual(result["calculation"]["request"]["destination"], "Москва")
+        self.assertEqual(result["calculation"]["request"]["schedule"]["ready_at"], "2026-11-12T08:00:00+03:00")
+
+    def test_russia_transport_in_2030_explains_coverage_before_asking_for_dates(self):
+        self.connect_ollama(
+            self.domain_reply("calculate_russia", origin="Брянск", destination="Москва",
+                              cargoes=[{"name": "Мука", "weight_tonnes": 10}],
+                              schedule={"mode": "regular", "start_at": "2030-01-01T00:00:00+03:00"}),
+        )
+        response = self.client.post("/assistant/chat", json={
+            "message": "Как доставить 10 т муки из Брянска в Москву в 2030? Покажи варианты и скажи, какой выгоднее.",
+        })
+        self.assertEqual(response.status_code, 200, response.text)
+        result = response.json()
+        self.assertEqual(result["kind"], "clarification")
+        self.assertIn("Для 2030 года", result["reply"])
+        self.assertIn("на дату в 2026 году", result["reply"])
+        self.assertNotIn("schedule", result["reply"])
+        self.assertNotIn("schedule", result["pending"]["arguments"])
+        follow_up = self.client.post("/assistant/chat", json={"message": "1 год", "pending": result["pending"]})
+        self.assertEqual(follow_up.status_code, 200, follow_up.text)
+        data = follow_up.json()
+        self.assertEqual(data["pending"]["arguments"]["max_delivery_hours"], 8760)
+        self.assertEqual(data["pending"]["arguments"]["origin"], "Брянск")
+        self.assertNotIn("max_delivery_hours", data["missing_fields"])
+        self.assertNotIn("schedule", data["pending"]["arguments"])
+
     def test_tool_clarifications_preserve_parameters_and_pilot_draft(self):
         self.connect_ollama(
             self.domain_reply("lookup_chukotavia_schedule", origin="Анадырь", destination="Провидения"),
@@ -401,6 +463,28 @@ class AssistantApiTests(unittest.TestCase):
                     self.assertEqual(reply["result"]["status"], "unavailable")
                     self.assertEqual(reply["result"]["rows"], [])
                     self.assertIn("нет регионального прогноза", reply["reply"])
+
+    def test_strategy_tool_combines_calls_for_both_scenarios(self):
+        calls = [
+            self.domain_reply("lookup_transport_strategy", year=2030, mode="road", scenario=scenario)["tool_calls"][0]
+            for scenario in ("baseline", "conservative")
+        ]
+        self.connect_ollama({"tool_calls": calls})
+        response = self.client.post("/assistant/chat", json={
+            "message": "Покажи прогноз автоперевозок по России на 2030 год по Транспортной стратегии. Покажи оба сценария",
+        })
+        self.assertEqual(response.status_code, 200, response.text)
+        result = response.json()
+        self.assertEqual(result["kind"], "information")
+        self.assertEqual(
+            {row["scenario"]: row["value_million_tonnes"] for row in result["result"]["rows"]},
+            {"baseline": 6117, "conservative": 5984},
+        )
+        self.assertIn("133 млн т", result["reply"])
+        self.assertIn("2,2% от объёма в базовом сценарии", result["reply"])
+        self.assertIn("более осторожная оценка", result["reply"])
+        self.assertEqual(result["sources"][0]["date"], "2021-11-27")
+        self.assertTrue(result["sources"][0]["url"].startswith("https://static.government.ru/"))
 
     def test_ollama_tool_clarifies_then_compares_and_recalculates(self):
         handler = self.connect_ollama(

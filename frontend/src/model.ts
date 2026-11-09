@@ -39,8 +39,8 @@ export const packagingNames: Record<string, string> = {
   tank: "Цистерна",
   unpackaged: "Без упаковки",
 };
-export const newCargo = () => ({
-  id: crypto.randomUUID(),
+export const newCargo = (id: string = crypto.randomUUID()) => ({
+  id,
   name: "",
   weight: "",
   volume: "",
@@ -266,6 +266,41 @@ export function scheduleEvents(s: Schedule): string[] {
   }
   return events;
 }
+
+export function scheduleDraft(schedule: Schedule, readyDates?: string[]): Partial<Draft> {
+  const moscowInput = (value: string) =>
+    new Date(Date.parse(value) + 3 * HOUR).toISOString().slice(0, 16);
+  if (schedule.mode === "once") {
+    return { scheduleMode: "once", start: moscowInput(schedule.ready_at) };
+  }
+  if (schedule.mode === "explicit") {
+    return { scheduleMode: "explicit", dates: schedule.ready_at.map(moscowInput) };
+  }
+  const start = Date.parse(schedule.start_at);
+  const end = Date.parse(schedule.end_at);
+  const from = new Date(start + 3 * HOUR);
+  const to = new Date(end + 3 * HOUR);
+  const months = (to.getUTCFullYear() - from.getUTCFullYear()) * 12 + to.getUTCMonth() - from.getUTCMonth();
+  const elapsedHours = (end - start) / HOUR;
+  const periods: [Draft["periodUnit"], number][] = [
+    ["week", elapsedHours / 168], ["month", months], ["day", elapsedHours / 24], ["hour", elapsedHours],
+  ];
+  const period = periods.find(([unit, value]) =>
+    Number.isInteger(value) && value > 0 && addPeriod(start, value, unit) === end,
+  );
+  if (!period) {
+    return { scheduleMode: "explicit", dates: (readyDates ?? scheduleEvents(schedule)).map(moscowInput) };
+  }
+  return {
+    scheduleMode: "regular",
+    start: moscowInput(schedule.start_at),
+    count: String(schedule.frequency.count),
+    every: String(schedule.frequency.every),
+    unit: schedule.frequency.unit,
+    period: String(period[1]),
+    periodUnit: period[0],
+  };
+}
 function positive(value: string, label: string, maximum = 1000000) {
   const n = Number(value);
   if (!Number.isFinite(n) || n <= 0 || n > maximum)
@@ -418,30 +453,28 @@ export function buildRequest(d: Draft): CalculationRequest {
 }
 export function editableDraft(s: Snapshot, options?: Options): Draft {
   if (isNetwork(s)) return structuredClone(s.draft);
-  const d = emptyDraft(),
-    old = s.draft;
+  const request = s.result.request;
+  const d = { ...emptyDraft(), ...scheduleDraft(request.schedule, s.result.ready_at) };
   const lookup = (name: string): Settlement =>
     options?.settlements.find((c) => c.name === name) || { id: name, name };
-  d.origin = lookup(old.origin);
-  d.destination = lookup(old.destination);
-  d.stops = old.stops.map((p) => ({
-    id: p.id,
+  d.origin = lookup(request.route[0].city);
+  d.destination = lookup(request.route[request.route.length - 1].city);
+  d.stops = request.route.slice(1, -1).map((p) => ({
+    ...newStop(),
     city: lookup(p.city),
-    dwell: "",
+    dwell: String(p.service_hours),
   }));
-  d.cargo = old.cargo.map((c) => ({
-    ...newCargo(),
-    id: c.id,
-    name: s.cargoNames[c.type] || c.type,
-    weight: c.weight,
-    from: c.from,
-    to: c.to,
-    splittable: "yes",
+  const points = ["first", ...d.stops.map((s) => s.id), "last"];
+  d.cargo = request.cargoes.map((c) => ({
+    ...newCargo(c.id),
+    name: s.cargoNames[c.cargo_type] || c.cargo_type,
+    weight: String(c.weight_tonnes),
+    volume: c.volume_m3 == null ? "" : String(c.volume_m3),
+    from: points[c.load_at],
+    to: points[c.unload_at ?? points.length - 1],
+    splittable: c.splittable ? "yes" : "no",
   }));
-  d.scheduleMode = old.regular ? "regular" : "once";
-  d.count = old.count;
-  d.period = old.weeks;
-  d.start = old.start + "T00:00";
-  d.days = old.days;
+  d.capacityBasis = request.capacity_basis;
+  d.days = String(request.max_delivery_hours / 24);
   return d;
 }

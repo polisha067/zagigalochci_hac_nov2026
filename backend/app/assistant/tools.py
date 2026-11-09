@@ -59,8 +59,19 @@ def merge_arguments(previous, changes):
         if isinstance(old, dict) and isinstance(value, dict):
             if field != "schedule" or value.get("mode", old.get("mode")) == old.get("mode"):
                 value = merge_arguments(old, value)
+        elif field == "cargoes" and isinstance(old, list) and isinstance(value, list) and len(old) == len(value):
+            value = [_merge_cargo(original, change) for original, change in zip(old, value)]
         merged[field] = value
     return merged
+
+
+def _merge_cargo(original, change):
+    if not isinstance(original, dict) or not isinstance(change, dict):
+        return change
+    if any(key in original and key in change and original[key] != change[key]
+           for key in ("id", "name", "cargo_type")):
+        return change
+    return merge_arguments(original, change)
 
 
 def _air_moment(value):
@@ -74,6 +85,10 @@ def _air_moment(value):
 
 def _prepare_arguments(engine, arguments):
     payload = dict(arguments)
+    if engine == "network":
+        payload.setdefault("capacity_basis", "mass_and_volume")
+        payload.setdefault("cost_basis", "including_vat")
+        payload.setdefault("data_policy", "allow_assumptions")
     if isinstance(payload.get("cargoes"), list):
         payload["cargoes"] = [
             {"id": f"cargo-{index}", **item} if isinstance(item, dict) else item
@@ -110,7 +125,7 @@ def _pipeline_request(query):
         and refs.point_matches(query.destination, points[row["destination"]])
     ]
     if len(routes) != 1:
-        raise ToolQuestion(["route_id"], "Уточните направление или код маршрута. В снимке нет однозначной опубликованной ставки для указанного направления.")
+        raise ToolQuestion(["route_id"], "Уточните пункты отправления и назначения. В снимке нет однозначной опубликованной ставки для указанного направления.")
     return PipelineRequest(route_id=routes[0]["id"], net_weight_tonnes=query.net_weight_tonnes,
                            shipment_at=query.shipment_at)
 

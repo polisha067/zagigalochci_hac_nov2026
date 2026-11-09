@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import { errorText, post } from "./api";
-import type { AssistantDraft, AssistantReply, AssistantSource, DashboardReply, PendingTool } from "./assistantApi";
+import { hasDashboard, type AssistantDraft, type AssistantReply, type AssistantSource, type DashboardCalculation, type PendingTool } from "./assistantApi";
+import { AssistantData } from "./AssistantData";
 import { num, snapshotRoute, totalVolume, type Snapshot } from "./model";
 
 export function SourceLinks({ sources }: { sources: AssistantSource[] }) {
@@ -30,7 +31,7 @@ export function ReplyText({ text }: { text: string }) {
 
 export function Assistant({ snapshot, onResult }: {
   snapshot: Snapshot | null;
-  onResult: (reply: DashboardReply) => void;
+  onResult: (result: DashboardCalculation) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
@@ -75,7 +76,7 @@ export function Assistant({ snapshot, onResult }: {
       setDraft(response.draft);
       setPending(response.pending);
       setMessage("");
-      if (response.kind === "calculation" || (response.kind === "information" && response.result)) onResult(response);
+      if (response.kind === "calculation" && hasDashboard(response.calculation)) onResult(response.calculation);
     } catch (failure) {
       if (!controller.signal.aborted) setError(errorText(failure));
     } finally {
@@ -134,6 +135,7 @@ export function Assistant({ snapshot, onResult }: {
               <article key={index}>
                 <p className="assistant-context">{message}</p>
                 <ReplyText text={response.reply} />
+                <AssistantData response={response} />
                 <SourceLinks sources={response.sources} />
               </article>
             ))}

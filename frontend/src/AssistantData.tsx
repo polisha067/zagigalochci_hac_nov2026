@@ -1,20 +1,7 @@
 import type { ReactNode } from "react";
-import { ReplyText, SourceLinks } from "./Assistant";
-import type { AssistantCalculation, DashboardReply, ReferenceResult } from "./assistantApi";
+import { hasDashboard, type AssistantCalculation, type AssistantReply, type DashboardCalculation, type ReferenceResult } from "./assistantApi";
 import { candidateName, money, num } from "./model";
 
-const engineNames = {
-  pilot: "Пилотное сравнение",
-  network: "Расчёт по хабам",
-  russia: "Транспортная сеть России",
-  chukotavia: "Перевозка ЧукотАВИА",
-  pipeline: "Трубопроводный тариф",
-};
-const schemeNames: Record<string, string> = {
-  spot_road: "Разовые автозаказы",
-  contract_road: "Авторейсы по договору",
-  road_rail_road: "Авто → ж/д → авто",
-};
 const statusNames: Record<string, string> = {
   feasible: "Допустим",
   infeasible: "Не подходит",
@@ -40,18 +27,7 @@ function ReportTable({ columns, rows }: { columns: string[]; rows: ReactNode[][]
   );
 }
 
-function CalculationData({ result }: { result: AssistantCalculation }) {
-  if (!("engine" in result)) {
-    return <ReportTable
-      columns={["Схема", "Статус", "Стоимость", "Макс. срок, ч"]}
-      rows={result.schemes.map((scheme) => [
-        schemeNames[scheme.scheme],
-        scheme.scheme === result.recommendation ? "Рекомендация" : statusNames[scheme.status],
-        rubles(scheme.total_cost_rub),
-        hours(scheme.max_delivery_hours),
-      ])}
-    />;
-  }
+function CalculationData({ result }: { result: Exclude<AssistantCalculation, DashboardCalculation> }) {
   if (result.engine === "pipeline") {
     return <ReportTable
       columns={["Маршрут", "Масса нетто, т", "Ставка, ₽/т без НДС", "Опубликованная часть без НДС"]}
@@ -89,7 +65,7 @@ const referenceColumns: Record<string, [string, string][]> = {
   lookup_pipeline_reference: [["origin_name", "Отправление"], ["destination_name", "Назначение"], ["point_id_name", "Пункт"], ["operator", "Оператор"], ["rate_rub", "Ставка, ₽ без НДС"], ["basis", "Единица ставки"], ["distance_km", "Справочная длина, км"]],
   lookup_rosmorport: [["name", "Порт"], ["basin", "Бассейн"], ["navigation_text", "Навигация"]],
   lookup_asop: [["category_name", "Категория"], ["source_value", "Подпись диаграммы"], ["value_tonnes", "Объём, т"]],
-  lookup_transport_strategy: [["scenario", "Сценарий"], ["mode", "Транспорт"], ["year", "Год"], ["value_million_tonnes", "Млн т"]],
+  lookup_transport_strategy: [["scenario", "Сценарий"], ["mode", "Транспорт"], ["year", "Год"], ["value_million_tonnes", "Объём, млн т"]],
   rank_regional_forecast: [["region", "Регион"], ["base_tonnes", "База, т"], ["forecast_tonnes", "Прогноз, т"], ["growth_tonnes", "Рост, т"], ["growth_percent", "Рост, %"]],
 };
 const valueLabels: Record<string, string> = {
@@ -106,28 +82,18 @@ function ReferenceData({ result, tool }: { result: ReferenceResult; tool: string
     columns={columns.map(([, label]) => label)}
     rows={result.rows.map((row) => columns.map(([field]) => {
       const value = row[field];
-      if (typeof value === "number") return num(value, 6);
+      if (typeof value === "number") return field === "year" ? String(value) : num(value, 6);
       return typeof value === "string" ? valueLabels[value] || value : "—";
     }))}
   />;
 }
 
-export function AssistantReport({ response, onNew }: { response: DashboardReply; onNew: () => void }) {
-  return (
-    <section>
-      <div className="page-title">
-        <div>
-          <h1>{response.engine ? engineNames[response.engine] : "Справка ассистента"}</h1>
-          <p className="muted">Результат из чата</p>
-        </div>
-        <button className="outline-button" onClick={onNew}>Новый расчёт</button>
-      </div>
-      <div className="report-card perforated">
-        <ReplyText text={response.reply} />
-        {response.kind === "calculation" ? <CalculationData result={response.calculation} /> :
-          response.result && <ReferenceData result={response.result} tool={response.tool} />}
-        <SourceLinks sources={response.sources} />
-      </div>
-    </section>
-  );
+export function AssistantData({ response }: { response: AssistantReply }) {
+  if (response.kind === "information" && response.result) {
+    return <ReferenceData result={response.result} tool={response.tool} />;
+  }
+  if (response.kind === "calculation" && !hasDashboard(response.calculation)) {
+    return <CalculationData result={response.calculation} />;
+  }
+  return null;
 }

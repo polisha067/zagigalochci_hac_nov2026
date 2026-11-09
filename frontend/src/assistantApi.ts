@@ -51,6 +51,11 @@ export interface PipelineCalculation {
   known_components: { route_id: string; rate_rub: string; amount_excluding_vat_rub: number }[];
 }
 export type AssistantCalculation = PilotCalculation | RussiaCalculation | NetworkCalculation | AirCalculation | PipelineCalculation;
+export type DashboardCalculation = PilotCalculation | RussiaCalculation;
+
+export function hasDashboard(result: AssistantCalculation): result is DashboardCalculation {
+  return !("engine" in result) || result.engine === "russia";
+}
 
 interface ReplyBase {
   reply: string;
@@ -66,4 +71,3 @@ export type AssistantReply = ReplyBase & (
   | { kind: "information"; calculation: null; result: ReferenceResult | null }
   | { kind: "clarification"; calculation: AssistantCalculation | null; result: null }
 );
-export type DashboardReply = Extract<AssistantReply, { kind: "calculation" | "information" }>;

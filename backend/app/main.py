@@ -332,6 +332,7 @@ def create_app(settings=None, *, assistant_planner: Optional[TurnPlanner] = None
                 calculate=lambda request: calculate_for_user(request, user),
                 aviation=app.state.chukotavia,
                 forecast=app.state.regional_forecast,
+                networks=app.state.networks,
             )
         except AssistantUnavailable as exc:
             raise error(
