@@ -6,8 +6,20 @@ import math
 from pathlib import Path
 from random import Random
 
-DISTANCE_BANDS_KM = ((200, 700), (700, 1500), (1500, 4000))
-ROUTES_PER_BAND = 4
+CORRIDORS = (
+    ("Москва", "Санкт-Петербург", "Между двумя крупнейшими городскими узлами"),
+    ("Москва", "Ростов-на-Дону", "Связь Центральной России с югом"),
+    ("Краснодар", "Новороссийск", "Короткое плечо к морскому порту"),
+    ("Ростов-на-Дону", "Махачкала", "Юг и Северный Кавказ"),
+    ("Архангельск", "Вологда", "Европейский Север"),
+    ("Нижний Новгород", "Казань", "Перевозка между крупными узлами Поволжья"),
+    ("Уфа", "Екатеринбург", "Переход из Поволжья на Урал"),
+    ("Челябинск", "Омск", "Переход с Урала в Западную Сибирь"),
+    ("Новосибирск", "Красноярск", "Межрегиональное плечо внутри Сибири"),
+    ("Иркутск", "Улан-Удэ", "Коридор через Прибайкалье"),
+    ("Красноярск", "Хабаровск", "Длинное плечо между Сибирью и Дальним Востоком"),
+    ("Хабаровск", "Владивосток", "Дальневосточный коридор к порту"),
+)
 SEED = 826041
 FIRST_YEAR = 2021
 TRAIN_MONTHS = 48
@@ -18,42 +30,31 @@ def sha256(data):
     return hashlib.sha256(data).hexdigest()
 
 
-def select_routes(snapshot, rng):
-    cities = {city["id"]: city for city in snapshot["settlements"]}
-    links = {}
+def select_routes(snapshot):
+    cities = {city["name"]: city for city in snapshot["settlements"]}
+    pairs = {
+        (cities[origin]["id"], cities[destination]["id"]): (origin, destination, purpose)
+        for origin, destination, purpose in CORRIDORS
+    }
+    links = {pair: {} for pair in pairs}
     for origin, destination, mode, km, hours, reason in snapshot["connections"]:
-        if mode in ("road", "rail") and not reason and km and hours and km > 0 and hours > 0:
-            links.setdefault((origin, destination), {})[mode] = {"km": km, "hours": hours}
-    eligible = [
-        (pair, modes) for pair, modes in sorted(links.items())
-        if {"road", "rail"} <= modes.keys()
-        and {cities[key]["name"] for key in pair} != {"Москва", "Кемерово"}
-    ]
-    used_pairs = set()
-    for low, high in DISTANCE_BANDS_KM:
-        candidates = [
-            (pair, modes) for pair, modes in eligible
-            if low <= modes["road"]["km"] < high and frozenset(pair) not in used_pairs
-        ]
-        rng.shuffle(candidates)
-        selected = 0
-        for (origin, destination), modes in candidates:
-            pair = frozenset((origin, destination))
-            if pair in used_pairs:
-                continue
-            used_pairs.add(pair)
-            yield {
-                "route_id": f"{origin}-{destination}",
-                "origin": cities[origin]["name"],
-                "destination": cities[destination]["name"],
-                "distance_band_km": [low, high],
-                "connectivity_reference": modes,
-            }
-            selected += 1
-            if selected == ROUTES_PER_BAND:
-                break
-        if selected != ROUTES_PER_BAND:
-            raise ValueError(f"Too few eligible directions in distance band {low}–{high} km")
+        pair = (origin, destination)
+        if pair in links and mode in ("road", "rail") and not reason and km and hours:
+            if km > 0 and hours > 0:
+                links[pair][mode] = {"km": km, "hours": hours}
+    for pair, (origin, destination, purpose) in pairs.items():
+        modes = links[pair]
+        if modes.keys() != {"road", "rail"}:
+            raise ValueError(f"Missing road or rail reference for {origin} → {destination}")
+        yield {
+            "route_id": "-".join(pair),
+            "origin": origin,
+            "destination": destination,
+            "origin_region": cities[origin]["region"],
+            "destination_region": cities[destination]["region"],
+            "coverage_case": purpose,
+            "connectivity_reference": modes,
+        }
 
 
 def simulate(route_id):
@@ -84,7 +85,7 @@ def main():
     args = parser.parse_args()
     source_bytes = args.connectivity.read_bytes()
     snapshot = json.loads(source_bytes)
-    routes = list(select_routes(snapshot, Random(SEED)))
+    routes = list(select_routes(snapshot))
     train, holdout = [], []
     for route in routes:
         observations = list(simulate(route["route_id"]))
@@ -104,6 +105,7 @@ def main():
         "holdout.json": write("holdout.json", holdout),
     }
     write("manifest.json", {
+        "benchmark_version": 2,
         "volume_status": "synthetic",
         "volume_scope": "Один условный грузоотправитель на каждом направлении",
         "source_url": snapshot["source"]["url"],
@@ -112,6 +114,7 @@ def main():
         "generator_sha256": sha256(Path(__file__).read_bytes()),
         "seed": SEED,
         "routes": len(routes),
+        "endpoint_regions": len({route[key] for route in routes for key in ("origin_region", "destination_region")}),
         "train_months_per_route": TRAIN_MONTHS,
         "holdout_months_per_route": HOLDOUT_MONTHS,
         "files_sha256": files,

@@ -73,8 +73,8 @@ def reconcile_contract_months(results, catalog, year):
         yearly_trips.update(trips)
 
     first_day, last_day = date(year, 1, 1), date(year, 12, 31)
-    first_week = min(monday(first_day), min(yearly_trips))
-    last_week = max(monday(last_day), max(yearly_trips))
+    first_week = min(monday(first_day), min(yearly_trips, default=monday(first_day)))
+    last_week = max(monday(last_day), max(yearly_trips, default=monday(last_day)))
     shortfalls = {}
     for offset in range((last_week - first_week).days // 7 + 1):
         week = first_week + timedelta(weeks=offset)
@@ -100,8 +100,9 @@ def reconcile_contract_months(results, catalog, year):
         cost = sum(Decimal(str(value)) for value in contract["breakdown_rub"].values())
         contract["total_cost_rub"] = float(cost)
         volume = Decimal(str(result["total_volume_tonnes"]))
-        contract["cost_rub_per_tonne"] = float(
-            (cost / volume).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        contract["cost_rub_per_tonne"] = (
+            float((cost / volume).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
+            if volume else None
         )
         base_cost = result["schemes"][0].get("total_cost_rub")
         if base_cost is not None:
@@ -115,8 +116,25 @@ def reconcile_contract_months(results, catalog, year):
         feasible = [row for row in result["schemes"] if row["status"] == "feasible"]
         result["recommendation"] = (
             min(feasible, key=lambda row: (row["total_cost_rub"], row["max_delivery_hours"]))["scheme"]
-            if feasible else None
+            if feasible and volume else None
         )
+
+
+def empty_month(month):
+    schemes = [
+        {
+            "scheme": scheme, "status": "feasible", "reason": "В этом месяце нет груза",
+            "total_cost_rub": 0.0, "cost_rub_per_tonne": None,
+            "max_delivery_hours": 0, "physical_trips": 0, "departures": 0,
+            "breakdown_rub": {},
+        }
+        for scheme in ("spot_road", "contract_road", "road_rail_road")
+    ]
+    schemes[1].update(paid_trips=0, details={"dispatch_at": []})
+    return {
+        "month": month, "shipments": 0, "total_volume_tonnes": 0.0,
+        "schemes": schemes, "recommendation": None,
+    }
 
 
 def compare_year(compare_transport, forecast, catalog, deadline_days, target_year):
@@ -129,6 +147,9 @@ def compare_year(compare_transport, forecast, catalog, deadline_days, target_yea
         start = datetime(year, month, 1, tzinfo=MSK)
         end = (start.replace(day=28) + timedelta(days=4)).replace(day=1)
         tonnes = Decimal(str(row["forecast_tonnes"]))
+        if tonnes == 0:
+            results.append(empty_month(row["month"]))
+            continue
         request = {
             "dataset_id": catalog["id"],
             "route": [{"city": route[key], "service_hours": 0} for key in ("origin", "destination")],
@@ -162,7 +183,7 @@ def compare_year(compare_transport, forecast, catalog, deadline_days, target_yea
         annual[scheme] = {
             "feasible": all(row["status"] == "feasible" for row in months),
             "cost_rub": float(cost) if cost is not None else None,
-            "rub_per_tonne": round(float(cost / total_tonnes), 2) if cost is not None else None,
+            "rub_per_tonne": round(float(cost / total_tonnes), 2) if cost is not None and total_tonnes else None,
             "worst_delivery_hours": max((row.get("max_delivery_hours", 0) for row in months), default=0) or None,
             "physical_road_trips": sum(row.get("physical_trips", 0) for row in months),
             "rail_departures": sum(row.get("departures", 0) for row in months) if index == 2 else None,

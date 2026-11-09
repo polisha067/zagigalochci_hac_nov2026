@@ -6,7 +6,7 @@ from pathlib import Path
 from statistics import mean
 from typing import Literal
 
-BENCHMARK = Path(__file__).resolve().parent / "data_sources/a1_forecast/route-benchmark-v1"
+BENCHMARK = Path(__file__).resolve().parent / "data_sources/a1_forecast/route-benchmark-v2"
 MIN_FORECAST_YEAR = 2026
 MAX_FORECAST_YEAR = 2100
 START = "2021-01"

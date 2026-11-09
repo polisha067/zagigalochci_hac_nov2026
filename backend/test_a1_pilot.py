@@ -38,3 +38,33 @@ class PilotBillingTests(unittest.TestCase):
                         actual[week["week_start"]] += week["actual_trips"]
                 self.assertEqual(sum(paid.values()), yearly["contract_road"]["paid_road_trips"])
                 self.assertTrue(all(count == max(actual[week], 2) for week, count in paid.items()))
+
+    def test_zero_forecast_months_keep_contract_minimum_without_dispatches(self):
+        folder = Path(__file__).resolve().parents[1] / "a1-pilot"
+        pilot = runpy.run_path(str(folder / "compare.py"))
+        inputs = json.loads((folder / "pilot.json").read_text(encoding="utf-8"))
+        year = 2100
+        catalog = pilot["catalog_for"](inputs["route"], inputs["tariff_references"][0], year)
+        for january in (0, 80):
+            with self.subTest(january=january):
+                forecast = {
+                    "route": inputs["route"],
+                    "forecast_months": [
+                        {"month": f"{year}-{month:02}", "forecast_tonnes": january if month == 1 else 0}
+                        for month in range(1, 13)
+                    ],
+                    "forecast_yearly_tonnes": {str(year): january},
+                }
+                result = pilot["compare_year"](compare_transport, forecast, catalog, 18, year)
+                contract = result["annual"]["contract_road"]
+                months = [row["schemes"][1] for row in result["monthly"]]
+                self.assertEqual(contract["paid_road_trips"], 106)
+                self.assertEqual(contract["cost_rub"], sum(row["total_cost_rub"] for row in months))
+                self.assertIsNone(months[1]["cost_rub_per_tonne"])
+                self.assertEqual(months[1]["physical_trips"], 0)
+                self.assertGreater(months[1]["total_cost_rub"], 0)
+                if not january:
+                    self.assertIsNone(contract["rub_per_tonne"])
+                    self.assertEqual(result["annual"]["spot_road"]["cost_rub"], 0)
+                    self.assertEqual(result["annual"]["road_rail_road"]["cost_rub"], 0)
+                    self.assertFalse(contract["hypothesis_supported"])

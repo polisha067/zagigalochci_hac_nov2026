@@ -18,6 +18,7 @@ def encode(data):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--year", type=int, default=2030)
+    parser.add_argument("--output", type=Path, default=ROOT)
     args = parser.parse_args()
     if not MIN_FORECAST_YEAR <= args.year <= MAX_FORECAST_YEAR:
         parser.error(f"Choose a forecast year between {MIN_FORECAST_YEAR} and {MAX_FORECAST_YEAR}")
@@ -41,7 +42,8 @@ def main():
         "months": [month_label(START, i) for i in range(48, 60)],
         "predictions": predictions,
     })
-    frozen_path = ROOT / "routes-predictions-2025.json"
+    args.output.mkdir(parents=True, exist_ok=True)
+    frozen_path = args.output / "routes-predictions-2025.json"
     try:
         with frozen_path.open("xb") as stream:
             stream.write(frozen)
@@ -84,7 +86,7 @@ def main():
         "pooled_holdout_baseline": metrics(all_actual, all_baseline),
         "forecast_total_tonnes": round(sum(row["forecast_tonnes"] for row in report), 1),
     }
-    output = ROOT / f"routes-forecast-{args.year}.json"
+    output = args.output / f"routes-forecast-{args.year}.json"
     output.write_bytes(encode({**summary, "routes": report}))
     print(encode(summary).decode(), end="")
     for row in report:
