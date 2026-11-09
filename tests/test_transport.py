@@ -1,10 +1,11 @@
 import copy
 from datetime import datetime
 import json
-from pathlib import Path
 import unittest
 
 from pydantic import ValidationError
+
+from tests import BACKEND_DIR
 
 from backend.calculation_models import CalculationRequest, CalculationResponse
 from backend.schedule import build_schedule
@@ -13,7 +14,7 @@ from backend.transport_calculator import compare_transport, load_catalog
 
 class TransportTests(unittest.TestCase):
     def setUp(self):
-        root = Path(__file__).resolve().parent / "examples"
+        root = BACKEND_DIR / "examples"
         self.request = json.loads((root / "calculation-request.json").read_text(encoding="utf-8"))
         self.catalog = load_catalog(root / "catalog.json")
 
@@ -144,7 +145,7 @@ class TransportTests(unittest.TestCase):
         self.assertEqual(self.calculate()["schemes"][0]["physical_trips"], 2)
 
     def test_intermediate_unload_and_load_use_segment_maximum(self):
-        self.request = json.loads((Path(__file__).resolve().parent / "examples/calculation-stops.json").read_text())
+        self.request = json.loads((BACKEND_DIR / "examples/calculation-stops.json").read_text())
         result = self.calculate()
         self.assertEqual(result["total_volume_tonnes"], 25)
         self.assertEqual([row["weight_tonnes"] for row in result["load_profile"]], [10, 15])
@@ -265,7 +266,7 @@ class TransportTests(unittest.TestCase):
         self.assertEqual(self.calculate()["schemes"][2]["status"], "infeasible")
 
     def test_switching_handling_profile_requires_cleaning_plan(self):
-        self.request = json.loads((Path(__file__).resolve().parent / "examples/calculation-stops.json").read_text())
+        self.request = json.loads((BACKEND_DIR / "examples/calculation-stops.json").read_text())
         self.catalog["cargo_types"]["sugar"]["handling_profile"] = "different_profile"
         result = self.calculate()["schemes"][0]
         self.assertEqual(result["status"], "insufficient_data")

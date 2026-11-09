@@ -2,14 +2,15 @@ from copy import deepcopy
 from datetime import datetime
 from decimal import Decimal
 import json
-from pathlib import Path
 import unittest
+
+from tests import BACKEND_DIR
 
 from backend.network.engine import calculate_network
 from backend.network.graph import FreightNetwork
-from backend import test_calculation_api as helpers
+from tests import test_calculation_api as helpers
 
-ROOT=Path(__file__).parent
+ROOT=BACKEND_DIR
 
 
 class RiverTests(unittest.TestCase):

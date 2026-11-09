@@ -2,18 +2,19 @@ from copy import deepcopy
 from datetime import datetime
 from decimal import Decimal
 import json
-from pathlib import Path
 import unittest
 
+from tests import BACKEND_DIR
+
 from backend.network.chukotavia import ChukotaviaData, calculate_chukotavia
-from backend import test_calculation_api as helpers
+from tests import test_calculation_api as helpers
 
 
 class AviationTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.data = ChukotaviaData()
-        cls.payload = json.loads((Path(__file__).parent/'examples/chukotavia-request.json').read_text())
+        cls.payload = json.loads((BACKEND_DIR/'examples/chukotavia-request.json').read_text())
 
     def request(self):return deepcopy(self.payload)
 
@@ -104,7 +105,7 @@ class AviationTests(unittest.TestCase):
 class AviationApiTests(unittest.TestCase):
     setUp=helpers.CalculationApiTests.setUp
 
-    def payload(self):return json.loads((Path(__file__).parent/'examples/chukotavia-request.json').read_text())
+    def payload(self):return json.loads((BACKEND_DIR/'examples/chukotavia-request.json').read_text())
 
     def test_auth_security_and_dispatch(self):
         p=self.payload()

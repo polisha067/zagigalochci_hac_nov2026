@@ -2,10 +2,11 @@ import copy
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 import json
-from pathlib import Path
 import unittest
 
 from pydantic import ValidationError
+
+from tests import BACKEND_DIR
 
 from backend.network.engine import calculate_network
 from backend.network.graph import FreightNetwork
@@ -15,7 +16,7 @@ from backend.network.resources import Ledger
 
 class NetworkTests(unittest.TestCase):
     def setUp(self):
-        folder=Path(__file__).resolve().parent/'examples'
+        folder=BACKEND_DIR/'examples'
         self.catalog=json.loads((folder/'network.json').read_text(encoding='utf-8'))
         self.request=json.loads((folder/'network-request.json').read_text(encoding='utf-8'))
 

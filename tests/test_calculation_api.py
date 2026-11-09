@@ -8,6 +8,8 @@ import unittest
 
 from fastapi.testclient import TestClient
 
+from tests import BACKEND_DIR
+
 from backend.app.config import Settings
 from backend.app.main import create_app, digest
 
@@ -28,7 +30,7 @@ class CalculationApiTests(unittest.TestCase):
             connection.execute("INSERT INTO users (id,email,name,password_hash,created_at,email_verified_at) VALUES (?,?,?,?,?,?)", ("calc-test", "calc@example.com", "Проверка", self.app.state.dummy_hash, now, now))
             connection.execute("INSERT INTO sessions VALUES (?,?,?)", (digest(token), "calc-test", int(time.time()) + 3600))
         self.client.cookies.set("a1_session", token)
-        self.example_dir = Path(__file__).resolve().parent / "examples"
+        self.example_dir = BACKEND_DIR / "examples"
         self.request = json.loads((self.example_dir / "calculation-request.json").read_text(encoding="utf-8"))
 
     def test_calculation_requires_valid_session(self):

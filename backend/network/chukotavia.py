@@ -88,6 +88,10 @@ def money(value):
     return float(value.quantize(Decimal('.01'), rounding=ROUND_HALF_UP))
 
 
+def volumetric_weight_kg(volume_m3: Decimal) -> Decimal:
+    return volume_m3 * Decimal(1000000) / Decimal(6000)
+
+
 class ChukotaviaData:
     def __init__(self, path=DATASET_PATH):
         raw = Path(path).read_bytes()
@@ -143,8 +147,7 @@ def calculate_chukotavia(payload, data=None):
     key = (normalized(request.origin), normalized(request.destination))
     physical = sum((Decimal(str(c.weight_tonnes)) * 1000 for c in request.cargoes), Decimal(0))
     volume = sum((Decimal(str(c.volume_m3)) for c in request.cargoes), Decimal(0))
-    # L*W*H cm / 6000 = m3 * 1,000,000 / 6000. No borrowed 167 coefficient.
-    volumetric = volume * Decimal(1000000) / Decimal(6000)
+    volumetric = volumetric_weight_kg(volume)
     chargeable = max(physical, volumetric)
     special = [c.id for c in request.cargoes if c.hazardous is True or c.temperature_control_required is True
                or (c.max_piece_weight_kg is not None and c.max_piece_weight_kg >= 80)]

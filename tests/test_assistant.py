@@ -10,10 +10,13 @@ from unittest.mock import Mock, patch
 import httpx
 from fastapi.testclient import TestClient
 
+from tests import BACKEND_DIR
+
 from backend.app.assistant.ollama_client import OllamaClient
 from backend.app.assistant.planner import DeliveryPlanner
 from backend.app.assistant.schemas import ChatRequest, DeliveryDraft, DeliveryTurn, InformationTurn
 from backend.app.assistant.service import handle_chat
+from backend.app.assistant.tools import DOMAIN_TOOL_NAMES
 from backend.app.config import Settings
 from backend.app.main import create_app, digest
 
@@ -68,7 +71,7 @@ class AssistantApiTests(unittest.TestCase):
                 "INSERT INTO sessions VALUES (?,?,?)", (digest(self.token), "chat-test", int(time.time()) + 3600)
             )
         self.client.cookies.set(self.settings.cookie_name, self.token)
-        example = Path(__file__).resolve().parent / "examples" / "calculation-request.json"
+        example = BACKEND_DIR / "examples" / "calculation-request.json"
         self.form = json.loads(example.read_text(encoding="utf-8"))
         self.draft = DeliveryDraft(
             origin=self.form["route"][0]["city"],
@@ -197,34 +200,207 @@ class AssistantApiTests(unittest.TestCase):
         schema = spec["paths"]["/assistant/chat"]["post"]["responses"]["200"]["content"]["application/json"]["schema"]
         self.assertEqual(set(schema["discriminator"]["mapping"]), {"clarification", "calculation", "information"})
 
-    def connect_ollama(self, *provider_replies):
+    def connect_ollama(self, *provider_replies, route_tool=None):
+        replies = iter(provider_replies)
+        next_extraction = None
+
         def respond(request):
+            nonlocal next_extraction
             self.assertEqual(request.url.path, "/api/chat")
             body = json.loads(request.content)
             self.assertEqual(body["model"], "qwen3:8b")
             self.assertFalse(body["stream"])
-            self.assertEqual([tool["function"]["name"] for tool in body["tools"]], ["compare_delivery"])
+            tool_names = [tool["function"]["name"] for tool in body["tools"]]
             self.assertNotIn("$ref", json.dumps(body["tools"]))
-            self.assertIn("Брянск", body["messages"][0]["content"])
-            self.assertIn("flour", body["messages"][0]["content"])
-            self.assertEqual(set(json.loads(body["messages"][-1]["content"])), {"message", "draft"})
             self.assertNotIn("cookie", request.headers)
-            return httpx.Response(200, json={"done": True, "message": next(replies)})
+            if not tool_names:
+                next_extraction = next(replies)
+                function = next_extraction["tool_calls"][0]["function"]
+                name = function["name"]
+                selected = route_tool or (name if name in DOMAIN_TOOL_NAMES else "compare_delivery")
+                route_input = json.loads(body["messages"][-1]["content"])
+                if selected == "compare_delivery" and route_input["has_pilot_draft"] and function["arguments"].get("action") != "new":
+                    selected = "resume_pilot"
+                if function["arguments"].pop("continue_previous", False):
+                    selected = "resume"
+                self.assertIn(selected, body["format"]["properties"]["tool"]["enum"])
+                result = {"content": json.dumps({"tool": selected})}
+                self.assertIn("Брянск", body["messages"][-1]["content"])
+            else:
+                self.assertEqual(len(tool_names), 1)
+                if tool_names == ["compare_delivery"]:
+                    self.assertIn("Брянск", body["messages"][0]["content"])
+                    self.assertIn("flour", body["messages"][0]["content"])
+                result = next_extraction
+            return httpx.Response(200, json={"done": True, "message": result})
 
-        replies = iter(provider_replies)
         handler = Mock(side_effect=respond)
         http = httpx.Client(base_url="http://ollama.test", transport=httpx.MockTransport(handler))
         self.addCleanup(http.close)
         self.app.state.assistant_planner = DeliveryPlanner(
-            OllamaClient(http, "qwen3:8b"), self.app.state.calculation_catalog
+            OllamaClient(http, "qwen3:8b"), self.app.state.calculation_catalog, self.app.state.chukotavia,
+            self.app.state.networks,
         )
         return handler
 
     @staticmethod
-    def tool_reply(action, **arguments):
+    def domain_reply(name, **arguments):
         return {"tool_calls": [{"function": {
-            "name": "compare_delivery", "arguments": {"action": action, **arguments},
+            "name": name, "arguments": arguments,
         }}]}
+
+    def tool_reply(self, action, **arguments):
+        return self.domain_reply("compare_delivery", action=action, **arguments)
+
+    def test_air_tariff_chat_uses_published_data_and_preserves_delivery_draft(self):
+        handler = self.connect_ollama({"content": "Придуманная цена 999 ₽.", "tool_calls": [{"function": {
+            "name": "lookup_air_freight_tariff",
+            "arguments": {"origin": "Анадырь", "destination": "Провидения",
+                          "flight_date": "2026-11-10", "weight_kg": 100, "volume_m3": 0.5},
+        }}]})
+        draft = self.draft.model_dump(mode="json")
+        response = self.client.post("/assistant/chat", json={"message": "Цена ЧукотАВИА?", "draft": draft})
+        self.assertEqual(response.status_code, 200, response.text)
+        result = response.json()
+        self.assertEqual(result["kind"], "information")
+        self.assertEqual(result["draft"], draft)
+        self.assertIsNone(result["calculation"])
+        self.assertIn("758,84 ₽/кг", result["reply"])
+        self.assertIn("75 884 ₽", result["reply"])
+        self.assertNotIn("999 ₽", result["reply"])
+        self.assertEqual(result["sources"][0]["section"], "Страница 4, строка 155")
+        self.assertEqual(result["sources"][0]["date"], "2026-11-01")
+        self.assertIn("chukotavia.ru", result["sources"][0]["url"])
+        self.assertEqual(result["result"]["details"]["transport_component_estimate_rub"], 75884)
+        sent = json.loads(handler.call_args.args[0].content)
+        self.assertNotIn("draft", json.loads(sent["messages"][-1]["content"]))
+
+    def test_air_tariff_chat_does_not_extend_snapshot_to_another_year(self):
+        self.connect_ollama({"tool_calls": [{"function": {
+            "name": "lookup_air_freight_tariff",
+            "arguments": {"origin": "Анадырь", "destination": "Провидения", "flight_date": "2027-11-10"},
+        }}]})
+        response = self.client.post("/assistant/chat", json={"message": "Тариф ЧукотАВИА в ноябре 2027?"})
+        self.assertEqual(response.status_code, 200, response.text)
+        result = response.json()
+        self.assertIn("не нашёл опубликованной ставки", result["reply"])
+        self.assertEqual(result["result"]["status"], "unavailable")
+        self.assertEqual(result["sources"][0]["path"], "backend/data_sources/chukotavia/dataset.json")
+
+    def test_all_other_engines_return_the_same_payload_as_calculation_api(self):
+        examples = BACKEND_DIR / "examples"
+        forms = {
+            engine: json.loads((examples / file).read_text(encoding="utf-8"))
+            for engine, file in (("network", "river-request.json"), ("russia", "russia-request.json"),
+                                 ("chukotavia", "chukotavia-request.json"))
+        }
+        forms["pipeline"] = {
+            "engine": "pipeline", "route_id": "pipeline-taishet-meget", "net_weight_tonnes": 100,
+            "shipment_at": "2026-11-09T00:00:00+03:00",
+        }
+        arguments = {engine: {key: value for key, value in form.items() if key != "engine"}
+                     for engine, form in forms.items()}
+        arguments["pipeline"] = {"origin": "Тайшет", "destination": "Мегет", "net_weight_tonnes": 100,
+                                 "shipment_at": "2026-11-09"}
+        self.connect_ollama(*(self.domain_reply("calculate_" + engine, **args) for engine, args in arguments.items()))
+        for engine, form in forms.items():
+            with self.subTest(engine=engine):
+                reply = self.client.post("/assistant/chat", json={"message": f"Рассчитай по {engine}"})
+                self.assertEqual(reply.status_code, 200, reply.text)
+                result = reply.json()
+                self.assertEqual(result["kind"], "calculation", result)
+                self.assertEqual(result["engine"], engine)
+                self.assertEqual(result["calculation"], self.client.post("/calculations", json=form).json())
+                self.assertTrue(result["sources"])
+                if engine == "pipeline":
+                    self.assertIn("50 728 ₽ без НДС", result["reply"])
+                    self.assertIsNone(result["calculation"]["total_cost_rub"])
+                if engine == "chukotavia":
+                    self.assertIn("75 884 ₽", result["reply"])
+                    self.assertIsNone(result["calculation"]["overview"]["total_cost_rub"])
+
+    def test_rail_request_uses_russia_when_model_selects_hub_catalog(self):
+        form = json.loads((BACKEND_DIR / "examples/russia-request.json").read_text(encoding="utf-8"))
+        arguments = {key: value for key, value in form.items() if key not in ("engine", "allowed_modes")}
+        handler = self.connect_ollama(self.domain_reply("calculate_russia", **arguments),
+                                      route_tool="calculate_network")
+        response = self.client.post("/assistant/chat", json={
+            "message": "Рассчитай доставку из Москвы в Брянск по железной дороге.",
+            "pending": {"tool": "calculate_network", "arguments": {"network_id": "river-krasnoyarsk-dudinka-scenario-v1"}},
+        })
+        self.assertEqual(response.status_code, 200, response.text)
+        result = response.json()
+        self.assertEqual(result["kind"], "calculation")
+        self.assertEqual(result["engine"], "russia")
+        self.assertEqual(result["calculation"]["request"]["allowed_modes"], ["rail"])
+        extraction = json.loads(handler.call_args.args[0].content)
+        self.assertEqual(extraction["tools"][0]["function"]["name"], "calculate_russia")
+        self.assertNotIn("pending", json.loads(extraction["messages"][-1]["content"]))
+
+    def test_tool_clarifications_preserve_parameters_and_pilot_draft(self):
+        self.connect_ollama(
+            self.domain_reply("lookup_chukotavia_schedule", origin="Анадырь", destination="Провидения"),
+            self.domain_reply("lookup_chukotavia_schedule", flight_date="2026-11-10", continue_previous=True),
+            self.domain_reply("calculate_pipeline", origin="Тайшет", destination="Мегет", net_weight_tonnes=100),
+            self.domain_reply("calculate_pipeline", shipment_at="2026-11-09", continue_previous=True),
+        )
+        draft = self.draft.model_dump(mode="json")
+        for message, expected_field, followup, expected_kind in (
+            ("Какие рейсы из Анадыря в Провидения?", "flight_date", "10 ноября 2026", "information"),
+            ("Посчитай 100 т нетто нефти из Тайшета в Мегет", "shipment_at", "9 ноября 2026", "calculation"),
+        ):
+            response = self.client.post("/assistant/chat", json={"message": message, "draft": draft})
+            self.assertEqual(response.status_code, 200, response.text)
+            result = response.json()
+            self.assertEqual(result["kind"], "clarification")
+            self.assertEqual(result["missing_fields"], [expected_field])
+            self.assertEqual(result["draft"], draft)
+            self.assertIsNone(result["calculation"])
+            response = self.client.post("/assistant/chat", json={
+                "message": followup, "draft": result["draft"], "pending": result["pending"],
+            })
+            self.assertEqual(response.status_code, 200, response.text)
+            result = response.json()
+            self.assertEqual(result["kind"], expected_kind)
+            self.assertEqual(result["draft"], draft)
+            self.assertIsNone(result["pending"])
+            if expected_kind == "information":
+                self.assertTrue(result["result"]["rows"])
+                self.assertFalse(result["result"]["rows"][0]["booking_confirmed"])
+
+    def test_reference_tools_use_snapshot_rows_and_keep_evidence_scope(self):
+        queries = [
+            ("lookup_connectivity", {"origin": "Москва", "destination": "Брянск", "mode": "rail"}, "distance_km", 426),
+            ("lookup_fesco_voyages", {"origin": "Владивосток", "date_from": "2026-10-27", "date_to": "2026-10-27"},
+             "departure_date", "2026-10-27"),
+            ("lookup_river_scenario", {"origin": "Красноярск", "destination": "Дудинка"},
+             "scenario_travel_hours", 144),
+            ("lookup_pipeline_reference", {"section": "routes", "origin": "Тайшет", "destination": "Мегет"},
+             "rate_rub", "507.28"),
+            ("lookup_rosmorport", {"query": "Большой порт Санкт-Петербург"}, "navigation_text", "Круглогодично"),
+            ("lookup_asop", {"year": 2025, "period_kind": "Q1", "metric": "port_outbound", "category": "road"},
+             "value_tonnes", 7_400_000),
+            ("lookup_transport_strategy", {"year": 2030, "mode": "road", "scenario": "baseline"},
+             "scope", "Russian_Federation_aggregate_not_city_corridor"),
+            ("rank_regional_forecast", {"year": 2030, "transport": "road"}, None, None),
+        ]
+        self.connect_ollama(*(self.domain_reply(tool, **args) for tool, args, _, _ in queries))
+        for tool, _, field, expected in queries:
+            with self.subTest(tool=tool):
+                response = self.client.post("/assistant/chat", json={"message": tool})
+                self.assertEqual(response.status_code, 200, response.text)
+                reply = response.json()
+                self.assertEqual(reply["kind"], "information")
+                self.assertEqual(reply["tool"], tool)
+                self.assertTrue(reply["sources"])
+                self.assertTrue(reply["result"]["assumptions"])
+                if field:
+                    self.assertEqual(reply["result"]["status"], "available")
+                    self.assertIn(expected, [row[field] for row in reply["result"]["rows"]])
+                else:
+                    self.assertEqual(reply["result"]["status"], "unavailable")
+                    self.assertEqual(reply["result"]["rows"], [])
+                    self.assertIn("нет регионального прогноза", reply["reply"])
 
     def test_ollama_tool_clarifies_then_compares_and_recalculates(self):
         handler = self.connect_ollama(
@@ -261,7 +437,7 @@ class AssistantApiTests(unittest.TestCase):
         self.assertEqual(third["calculation"]["recommendation"], "road_rail_road")
         self.assertIn("140 000 ₽", third["reply"])
         self.assertIn("156 ч", third["reply"])
-        self.assertEqual(handler.call_count, 3)
+        self.assertEqual(handler.call_count, 6)
 
     def test_new_and_changed_cargo_do_not_reuse_inapplicable_data(self):
         handler = self.connect_ollama(
@@ -285,7 +461,7 @@ class AssistantApiTests(unittest.TestCase):
         self.assertIsNone(new["draft"]["schedule"])
         self.assertIsNone(new["draft"]["max_delivery_hours"])
         provider_body = json.loads(handler.call_args.args[0].content)
-        self.assertIsNone(json.loads(provider_body["messages"][-1]["content"])["draft"])
+        self.assertNotIn("draft", json.loads(provider_body["messages"][-1]["content"]))
 
     def test_ambiguity_unknown_places_and_unsupported_modes_do_not_calculate(self):
         self.connect_ollama(

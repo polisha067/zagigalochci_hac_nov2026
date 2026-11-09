@@ -41,6 +41,8 @@ class Settings:
     ollama_url: str = "http://127.0.0.1:11434"
     ollama_model: str = "qwen3:8b"
     ollama_timeout_seconds: int = 90
+    ollama_num_ctx: int = 8192
+    ollama_num_gpu: int | None = None
 
     def __post_init__(self):
         for origin in self.allowed_origins:
@@ -72,6 +74,10 @@ class Settings:
             raise ValueError("Укажите корректное имя модели в OLLAMA_MODEL")
         if not 1 <= self.ollama_timeout_seconds <= 300:
             raise ValueError("OLLAMA_TIMEOUT_SECONDS должен быть от 1 до 300 секунд")
+        if self.ollama_num_ctx < 2048:
+            raise ValueError("OLLAMA_NUM_CTX должен быть не меньше 2048")
+        if self.ollama_num_gpu is not None and self.ollama_num_gpu < 0:
+            raise ValueError("OLLAMA_NUM_GPU должен быть неотрицательным")
 
     @classmethod
     def from_env(cls):
@@ -87,6 +93,7 @@ class Settings:
         origins = tuple(part.strip() for part in os.getenv("ALLOWED_ORIGINS", ",".join(defaults.allowed_origins)).split(",") if part.strip())
         if not origins:
             raise ValueError("Укажите хотя бы один ALLOWED_ORIGINS")
+        gpu_layers = os.getenv("OLLAMA_NUM_GPU")
         return cls(
             database_path=Path(os.getenv("DATABASE_PATH", str(defaults.database_path))),
             calculation_catalog_path=Path(os.getenv("CALCULATION_CATALOG_PATH", str(defaults.calculation_catalog_path))),
@@ -106,4 +113,6 @@ class Settings:
             ollama_url=os.getenv("OLLAMA_URL", defaults.ollama_url),
             ollama_model=os.getenv("OLLAMA_MODEL", defaults.ollama_model),
             ollama_timeout_seconds=int(os.getenv("OLLAMA_TIMEOUT_SECONDS", defaults.ollama_timeout_seconds)),
+            ollama_num_ctx=int(os.getenv("OLLAMA_NUM_CTX", defaults.ollama_num_ctx)),
+            ollama_num_gpu=int(gpu_layers) if gpu_layers else None,
         )

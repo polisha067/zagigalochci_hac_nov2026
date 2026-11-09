@@ -7,11 +7,16 @@
 ## С чего начать
 
 - **[Запуск бэкенда и карта документации](backend/README.md)** — установка, сервер, основные методы.
+- [Запуск фронтенда](frontend/README.md) · [Контракт ассистента](backend/ASSISTANT.md).
 - **[Актуальный расчёт, API и формулы](backend/RUSSIA_NETWORK.md)** — основной контракт `engine: "russia"` для фронта и ИИ-ассистента.
 - [Регистрация, почта и вход](backend/AUTH.md) · [Настройка отправки писем](backend/MAIL.md).
 - [Реальные данные, допущения и пробелы](backend/data_sources/README.md).
 - [Запрос расчёта](backend/examples/russia-request.json) · [Ответ](backend/examples/russia-response.json) · [Клиент для фронта](backend/examples/russia-client.js).
 - [Размещение и обновление сервиса](deploy/README.md).
+
+Активные сетевые движки находятся в `backend/network`, снимки — в
+`backend/data_sources`, а проверки бэкенда и API — в `tests`. Из корня
+репозитория тесты запускаются командой `python -m unittest discover -s tests -t .`.
 
 ## Что означает результат
 

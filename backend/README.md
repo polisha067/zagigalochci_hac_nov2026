@@ -53,7 +53,7 @@ python -m backend.run_russia backend/examples/russia-request.json
 
 ```bash
 python -m pip install -r backend/requirements-dev.txt
-python -m unittest discover -s backend -p 'test_*.py' -q
+python -m unittest discover -s tests -t . -p 'test_*.py' -q
 ```
 
 Проверки используют временные базы и почту. Реальные письма через SMTP не отправляются.

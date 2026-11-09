@@ -1,14 +1,15 @@
 import copy
 import json
-from pathlib import Path
 import unittest
+
+from tests import BACKEND_DIR
 
 from backend.legacy.v01.calculator import compare_delivery
 
 
 class CalculatorTests(unittest.TestCase):
     def setUp(self):
-        root = Path(__file__).resolve().parent / "legacy/v01/examples"
+        root = BACKEND_DIR / "legacy/v01/examples"
         self.request = json.loads((root / "request.json").read_text(encoding="utf-8"))
         self.dataset = json.loads((root / "dataset.json").read_text(encoding="utf-8"))
 

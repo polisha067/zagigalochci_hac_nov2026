@@ -4,10 +4,12 @@ from pathlib import Path
 import tempfile
 import unittest
 
+from tests import BACKEND_DIR
+
 from backend.network.references import coordinates, import_references, normalize_ports, quantity, read_port_scrape
 from backend.network.observations import coverage
 
-ROOT=Path(__file__).parent/'data_sources'
+ROOT=BACKEND_DIR/'data_sources'
 
 
 class ReferenceTests(unittest.TestCase):

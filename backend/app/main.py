@@ -17,6 +17,7 @@ from pwdlib import PasswordHash
 
 from .assistant.ollama_client import OllamaClient
 from .assistant.planner import DeliveryPlanner
+from .assistant.regional_forecast import load_regional_forecast
 from .assistant.schemas import ChatRequest, ChatResponse
 from .assistant.service import (
     AssistantUnavailable,
@@ -87,6 +88,8 @@ def create_app(settings=None, *, assistant_planner: Optional[TurnPlanner] = None
         river_network = load_network(Path(__file__).resolve().parents[1] / "data_sources/river/network.json")
         app.state.networks = {river_network.catalog.id: river_network, app.state.network.catalog.id: app.state.network}
         app.state.chukotavia = ChukotaviaData()
+        forecast_path = Path(__file__).resolve().parents[1] / "data_sources/strategy/regional-forecast.json"
+        app.state.regional_forecast = load_regional_forecast(forecast_path if forecast_path.is_file() else None)
         if assistant_planner is not None:
             app.state.assistant_planner = assistant_planner
             yield
@@ -101,8 +104,13 @@ def create_app(settings=None, *, assistant_planner: Optional[TurnPlanner] = None
                 limits=httpx.Limits(max_connections=4, max_keepalive_connections=4),
                 trust_env=False,
             ) as http:
-                client = OllamaClient(http, settings.ollama_model)
-                app.state.assistant_planner = DeliveryPlanner(client, app.state.calculation_catalog)
+                client = OllamaClient(
+                    http, settings.ollama_model, num_ctx=settings.ollama_num_ctx,
+                    num_gpu=settings.ollama_num_gpu,
+                )
+                app.state.assistant_planner = DeliveryPlanner(
+                    client, app.state.calculation_catalog, app.state.chukotavia, app.state.networks,
+                )
                 yield
 
     app = FastAPI(
@@ -322,6 +330,8 @@ def create_app(settings=None, *, assistant_planner: Optional[TurnPlanner] = None
                 plan_turn=app.state.assistant_planner,
                 dataset_id=app.state.calculation_catalog["id"],
                 calculate=lambda request: calculate_for_user(request, user),
+                aviation=app.state.chukotavia,
+                forecast=app.state.regional_forecast,
             )
         except AssistantUnavailable as exc:
             raise error(

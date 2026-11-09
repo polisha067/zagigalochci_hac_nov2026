@@ -1,10 +1,13 @@
 import csv
+from contextlib import closing
 import json
 from pathlib import Path
 import sqlite3
 import tempfile
 import unittest
 import zipfile
+
+from tests import BACKEND_DIR
 
 from backend.network.observations import coverage, import_observations, numeric
 
@@ -25,7 +28,7 @@ class SourceImportTests(unittest.TestCase):
     def test_zero_is_not_missing_and_codes_keep_leading_zeros(self):
         result=import_observations(self.file(),self.db,'connectivity')
         self.assertEqual(result['cities'],2);self.assertEqual(result['missing_routes'],0)
-        with sqlite3.connect(self.db) as db:
+        with closing(sqlite3.connect(self.db)) as db:
             self.assertEqual(db.execute('SELECT from_oktmo,distance_km FROM connectivity_observations').fetchone(),('001',0.0))
         self.assertEqual(result['freight_services_created'],0)
         self.assertIsNone(numeric('ND'));self.assertEqual(numeric('0'),0)
@@ -37,7 +40,8 @@ class SourceImportTests(unittest.TestCase):
         path=self.file([self.row,self.row])
         with self.assertRaises(sqlite3.IntegrityError):import_observations(path,self.db,'connectivity')
         self.assertEqual(coverage(self.db)['sources'][0]['file_sha256'],first['file_sha256'])
-        with sqlite3.connect(self.db) as db:self.assertEqual(db.execute('SELECT count(*) FROM connectivity_observations').fetchone()[0],1)
+        with closing(sqlite3.connect(self.db)) as db:
+            self.assertEqual(db.execute('SELECT count(*) FROM connectivity_observations').fetchone()[0],1)
 
     def test_zip_skips_macos_metadata_without_extracting_paths(self):
         path=self.file();archive=self.root/'source.zip'
@@ -61,11 +65,11 @@ class SourceImportTests(unittest.TestCase):
         rows=[['freight','Грузы','Регион','2024','42',''],['freight','Грузы','Регион','2025','ND','т']]
         result=import_observations(self.file(rows),self.db,'regional')
         self.assertEqual(result['missing_units'],1)
-        with sqlite3.connect(self.db) as db:
+        with closing(sqlite3.connect(self.db)) as db:
             self.assertEqual(db.execute('SELECT value,unit FROM regional_observations ORDER BY row_number').fetchall(),[(42.0,'unknown'),(None,'т')])
 
     def test_registry_has_all_31_without_duplicate_ids(self):
-        registry=json.loads((Path(__file__).parent/'data_sources/registry.json').read_text())
+        registry=json.loads((BACKEND_DIR/'data_sources/registry.json').read_text())
         entries=registry['entries']
         self.assertEqual(len(entries),31);self.assertEqual(len({r['id'] for r in entries}),31)
         self.assertEqual(len({r['url'] for r in entries}),25)

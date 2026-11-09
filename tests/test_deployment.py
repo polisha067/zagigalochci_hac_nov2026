@@ -1,10 +1,11 @@
 import importlib.util
+from contextlib import closing
 from pathlib import Path
 import sqlite3
 import tempfile
 import unittest
 from fastapi.testclient import TestClient
-from backend import test_calculation_api as helpers
+from tests import test_calculation_api as helpers
 
 
 class ProxyTests(unittest.TestCase):
@@ -27,13 +28,12 @@ class BackupTests(unittest.TestCase):
         path=Path(__file__).resolve().parents[1]/'deploy/backup.py'
         spec=importlib.util.spec_from_file_location('deployment_backup',path)
         helper=importlib.util.module_from_spec(spec);spec.loader.exec_module(helper)
-        with tempfile.TemporaryDirectory() as folder:
-            root=Path(folder);db=sqlite3.connect(root/'auth.sqlite3')
-            self.addCleanup(db.close)
+        with tempfile.TemporaryDirectory() as folder, closing(sqlite3.connect(Path(folder)/'auth.sqlite3')) as db:
+            root=Path(folder)
             db.execute('PRAGMA journal_mode=WAL')
             db.execute('CREATE TABLE users (name TEXT)');db.execute("INSERT INTO users VALUES ('test')");db.commit()
             output=root/'backup'
             self.assertEqual(helper.backup_databases(root,output),1)
-            with sqlite3.connect(output/'auth.sqlite3') as saved:
+            with closing(sqlite3.connect(output/'auth.sqlite3')) as saved:
                 self.assertEqual(saved.execute('SELECT name FROM users').fetchone()[0],'test')
             with self.assertRaises(FileExistsError):helper.backup_databases(root,output)

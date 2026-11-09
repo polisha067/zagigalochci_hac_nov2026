@@ -283,7 +283,7 @@ ALLOWED_ORIGINS=http://localhost:5174,http://localhost:8000 python -m uvicorn ba
 
 ```bash
 python -m pip install -r backend/requirements-dev.txt
-python -m unittest discover -s backend -p 'test_*.py' -v
+python -m unittest discover -s tests -t . -p 'test_*.py' -v
 ```
 
 Тесты проверяют регистрацию, вход, нормализацию email, дубликаты, выход и отзыв

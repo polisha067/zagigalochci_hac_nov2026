@@ -100,7 +100,7 @@
 ```bash
 python -m backend.run_network
 python -m backend.run_network --request backend/examples/network-four-modes.json
-python -m unittest discover -s backend -p 'test_*.py'
+python -m unittest discover -s tests -t . -p 'test_*.py'
 python -m uvicorn backend.app.main:app --reload
 ```
 

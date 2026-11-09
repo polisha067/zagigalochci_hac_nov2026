@@ -1,4 +1,5 @@
 import copy
+from contextlib import closing
 import json
 from pathlib import Path
 import sqlite3
@@ -7,7 +8,7 @@ import unittest
 
 from backend.network.asop import SNAPSHOT, import_asop, load_snapshot, read_asop
 from backend.network.observations import coverage
-from backend import test_calculation_api as helpers
+from tests import test_calculation_api as helpers
 
 
 class AsopTests(unittest.TestCase):
@@ -32,7 +33,7 @@ class AsopTests(unittest.TestCase):
         quarter = read_asop(self.db, year=2025, period_kind='Q1', include_flagged=True)['rows']
         self.assertEqual(len(quarter), 30)
         self.assertTrue(all(r['period_end_exclusive']=='2025-04-01' for r in quarter))
-        with sqlite3.connect(self.db) as db:
+        with closing(sqlite3.connect(self.db)) as db:
             self.assertEqual(db.execute('SELECT count(*) FROM asop_observations').fetchone()[0],620)
 
     def test_million_tonnes_precision_and_unknown_units(self):

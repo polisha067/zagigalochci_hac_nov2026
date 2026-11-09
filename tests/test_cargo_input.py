@@ -1,18 +1,19 @@
 import copy
 import json
-from pathlib import Path
 import unittest
+
+from tests import BACKEND_DIR
 
 from backend.network.engine import calculate_network
 from backend.network.graph import FreightNetwork
 from backend.network.models import NetworkResponse
 from backend.schedule import build_schedule
-from backend import test_calculation_api as helpers
+from tests import test_calculation_api as helpers
 
 
 class CargoInputTests(unittest.TestCase):
     def setUp(self):
-        root=Path(__file__).parent/'examples'
+        root=BACKEND_DIR/'examples'
         self.catalog=json.loads((root/'network.json').read_text())
         self.request=json.loads((root/'network-request.json').read_text())
         self.request['cargoes'][0].pop('cargo_type',None)

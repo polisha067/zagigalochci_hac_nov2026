@@ -1,15 +1,14 @@
 import json
-from pathlib import Path
 import unittest
 
-from backend import test_calculation_api as helpers
+from tests import BACKEND_DIR, test_calculation_api as helpers
 
 
 class NetworkApiTests(unittest.TestCase):
     setUp=helpers.CalculationApiTests.setUp
 
     def payload(self):
-        return json.loads((Path(__file__).parent/'examples/network-request.json').read_text())
+        return json.loads((BACKEND_DIR/'examples/network-request.json').read_text())
 
     def test_network_auth_and_options(self):
         options=self.client.get('/network/options')

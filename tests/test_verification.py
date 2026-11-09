@@ -10,7 +10,7 @@ from fastapi.testclient import TestClient
 
 from backend.app.mailer import MailDeliveryError, Mailer
 from backend.app.main import create_app
-from backend import test_auth as auth_helpers
+from tests import test_auth as auth_helpers
 
 
 # Наследуем только вспомогательные методы, а не весь набор тестов авторизации.

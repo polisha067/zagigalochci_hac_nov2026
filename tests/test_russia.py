@@ -1,14 +1,15 @@
 from copy import deepcopy
 from decimal import Decimal
 import json
-from pathlib import Path
 import unittest
+
+from tests import BACKEND_DIR
 
 from backend.network.russia import load_russia, RussiaRequest, ID
 from backend.network.models import Quote
 from backend.network.policies import Policies
 from backend.network.engine import Item
-from backend import test_calculation_api as helpers
+from tests import test_calculation_api as helpers
 
 
 class RussiaTests(unittest.TestCase):
@@ -17,7 +18,7 @@ class RussiaTests(unittest.TestCase):
         cls.network=load_russia()
 
     def payload(self):
-        return json.loads((Path(__file__).parent/'examples/russia-request.json').read_text())
+        return json.loads((BACKEND_DIR/'examples/russia-request.json').read_text())
 
     def test_all_observed_routes_are_directional_and_nulls_not_invented(self):
         n=self.network
