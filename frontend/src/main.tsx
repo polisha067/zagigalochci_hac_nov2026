@@ -13,6 +13,8 @@ import { Auth } from "./Auth";
 import { ConditionsForm } from "./ConditionsForm";
 import { History, Results } from "./Results";
 import { Assistant } from "./Assistant";
+import { AssistantReport } from "./AssistantReport";
+import type { DashboardReply } from "./assistantApi";
 import { Brand } from "./ui";
 import "./style.css";
 function navigate(hash: string) {
@@ -34,6 +36,7 @@ function Workspace({
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [formVersion, setFormVersion] = useState(0);
   const [current, setCurrent] = useState<Snapshot | null>(null);
+  const [assistantResult, setAssistantResult] = useState<DashboardReply | null>(null);
   const [historyState, setHistoryState] = useState(() => loadHistory(user.id));
   const [hash, setHash] = useState(window.location.hash || "#calculation");
   const [logoutBusy, setLogoutBusy] = useState(false);
@@ -81,6 +84,7 @@ function Workspace({
     return () => window.removeEventListener("storage", sync);
   }, [user.id]);
   const inHistory = hash.startsWith("#history");
+  const assistantReport = hash === "#calculation/assistant" ? assistantResult : null;
   const saved = hash.startsWith("#history/")
     ? historyState.entries.find((s) => s.id === hash.slice("#history/".length))
     : undefined;
@@ -95,12 +99,13 @@ function Workspace({
           : historyState.entries.find((s) => s.id === resultId)) || null
       : null;
   useEffect(() => {
-    document.title = `${inHistory ? (saved ? "Сохранённый расчёт" : "История расчётов") : showing ? "Результат расчёта" : "Условия перевозки"} · Попутно`;
-  }, [inHistory, saved, showing]);
+    document.title = `${inHistory ? (saved ? "Сохранённый расчёт" : "История расчётов") : showing || assistantReport ? "Результат расчёта" : "Условия перевозки"} · Попутно`;
+  }, [inHistory, saved, showing, assistantReport]);
   function newCalculation() {
     setDraft(emptyDraft());
     setFormVersion((v) => v + 1);
     setCurrent(null);
+    setAssistantResult(null);
     navigate("#calculation");
   }
   function completed(result: Calculation, submitted: Draft) {
@@ -116,6 +121,7 @@ function Workspace({
     };
     setDraft(submitted);
     setCurrent(snapshot);
+    setAssistantResult(null);
     const savedHistory = saveSnapshot(user.id, snapshot);
     setHistoryState((previous) => ({
       ...savedHistory,
@@ -126,6 +132,10 @@ function Workspace({
       ],
     }));
     navigate("#calculation/result/" + snapshot.id);
+  }
+  function showAssistantResult(response: DashboardReply) {
+    setAssistantResult(response);
+    navigate("#calculation/assistant");
   }
   async function logout() {
     if (logoutBusy) return;
@@ -151,9 +161,11 @@ function Workspace({
               aria-current={!inHistory ? "page" : undefined}
               onClick={() =>
                 navigate(
-                  current
-                    ? "#calculation/result/" + current.id
-                    : "#calculation",
+                  assistantResult
+                    ? "#calculation/assistant"
+                    : current
+                      ? "#calculation/result/" + current.id
+                      : "#calculation",
                 )
               }
             >
@@ -194,7 +206,7 @@ function Workspace({
           </details>
         </div>
       </header>
-      <main className={showing || inHistory ? "wide-main" : ""}>
+      <main className={showing || inHistory || assistantReport ? "wide-main" : ""}>
         {logoutError && (
           <p role="alert" className="feedback error">
             {logoutError}
@@ -205,7 +217,9 @@ function Workspace({
             {historyState.warning}
           </p>
         )}
-        {showing ? (
+        {assistantReport ? (
+          <AssistantReport response={assistantReport} onNew={newCalculation} />
+        ) : showing ? (
           <Results
             key={showing.id + (inHistory ? "-saved" : "")}
             snapshot={showing}
@@ -261,7 +275,7 @@ function Workspace({
           </section>
         )}
       </main>
-      <Assistant snapshot={showing} />
+      <Assistant snapshot={showing} onResult={showAssistantResult} />
     </div>
   );
 }

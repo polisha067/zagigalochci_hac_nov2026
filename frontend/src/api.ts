@@ -143,9 +143,10 @@ export class ApiError extends Error {
 export async function request<T>(
   path: string,
   init: RequestInit = {},
+  timeoutMs = 30000,
 ): Promise<T> {
   const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), 30000);
+  const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
   const abort = () => controller.abort();
   init.signal?.addEventListener("abort", abort, { once: true });
   if (init.signal?.aborted) controller.abort();
@@ -180,7 +181,7 @@ export async function request<T>(
   } catch (error) {
     if (init.signal?.aborted) throw error;
     if (controller.signal.aborted)
-      throw new Error("Сервер не ответил за 30 секунд. Попробуйте ещё раз.");
+      throw new Error(`Сервер не ответил за ${timeoutMs / 1000} секунд. Попробуйте ещё раз.`);
     if (error instanceof TypeError)
       throw new Error(
         "Не удалось связаться с сервером. Проверьте подключение и повторите попытку.",
@@ -191,13 +192,13 @@ export async function request<T>(
     init.signal?.removeEventListener("abort", abort);
   }
 }
-export const post = <T>(path: string, body?: unknown, signal?: AbortSignal) =>
+export const post = <T>(path: string, body?: unknown, signal?: AbortSignal, timeoutMs?: number) =>
   request<T>(path, {
     method: "POST",
     signal,
     headers: { "Content-Type": "application/json" },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-  });
+  }, timeoutMs);
 export function errorText(error: unknown) {
   if (!(error instanceof Error))
     return "Не удалось выполнить действие. Попробуйте ещё раз.";
