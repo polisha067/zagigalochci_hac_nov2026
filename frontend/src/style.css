@@ -1,0 +1,2824 @@
+/* Подключение локального шрифта Bounded: файл, доступные начертания и поведение при загрузке. */
+@font-face {
+  font-family: "Bounded";
+  src: url("./assets/fonts/Bounded-Variable.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 200 900;
+  font-display: swap;
+}
+
+/* Основной шрифт, стандартный межбуквенный интервал, цвета текста и фона, а также общие цветовые переменные интерфейса. */
+:root {
+  font-family: "Bounded", Arial, sans-serif;
+  letter-spacing: normal;
+  color: #182232;
+  background: #edf4ff;
+  font-synthesis: none;
+  --blue: #0271ff;
+  --ink: #152032;
+  --line: #cfdaea;
+}
+/* Единый расчёт размеров: внутренние отступы и рамки входят в заданную ширину и высоту. */
+* {
+  box-sizing: border-box;
+}
+/* Скрываем полосу прокрутки страницы, сохраняя прокрутку и постоянную ширину шапки. */
+html {
+  scrollbar-width: none;
+}
+/* Скрываем полосу страницы в Chromium и Safari; внутренние списки сохраняют свои полосы. */
+html::-webkit-scrollbar {
+  display: none;
+}
+/* Убираем внешний отступ браузера и задаём минимальную ширину страницы. */
+body {
+  margin: 0;
+  min-width: 320px;
+}
+/* Кнопки, поля и списки наследуют шрифт страницы. */
+button,
+input,
+select {
+  font: inherit;
+}
+
+/* Курсор-указатель у доступных кнопок и выпадающих списков. */
+button:not(:disabled),
+select {
+  cursor: pointer;
+}
+/* Заметная рамка фокуса при переходе между элементами с клавиатуры. */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+a:focus-visible {
+  outline: 3px solid #3581ff;
+  outline-offset: 3px;
+}
+/* Общий голубой градиент фона и минимальная высота страницы. */
+.page {
+  min-height: 100svh;
+  background:
+    radial-gradient(ellipse at 5% 88%, #cde2ff, transparent 66%),
+    linear-gradient(110deg, #e1eeff, #f4f8ff);
+}
+/* Базовое расположение содержимого шапки, её высота, отступы и нижняя граница. */
+header {
+  min-height: 78px;
+  padding: 0 clamp(22px, 5vw, 88px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #a9c4ea55;
+}
+/* Логотип и надпись «Попутно»: выравнивание, промежуток между ними и оформление текста. */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 27px;
+  font-weight: 730;
+  line-height: 1.2;
+  color: #10151e;
+}
+/* Размер графического знака логотипа без сжатия внутри строки. */
+.brand-mark {
+  display: block;
+  width: 40px;
+  height: 34px;
+  flex-shrink: 0;
+}
+/* Надпись «Попутно» как отдельный блок рядом со знаком. */
+.brand > span {
+  display: block;
+}
+/* Общие настройки строки элементов для навигации и переключателя графика. */
+nav,
+.toggle {
+  display: flex;
+  align-items: center;
+  border-radius: 11px;
+}
+/* Контейнер вкладок «Расчёт» и «История»: рамка и внутренние отступы. */
+nav {
+  padding: 3px;
+  border: 1px solid #aec8e67c;
+  gap: 2px;
+  font-size: 14px;
+}
+/* Размеры и оформление отдельных элементов верхней навигации. */
+nav span,
+nav button {
+  padding: 7px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+/* Оформление текстового элемента активной вкладки. */
+nav span {
+  background: #d5e7ff;
+  color: #0358cd;
+}
+/* Убираем стандартный фон и рамку у кнопок вкладок и переключателя. */
+nav button,
+.toggle button {
+  border: 0;
+  background: none;
+}
+/* Цвет недоступной вкладки. */
+nav button:disabled {
+  color: #6c7990;
+}
+/* Максимальная ширина, внешние и внутренние отступы основной области страницы. */
+main {
+  max-width: 1450px;
+  padding: clamp(48px, 10vh, 110px) clamp(20px, 6vw, 92px) 115px;
+  margin: auto;
+}
+/* Мягкая тень под формой условий перевозки. */
+.conditions-form {
+  filter: drop-shadow(0 10px 15px #2b568b17) drop-shadow(0 2px 2px #3e668f22);
+}
+/* Билет условий перевозки: сетка основной части и купона, фон, скругления и перфорация. */
+.ticket {
+  padding: 0;
+  margin: 0;
+  border: 0;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 2.15fr) minmax(250px, 1fr);
+  overflow: hidden;
+  border-radius: 22px;
+  background: white;
+  mask: radial-gradient(circle at 0 20px, transparent 0 6px, #000 6.8px) left
+    top/100% 40px repeat-y;
+}
+/* Внутренние отступы белой части билета и правого купона. */
+.paper,
+aside {
+  padding: clamp(23px, 3vw, 48px);
+}
+/* Убираем стандартные внешние отступы у заголовков и абзацев. */
+h1,
+h2,
+p {
+  margin: 0;
+}
+/* Основной заголовок страницы: размер, высота строки и цвет текста. */
+h1 {
+  font-size: clamp(28px, 3.1vw, 49px);
+  line-height: 1.05;
+  color: #101721;
+}
+/* Заголовки разделов: размер, высота строки и отступ до содержимого. */
+h2 {
+  font-size: clamp(19px, 1.6vw, 25px);
+  margin: 0 0 19px;
+  line-height: 1.15;
+}
+/* Строка маршрута с городами отправления, назначения и кнопкой остановки. */
+.route {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: end;
+  gap: 14px;
+  margin: 32px 0 20px;
+}
+/* Базовый вид подписи поля: направление элементов, промежуток, размер и цвет текста. */
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 13px;
+  line-height: 1.25;
+  font-weight: 550;
+  color: #52657d;
+}
+/* Общие размеры, нижняя граница, фон и текст полей формы перевозки. */
+select,
+input {
+  width: 100%;
+  min-width: 0;
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 500;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  padding: 8px 1px;
+  background: transparent;
+}
+/* Приглушённый цвет подсказок и ещё не выбранного значения списка. */
+input::placeholder,
+select:has(option:checked[value=""]) {
+  color: #728096;
+}
+/* Синие действия формы без стандартного фона и рамки кнопки. */
+.addStop,
+.link,
+.stop button,
+.position button {
+  border: 0;
+  background: none;
+  color: var(--blue);
+}
+/* Кнопка добавления промежуточной остановки с пунктирной рамкой. */
+.addStop {
+  position: relative;
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 3px 9px;
+  margin-bottom: 7px;
+  border: 1px dashed #92b5e5;
+  border-radius: 18px;
+  white-space: nowrap;
+}
+/* Декоративные пунктирные линии по сторонам кнопки остановки. */
+.addStop:before,
+.addStop:after {
+  position: absolute;
+  content: "";
+  top: 50%;
+  width: 12px;
+  border-top: 2px dotted #81b1f3;
+}
+/* Расположение пунктирной линии слева от кнопки остановки. */
+.addStop:before {
+  right: 100%;
+}
+/* Расположение пунктирной линии справа от кнопки остановки. */
+.addStop:after {
+  left: 100%;
+}
+/* Выравнивание содержимого строки остановки или заголовка позиции груза. */
+.stop,
+.position {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+/* Отступ после строки промежуточной остановки. */
+.stop {
+  margin-bottom: 12px;
+}
+/* Поле города занимает свободное место рядом с кнопкой удаления остановки. */
+.stop label {
+  flex: 1;
+}
+/* Размер крестиков удаления остановки и позиции груза. */
+.stop button,
+.position button {
+  font-size: 22px;
+}
+/* Две колонки билета: состав партии и график отправок, разделитель и отступы. */
+.columns {
+  display: grid;
+  grid-template-columns: 0.92fr 1.08fr;
+  gap: clamp(16px, 2vw, 32px);
+  border-top: 1px solid var(--line);
+  padding-top: 25px;
+  margin-top: 23px;
+}
+/* Колонки могут сжиматься внутри сетки без переполнения. */
+.columns > section {
+  min-width: 0;
+}
+/* Вертикальный разделитель и отступ слева у второй колонки билета. */
+.columns > section + section {
+  padding-left: clamp(15px, 2vw, 29px);
+  border-left: 1px solid var(--line);
+}
+/* Расположение полей одной позиции груза и расстояния между ними. */
+.cargo {
+  display: grid;
+  gap: 14px;
+}
+/* Разделитель и отступы между несколькими позициями груза. */
+.cargo + .cargo {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--line);
+}
+/* Подпись номера позиции груза. */
+.position {
+  font-size: 13px;
+  color: #66778b;
+}
+/* Текстовая кнопка добавления груза. */
+.link {
+  padding: 14px 0 0;
+  font-weight: 600;
+  font-size: 14px;
+}
+/* Фон и внутренний отступ переключателя разовой и регулярной отправки. */
+.toggle {
+  background: #eaf0f7;
+  padding: 3px;
+  margin-bottom: 12px;
+}
+/* Размеры и текст вариантов графика отправок. */
+.toggle button {
+  flex: 1;
+  padding: 8px 3px;
+  border-radius: 8px;
+  color: #53657a;
+  font-size: 13px;
+  font-weight: 600;
+}
+/* Синий фон и белый текст выбранного графика отправок. */
+.toggle button[aria-pressed="true"] {
+  background: var(--blue);
+  color: white;
+}
+/* Строка параметра графика: подпись слева, значение справа и нижняя граница. */
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(66px, 0.85fr);
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--line);
+  min-height: 39px;
+}
+/* Оформление значения внутри строки графика. */
+.row input {
+  border: 0;
+  font-size: 14px;
+}
+/* Ширина колонок в строке выбора даты начала перевозок. */
+.row:has([type="date"]) {
+  grid-template-columns: auto minmax(124px, 1fr);
+}
+/* Правый голубой купон: фон, вертикальная компоновка и пунктирный разделитель. */
+aside {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: linear-gradient(145deg, #e5f1ff, #d1e5ff);
+  border-left: 2px dotted #a5bfdd;
+}
+/* Круглые вырезы в месте соединения купона и основной части билета. */
+aside:before,
+aside:after {
+  position: absolute;
+  content: "";
+  left: -8px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #e6f0ff;
+}
+/* Положение верхнего выреза на границе купона. */
+aside:before {
+  top: -8px;
+}
+/* Положение нижнего выреза на границе купона. */
+aside:after {
+  bottom: -8px;
+}
+/* Подпись «Плановый объём» и выравнивание её индикатора. */
+.stub-title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #374e6a;
+  font-size: 16px;
+  font-weight: 600;
+}
+/* Синяя точка-индикатор рядом с подписью планового объёма. */
+.target {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--blue);
+  box-shadow: 0 0 0 4px #036bff12;
+}
+/* Крупное число планового объёма: размер, начертание и отступы. */
+.volume {
+  font-size: clamp(47px, 5.6vw, 82px);
+  font-weight: 490;
+  line-height: 1.2;
+  margin: 14px 0 2px;
+  overflow-wrap: anywhere;
+}
+/* Размер и цвет единицы измерения рядом с плановым объёмом. */
+.volume small {
+  font-size: 0.6em;
+  color: #536781;
+}
+/* Общий цвет пояснений периода и данных каталога в купоне. */
+.period,
+.action p {
+  color: #536781;
+}
+/* Размер подписи периода под плановым объёмом. */
+.period {
+  font-size: 14px;
+}
+/* Краткие итоги в купоне: сетка подписей и значений с пунктирными разделителями. */
+.summary {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  border-top: 1px dashed #a7bfdc;
+  border-bottom: 1px dashed #a7bfdc;
+  margin: 30px 0;
+  padding: 17px 0;
+  font-size: 14px;
+}
+/* Начертание чисел в кратких итогах купона. */
+.summary b {
+  font-weight: 600;
+}
+/* Блок расчёта прижимается к нижней части купона. */
+.action {
+  margin-top: auto;
+}
+/* Размер и отступ подписи каталога перед кнопкой расчёта. */
+.action p {
+  font-size: 12px;
+  margin-bottom: 9px;
+}
+/* Основная синяя кнопка: размер, фон, скругления и расположение содержимого. */
+.primary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  border: 0;
+  background: var(--blue);
+  color: white;
+  padding: 13px 17px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+/* Размер стрелки внутри основной кнопки. */
+.primary span {
+  font-size: 21px;
+}
+/* Более тёмный фон основной кнопки при наведении. */
+.primary:hover {
+  background: #0056d5;
+}
+/* Блок сообщения под формой: фон, отступы и размер текста. */
+.feedback {
+  background: white;
+  padding: 16px 20px;
+  border-radius: 12px;
+  margin: 14px 0;
+  font-size: 14px;
+}
+/* Цвет ссылки внутри сообщения формы. */
+.feedback a {
+  color: var(--blue);
+}
+/* Закреплённая кнопка ИИ-ассистента: положение, размеры, цвет и слой поверх страницы. */
+.assistant {
+  position: fixed;
+  bottom: 22px;
+  right: clamp(18px, 3vw, 44px);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #155fd0;
+  border: 0;
+  color: white;
+  padding: 12px 19px;
+  border-radius: 32px;
+  box-shadow: 0 3px 12px #325a8f28;
+  font-size: 14px;
+}
+/* Контур значка сообщения внутри кнопки ассистента. */
+.assistant i {
+  display: block;
+  width: 17px;
+  height: 14px;
+  border: 1.7px solid currentColor;
+  border-radius: 8px 8px 8px 2px;
+}
+/* Адаптация интерфейса для экранов шириной до 1000 пикселей. */
+@media (max-width: 1000px) {
+  /* Максимальная ширина, внешние и внутренние отступы основной области страницы. */
+  main {
+    padding-inline: 24px;
+  }
+  /* Внутренние отступы белой части билета и правого купона. */
+  .paper,
+  aside {
+    padding: 25px;
+  }
+  /* Билет условий перевозки: сетка основной части и купона, фон, скругления и перфорация. */
+  .ticket {
+    grid-template-columns: minmax(0, 2.1fr) minmax(205px, 1fr);
+  }
+}
+/* Адаптация интерфейса для экранов шириной до 760 пикселей. */
+@media (max-width: 760px) {
+  /* Базовое расположение содержимого шапки, её высота, отступы и нижняя граница. */
+  header {
+    min-height: 64px;
+  }
+  /* Логотип и надпись «Попутно»: выравнивание, промежуток между ними и оформление текста. */
+  .brand {
+    font-size: 22px;
+    gap: 8px;
+  }
+  /* Максимальная ширина, внешние и внутренние отступы основной области страницы. */
+  main {
+    padding: 28px 15px 90px;
+  }
+  /* Билет условий перевозки: сетка основной части и купона, фон, скругления и перфорация. */
+  .ticket {
+    grid-template-columns: 1fr;
+  }
+  /* Внутренние отступы белой части билета на соответствующей ширине экрана. */
+  .paper {
+    padding: 25px 22px;
+  }
+  /* Строка маршрута с городами отправления, назначения и кнопкой остановки. */
+  .route {
+    gap: 7px;
+  }
+  /* Кнопка добавления промежуточной остановки с пунктирной рамкой. */
+  .addStop {
+    font-size: 12px;
+    padding-inline: 5px;
+  }
+  /* Две колонки билета: состав партии и график отправок, разделитель и отступы. */
+  .columns {
+    gap: 14px;
+  }
+  /* Правый голубой купон: фон, вертикальная компоновка и пунктирный разделитель. */
+  aside {
+    border-left: 0;
+    border-top: 2px dotted #a5bfdd;
+    padding: 22px;
+  }
+  /* Крупное число планового объёма: размер, начертание и отступы. */
+  .volume {
+    margin-top: 8px;
+  }
+  /* Краткие итоги в купоне: сетка подписей и значений с пунктирными разделителями. */
+  .summary {
+    margin: 17px 0;
+  }
+  /* Закреплённая кнопка ИИ-ассистента: положение, размеры, цвет и слой поверх страницы. */
+  .assistant {
+    bottom: 14px;
+  }
+  /* Круглые вырезы в месте соединения купона и основной части билета. */
+  aside:before,
+  aside:after {
+    display: none;
+  }
+}
+/* Адаптация интерфейса для экранов шириной до 500 пикселей. */
+@media (max-width: 500px) {
+  /* Строка маршрута с городами отправления, назначения и кнопкой остановки. */
+  .route {
+    grid-template-columns: 1fr 1fr;
+  }
+  /* Кнопка добавления промежуточной остановки с пунктирной рамкой. */
+  .addStop {
+    grid-row: 2;
+    grid-column: 1/-1;
+    justify-self: start;
+    margin: 4px 0;
+  }
+  /* Декоративные пунктирные линии по сторонам кнопки остановки. */
+  .addStop:before,
+  .addStop:after {
+    display: none;
+  }
+  /* Две колонки билета: состав партии и график отправок, разделитель и отступы. */
+  .columns {
+    grid-template-columns: 1fr;
+  }
+  /* Вертикальный разделитель и отступ слева у второй колонки билета. */
+  .columns > section + section {
+    border: 0;
+    border-top: 1px solid var(--line);
+    padding: 20px 0 0;
+  }
+  /* Строка параметра графика: подпись слева, значение справа и нижняя граница. */
+  .row {
+    grid-template-columns: 1fr 1fr;
+  }
+  /* Размер графического знака логотипа без сжатия внутри строки. */
+  .brand-mark {
+    transform: scale(0.85);
+  }
+  /* Размеры и оформление отдельных элементов верхней навигации. */
+  nav span,
+  nav button {
+    padding: 6px 10px;
+  }
+}
+/* Компактный блок раскрываемых условий плана в купоне. */
+.assumptions {
+  margin-bottom: 12px;
+  font-size: 12px;
+  color: #415b78;
+}
+/* Указатель при наведении на раскрываемые условия плана. */
+.assumptions summary {
+  cursor: pointer;
+}
+/* Отступ и высота строки текста условий плана. */
+.assumptions p {
+  margin: 7px 0;
+  line-height: 1.5;
+}
+/* Общие элементы интерфейса и дополнительные экраны приложения. */
+/* Основной шрифт, стандартный межбуквенный интервал, цвета текста и фона, а также общие цветовые переменные интерфейса. */
+:root {
+  --blue: #0271ff;
+  --ink: #17212d;
+  --muted: #5c6e85;
+  --paper: #fcfdff;
+}
+/* Плавная смена фона, цвета и тени при взаимодействии с кнопками. */
+button {
+  transition:
+    background 0.15s,
+    color 0.15s,
+    box-shadow 0.15s;
+}
+/* Приглушённый вид и запрещающий курсор у недоступных кнопок. */
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+/* Элементы с атрибутом hidden полностью исключаются из отображения. */
+[hidden] {
+  display: none !important;
+}
+/* Заголовки подразделов: размер, высота строки и нижний отступ. */
+h3 {
+  font-size: 20px;
+  line-height: 1.3;
+  margin: 0 0 12px;
+}
+/* Общий размер небольших поясняющих подписей. */
+small {
+  font-size: 12px;
+}
+/* Общая высота строки абзацев для удобного чтения. */
+p {
+  line-height: 1.5;
+}
+/* Скрытый визуально текст, который остаётся доступным для программ чтения с экрана. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+/* Приглушённый цвет второстепенного текста. */
+.muted {
+  color: var(--muted);
+}
+/* Кнопка, оформленная как синяя текстовая ссылка. */
+.text-button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--blue);
+  font: inherit;
+  cursor: pointer;
+  text-decoration: none;
+  text-align: left;
+}
+/* Цвет и подчёркивание текстовой кнопки при наведении. */
+.text-button:hover {
+  color: #004fb5;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+/* Дополнительная кнопка с тонкой синей рамкой и светлым фоном. */
+.outline-button {
+  border: 1px solid #95baff;
+  border-radius: 12px;
+  background: #ffffff55;
+  color: #005fdf;
+  padding: 11px 20px;
+  font-weight: 600;
+}
+/* Фон и тень дополнительной кнопки при наведении. */
+.outline-button:hover {
+  background: #fff;
+  box-shadow: 0 2px 8px #27548b12;
+}
+/* Кнопка-значок без фона, например крестик закрытия окна. */
+.icon-button {
+  border: 0;
+  background: none;
+  font-size: 30px;
+  color: #34445a;
+  line-height: 1;
+  padding: 7px;
+}
+/* Общая мягкая тень для карточек и билетов. */
+.ticket-shadow {
+  filter: drop-shadow(0 8px 10px #386ca71a) drop-shadow(0 2px 2px #366aa61a);
+}
+/* Белый билет со скруглениями и повторяющимися вырезами по боковым краям. */
+.perforated {
+  background: var(--paper);
+  border-radius: 22px;
+  mask:
+    radial-gradient(circle at 0 22px, transparent 0 6px, #000 6.8px) left top /
+      51% 44px repeat-y,
+    radial-gradient(circle at 100% 22px, transparent 0 6px, #000 6.8px) right
+      top / 51% 44px repeat-y;
+}
+/* Основная синяя кнопка: размер, фон, скругления и расположение содержимого. */
+.primary {
+  background: var(--blue);
+  min-height: 48px;
+}
+/* Серый фон и текст недоступной основной кнопки. */
+.primary:disabled {
+  background: #98abc7;
+  color: #fff;
+  opacity: 0.8;
+}
+/* Недоступная основная кнопка не меняет фон при наведении. */
+.primary:disabled:hover {
+  background: #98abc7;
+}
+/* Общая шапка приложения: высота, боковые отступы и положение поверх содержимого. */
+header.app-header {
+  position: relative;
+  z-index: 10;
+  min-height: 86px;
+  padding-inline: clamp(20px, 4vw, 65px);
+}
+/* Вкладки и меню аккаунта в правой части шапки. */
+.header-controls {
+  display: flex;
+  gap: 30px;
+  align-items: center;
+}
+/* Цвет текста кнопок верхней навигации. */
+nav button {
+  color: #56677c;
+}
+/* Подсветка текущей вкладки в верхней навигации. */
+nav button[aria-current="page"] {
+  background: #cde4ff;
+  color: #005ee2;
+}
+/* Опорный контейнер для раскрывающегося меню аккаунта. */
+.account {
+  position: relative;
+}
+/* Кликабельный элемент открытия меню аккаунта без стандартного маркера. */
+.account > summary {
+  list-style: none;
+  cursor: pointer;
+}
+/* Убираем стандартную стрелку раскрытия меню аккаунта в браузерах Chromium и Safari. */
+.account > summary::-webkit-details-marker {
+  display: none;
+}
+/* Круглый значок аккаунта с инициалами пользователя. */
+.account > summary span {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--blue);
+  color: white;
+  font-weight: 600;
+}
+/* Меню аккаунта: небольшая оптическая поправка отступов центрирует текст Bounded по высоте. */
+.account-menu {
+  position: absolute;
+  right: 0;
+  top: 56px;
+  min-width: 240px;
+  max-width: min(320px, 85vw);
+  padding: 25px 22px 19px;
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 10px 35px #214f7d2a;
+  display: grid;
+  gap: 12px;
+  overflow-wrap: anywhere;
+  border: 1px solid #d7e5f6;
+}
+/* Цвет почты и второстепенных подписей в меню аккаунта. */
+.account-menu small {
+  color: var(--muted);
+}
+/* Максимальная ширина, внешние и внутренние отступы основной области страницы. */
+main {
+  max-width: 1480px;
+}
+/* Более широкая основная область для результатов и истории расчётов. */
+main.wide-main {
+  max-width: 1540px;
+  padding: 38px clamp(20px, 4vw, 65px) 120px;
+}
+/* Билет условий перевозки: сетка основной части и купона, фон, скругления и перфорация. */
+.ticket {
+  background: var(--paper);
+}
+/* Размер заголовка «Условия перевозки» внутри белого билета. */
+.paper h1 {
+  font-size: clamp(28px, 3vw, 43px);
+}
+/* Пояснение о необходимости указать вес и график отправок. */
+.plan-hint {
+  color: var(--muted);
+  font-size: 14px;
+  margin-top: 10px;
+}
+/* Расположение недель в предварительном плане отправок. */
+.week-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 22px;
+}
+/* Одна неделя предварительного плана и разделитель справа от неё. */
+.week-preview div {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding-right: 10px;
+  border-right: 1px solid #b9d3ef;
+}
+/* Синие точки или число отправок в предварительном плане. */
+.week-preview span {
+  color: var(--blue);
+  font-size: 14px;
+  white-space: nowrap;
+}
+/* Цвет подписи номера недели в предварительном плане. */
+.week-preview small {
+  color: #52657d;
+}
+/* Тёплый фон и рамка для ошибок формы и предупреждений расчёта. */
+.feedback.error,
+.notice.warning {
+  border: 1px solid #e9cc9f;
+  background: #fff9ef;
+}
+/* Цвет текста ошибки. */
+.error-text {
+  color: #a33926;
+}
+/* Блок сообщения под формой: фон, отступы и размер текста. */
+.feedback {
+  line-height: 1.55;
+}
+/* Сообщение проверки сессии или загрузки: выравнивание, размер и отступы. */
+.loading-state {
+  font-size: 18px;
+  color: var(--muted);
+  text-align: center;
+  padding: 80px 0;
+}
+
+/* Вход, регистрация и подтверждение почты: карточки центрируются независимо от текста слева. */
+/* Экран авторизации занимает высоту окна и не прокручивает всю страницу. */
+.auth-page {
+  height: 100svh;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: 86px minmax(0, 1fr);
+  overflow: hidden;
+}
+/* Прозрачная граница сохраняет ту же геометрию шапки и положение логотипа до и после входа. */
+header.auth-header {
+  border-bottom-color: transparent;
+  padding-top: 0;
+}
+/* Десктопная сетка авторизации: ширина карточки, положение колонок и расстояние между ними. */
+.auth-layout {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  margin: 0 auto;
+  padding: 24px clamp(20px, 6vw, 92px);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 500px;
+  grid-template-rows: minmax(0, 1fr);
+  gap: clamp(40px, 6vw, 100px);
+  align-items: center;
+}
+/* Левый текстовый блок авторизации и его вертикальный сдвиг. */
+.auth-intro {
+  min-width: 0;
+  transform: translateY(-32px);
+}
+/* Размер и высота строк текста «Планирование перевозок». */
+.auth-intro h1 {
+  font-size: clamp(40px, 4.2vw, 60px);
+  line-height: 1.16;
+}
+/* Размер, ширина и отступ описания продукта слева от формы. */
+.auth-intro p {
+  font-size: clamp(18px, 1.7vw, 24px);
+  line-height: 1.55;
+  color: #536477;
+  max-width: 550px;
+  margin-top: 26px;
+}
+/* Обёртка карточки авторизации: ограничение высоты, скругления и вертикальный сдвиг. */
+.auth-card-wrap {
+  min-height: 0;
+  max-height: 100%;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  border-radius: 22px;
+  transform: translateY(-32px);
+}
+/* Белая карточка авторизации: ширина, внутренние отступы и вертикальное расположение элементов. */
+.auth-ticket {
+  width: 500px;
+  padding: 28px 32px;
+  display: flex;
+  flex-direction: column;
+}
+/* Высота и вертикальные внутренние отступы карточки входа. */
+.auth-ticket[data-mode="login"] {
+  min-height: 460px;
+  padding-block: 36px;
+}
+/* Расстояние между заголовком «Вход» и полями. */
+.auth-ticket[data-mode="login"] h2 {
+  margin-bottom: 28px;
+}
+/* Расстояние между группами полей на экране входа. */
+.auth-ticket[data-mode="login"] .auth-fields {
+  gap: 16px;
+}
+/* Отступ перед кнопкой «Войти». */
+.auth-ticket[data-mode="login"] .auth-submit {
+  margin-top: 28px;
+}
+/* Минимальная высота карточки ввода кода из письма. */
+.auth-ticket[data-mode="verify"] {
+  min-height: 420px;
+}
+/* Заголовки «Вход», «Регистрация» и «Код из письма» внутри карточки. */
+.auth-ticket h2 {
+  font-size: 30px;
+  line-height: 1.2;
+  margin-bottom: 22px;
+}
+/* Убираем рамку с заголовка, получающего фокус после переключения экрана авторизации. */
+.auth-ticket h2:focus {
+  outline: none;
+}
+/* Группа полей авторизации: сетка и расстояния без стандартной рамки fieldset. */
+.auth-fields {
+  padding: 0;
+  margin: 0;
+  border: 0;
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+/* Одна группа авторизации: подпись, поле и строка ошибки. */
+.auth-field {
+  display: grid;
+  gap: 7px;
+}
+/* Размер, цвет и начертание подписей полей авторизации. */
+.auth-fields label {
+  color: #195397;
+  font-size: 13px;
+  line-height: 1.4;
+  font-weight: 550;
+}
+/* Поля имени, почты, пароля и кода: рамка, фон, размеры и текст. */
+.auth-fields input:not([type="checkbox"]) {
+  border: 1px solid #c6d3e2;
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: #fbfcff;
+  font-size: 14px;
+  font-weight: 400;
+  min-height: 46px;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s,
+    background 0.15s;
+}
+/* Цвет подсказок в пустых полях авторизации. */
+.auth-fields input::placeholder {
+  color: #7a8696;
+}
+/* Синяя рамка и мягкое свечение выбранного поля авторизации. */
+.auth-fields input:focus-visible {
+  outline: none;
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px #0271ff15;
+}
+/* Красноватая рамка и фон поля авторизации с ошибкой. */
+.auth-fields input[aria-invalid="true"] {
+  border-color: #d36a61;
+  background: #fffafa;
+}
+/* Мягкое красноватое свечение ошибочного поля в фокусе. */
+.auth-fields input[aria-invalid="true"]:focus-visible {
+  box-shadow: 0 0 0 3px #d36a6115;
+}
+/* Небольшая подпись ошибки под полем с зарезервированным местом, чтобы форма не прыгала. */
+.field-error {
+  display: block;
+  min-height: 15px;
+  font-size: 10px;
+  line-height: 1.4;
+  color: #ad473f;
+  font-weight: 400;
+}
+/* Контейнер пароля, относительно которого располагается кнопка показа символов. */
+.password-field {
+  position: relative;
+}
+/* Оставляем место справа в поле пароля для кнопки-глаза. */
+.password-field input {
+  padding-right: 48px !important;
+}
+/* Положение кнопки показа пароля по вертикальному центру поля. */
+.password-field button {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 7px;
+  border: 0;
+  background: none;
+  color: #758497;
+}
+/* Размер и контур значка показа пароля. */
+.password-field svg {
+  width: 23px;
+  height: 23px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.6;
+}
+/* Строка согласия: выравнивание чекбокса и текста по центру и расстояние между ними. */
+.auth-fields .consent {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 2px;
+}
+/* Текст согласия и небольшой сдвиг вниз для визуального выравнивания с чекбоксом. */
+.auth-fields .consent label {
+  display: block;
+  transform: translateY(1px);
+  color: #4e6076;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.65;
+}
+/* Размеры и цвет чекбокса согласия без дополнительного внешнего отступа. */
+.consent input {
+  width: 17px;
+  min-width: 17px;
+  height: 17px;
+  accent-color: var(--blue);
+  margin: 0;
+}
+/* Ссылка «персональных данных» внутри текста согласия, сохраняющая его размер и высоту строки. */
+.privacy-link {
+  display: inline;
+  font-size: inherit;
+  line-height: inherit;
+}
+/* Отступ пояснения об ошибке согласия под чекбоксом. */
+.consent-field > .field-error {
+  margin-top: 5px;
+}
+/* Компактное общее сообщение об ошибке или отправке письма внутри карточки авторизации. */
+.auth-feedback {
+  font-size: 11px;
+  line-height: 1.5;
+  margin: 8px 0 0;
+}
+/* Оформление общей ошибки сервера или подключения внутри карточки авторизации. */
+.auth-feedback .error-text {
+  padding: 9px 11px;
+  border-radius: 8px;
+  background: #fff2f0;
+  color: #ad473f;
+  overflow-wrap: anywhere;
+}
+/* Общая кнопка отправки формы авторизации: отступ, размер и центрирование текста. */
+.auth-submit {
+  margin-top: 20px;
+  justify-content: center;
+  font-size: 15px;
+  min-height: 46px;
+}
+/* Текст переключения между входом, регистрацией и изменением почты. */
+.auth-switch {
+  margin-top: 18px;
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.65;
+}
+/* Центрирование ссылки переключения экрана авторизации. */
+.auth-switch .text-button {
+  text-align: center;
+}
+/* Пояснение над кодом подтверждения и перенос длинного адреса почты. */
+.verify-help {
+  font-size: 13px;
+  line-height: 1.7;
+  color: #526680;
+  overflow-wrap: anywhere;
+}
+/* Начертание адреса электронной почты на экране подтверждения. */
+.verify-help strong {
+  font-weight: 550;
+}
+/* Шесть ячеек кода из письма: сетка, промежутки и отступы. */
+.code-inputs {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+  margin: 18px 0 8px;
+}
+/* Размеры ячеек и центрирование цифр кода подтверждения. */
+.code-inputs input {
+  text-align: center;
+  padding: 10px 0 !important;
+  height: 58px;
+  font-size: 23px !important;
+}
+/* Сообщение об истёкшем коде подтверждения. */
+.code-expired {
+  color: #ad473f;
+  font-size: 11px;
+}
+/* Размер текстовой кнопки повторной отправки кода. */
+.resend {
+  font-size: 11px;
+}
+/* Центральное окно о персональных данных: размеры, рамка, фон и тень. */
+.privacy-dialog {
+  width: min(540px, calc(100vw - 48px));
+  max-height: calc(100svh - 64px);
+  margin: auto;
+  padding: 28px;
+  border: 1px solid #d0def0;
+  border-radius: 20px;
+  background: #fcfdff;
+  color: var(--ink);
+  box-shadow: 0 18px 70px #183a6740;
+}
+/* Затемнение и размытие страницы за окном о персональных данных. */
+.privacy-dialog::backdrop {
+  background: #16304b66;
+  backdrop-filter: blur(4px);
+}
+/* Расположение заголовка окна о персональных данных и крестика закрытия. */
+.privacy-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+/* Размер и высота строки заголовка окна о персональных данных. */
+.privacy-heading h2 {
+  font-size: 21px;
+  margin: 0;
+  line-height: 1.4;
+}
+/* Абзацы с описанием обработки персональных данных. */
+.privacy-dialog p {
+  color: #52657d;
+  font-size: 13px;
+  line-height: 1.8;
+  margin-bottom: 15px;
+}
+/* Кнопка «Понятно» внизу окна о персональных данных. */
+.privacy-dialog > .primary {
+  justify-content: center;
+  margin-top: 22px;
+  font-size: 14px;
+}
+/* Общие стили сравнения схем и подробного отчёта для новых и сохранённых расчётов. */
+/* Заголовок страницы и расположенные рядом действия. */
+.page-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 25px;
+}
+/* Размер основного заголовка результатов или истории. */
+.page-title h1 {
+  font-size: clamp(28px, 3vw, 43px);
+  line-height: 1.15;
+}
+/* Подпись даты, источника или демонстрационного режима под заголовком страницы. */
+.page-title p {
+  font-size: 13px;
+  margin-top: 9px;
+}
+/* Группа кнопок изменения условий и создания нового расчёта. */
+.title-actions {
+  display: flex;
+  gap: 12px;
+  flex-shrink: 0;
+}
+/* Компактная раскрываемая карточка условий выполненного расчёта. */
+.conditions-summary {
+  background: var(--paper);
+  border-radius: 15px;
+  margin-bottom: 28px;
+}
+/* Строка открытия условий с маршрутом, объёмом и ограничением срока. */
+.conditions-summary > summary {
+  display: flex;
+  gap: 22px;
+  align-items: center;
+  padding: 20px 26px;
+  list-style: none;
+  cursor: pointer;
+  font-size: 15px;
+}
+/* Убираем стандартную стрелку браузера у раскрываемых условий. */
+.conditions-summary > summary::-webkit-details-marker {
+  display: none;
+}
+/* Пунктирные разделители и отступы между краткими показателями условий. */
+.conditions-summary > summary > span:not(.chevron) {
+  padding-left: 22px;
+  border-left: 2px dotted #adc6e9;
+}
+/* Размер подписи «Условия расчёта» в компактном билете. */
+.conditions-summary > summary > b {
+  font-size: 18px;
+}
+/* Значок раскрытия условий у правого края строки. */
+.chevron {
+  margin-left: auto;
+  font-size: 24px;
+  line-height: 1;
+}
+/* Поворот значка при раскрытии условий расчёта. */
+.conditions-summary[open] .chevron {
+  transform: rotate(180deg);
+}
+/* Внутренние отступы подробных условий под раскрывающейся строкой. */
+.conditions-expanded {
+  padding: 0 26px 24px;
+}
+/* Сетка основных параметров выполненного расчёта. */
+.facts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-top: 1px dashed #bed1e7;
+  padding-top: 18px;
+  gap: 22px;
+  margin-bottom: 24px;
+}
+/* Расположение подписи и значения одного параметра условий. */
+.facts > div {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  font-size: 14px;
+}
+/* Цвет подписей параметров выполненного расчёта. */
+.facts small {
+  color: var(--muted);
+}
+/* Заголовок сравнения схем и отступ при переходе к нему по странице. */
+.comparison-title {
+  margin-bottom: 18px;
+  font-size: 30px;
+  scroll-margin-top: 24px;
+}
+/* Горизонтальная прокрутка таблицы сравнения и место для нижнего выступа выбранной колонки. */
+.comparison-scroll {
+  overflow-x: auto;
+  padding: 3px 2px 25px;
+  scrollbar-width: thin;
+}
+/* Таблица сравнения: ширина, фиксированная сетка колонок и тень. */
+.comparison-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+  text-align: left;
+  filter: drop-shadow(0 3px 2px #28518420);
+}
+/* Ширина левого столбца с названиями сравниваемых показателей. */
+.metric-col {
+  width: 190px;
+}
+/* Отступы, фон и вертикальные пунктирные границы ячеек сравнения. */
+.comparison-table th,
+.comparison-table td {
+  padding: 15px 23px;
+  border-right: 1px dashed #adc3dd;
+  background: #fcfdff;
+  vertical-align: middle;
+}
+/* Убираем правую границу у последней колонки сравнения. */
+.comparison-table th:last-child,
+.comparison-table td:last-child {
+  border-right: 0;
+}
+/* Высота, отступы и верхние скругления заголовков схем. */
+.comparison-table thead th {
+  height: 113px;
+  border-radius: 16px 16px 0 0;
+  padding: 18px 22px;
+}
+/* Скругление верхнего левого угла таблицы сравнения. */
+.comparison-table thead th:first-child {
+  border-radius: 20px 0 0 0;
+}
+/* Горизонтальные разделители строк таблицы сравнения. */
+.comparison-table tbody td,
+.comparison-table tbody th {
+  border-top: 1px solid #d2ddec;
+}
+/* Подписи показателей в левой колонке таблицы сравнения. */
+.comparison-table tbody th {
+  font-size: 14px;
+  font-weight: 500;
+  color: #29384b;
+}
+/* Размер и выравнивание чисел в колонках схем, перенос длинных значений. */
+.comparison-table tbody td {
+  font-size: clamp(17px, 1.55vw, 23px);
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+/* Небольшие дополнительные подписи под показателями схемы. */
+.comparison-table tbody td small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
+  margin-top: 5px;
+}
+/* Голубой фон и синее выделение рекомендованной сервером схемы. */
+.comparison-table .recommended {
+  background: #dfedff;
+  color: #005ee6;
+  font-weight: 650;
+}
+/* Синий заголовок рекомендованной схемы с белым текстом. */
+.comparison-table thead .recommended {
+  background: linear-gradient(125deg, #0271ff, #0055f2);
+  color: #fff;
+}
+/* Расположение статуса и транспортной иллюстрации в заголовке схемы. */
+.scheme-head > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 36px;
+  gap: 4px;
+  margin-bottom: 9px;
+}
+/* Подпись статуса схемы: база, рекомендация или ограничение. */
+.scheme-badge {
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 1.35;
+}
+/* Название схемы в заголовке колонки сравнения. */
+.scheme-head > b {
+  font-size: clamp(17px, 1.5vw, 22px);
+  line-height: 1.25;
+}
+/* Размер и цвет транспортной иллюстрации схемы. */
+.transport-icon {
+  width: 88px;
+  height: 38px;
+  flex-shrink: 0;
+  color: var(--blue);
+}
+/* Белая транспортная иллюстрация в заголовке рекомендованной схемы. */
+.recommended .transport-icon {
+  color: #fff;
+}
+/* Нижние ячейки таблицы с кнопками раскрытия, скруглениями и опорой для выступа. */
+.comparison-table tfoot td {
+  border-top: 1px solid #cbd9eb;
+  border-radius: 0 0 16px 16px;
+  height: 64px;
+  position: relative;
+}
+/* Размер кнопок «Подробнее» и «Свернуть» под колонками схем. */
+.comparison-table tfoot .text-button {
+  font-size: 17px;
+}
+/* Синяя нижняя граница колонки, подробности которой сейчас открыты. */
+.comparison-table .expanded-scheme {
+  box-shadow: 0 2px 0 var(--blue);
+}
+/* Нижний фигурный выступ из центра раскрытой колонки к подробному отчёту. */
+.column-bridge {
+  position: absolute;
+  width: 72px;
+  height: 24px;
+  left: calc(50% - 36px);
+  top: 100%;
+  fill: #fcfdff;
+  overflow: visible;
+}
+/* Синяя обводка фигурного выступа выбранной колонки. */
+.column-bridge path {
+  stroke: var(--blue);
+  stroke-width: 1;
+}
+/* Голубая заливка выступа, если раскрыта рекомендованная схема. */
+.recommended .column-bridge {
+  fill: #dfedff;
+}
+/* Плашка с превышением допустимого срока доставки. */
+.comparison-table tbody td small.over-limit {
+  color: #a04e12;
+  border-radius: 6px;
+  display: inline-block;
+  margin-left: 8px;
+  background: #ffead4;
+  padding: 2px 6px;
+  white-space: nowrap;
+}
+/* Положение подробного отчёта относительно сравнения и отступ для перемычки. */
+.scheme-report {
+  position: relative;
+  margin-top: 24px;
+}
+/* Верхний фигурный выступ отчёта: положение под выбранной колонкой и видимость. */
+.report-bridge {
+  position: absolute;
+  width: 72px;
+  height: 24px;
+  left: calc(var(--bridge-x) - 36px);
+  top: -24px;
+  fill: #fcfdff;
+  display: var(--bridge-display);
+}
+/* Внутренние отступы белого билета подробного расчёта. */
+.report-card {
+  padding: 28px 32px 30px;
+}
+/* Расположение заголовка «Подробный расчёт» и названия выбранной схемы. */
+.report-title {
+  display: flex;
+  gap: 25px;
+  align-items: center;
+  margin-bottom: 23px;
+}
+/* Размер заголовка подробного расчёта. */
+.report-title h2 {
+  font-size: 27px;
+  margin: 0;
+}
+/* Синее название схемы и разделитель в заголовке отчёта. */
+.report-title h3 {
+  font-size: 24px;
+  color: #005ee6;
+  padding-left: 25px;
+  border-left: 1px solid #adc4e2;
+  margin: 0;
+}
+/* Голубой блок с итоговой формулой стоимости и ценой за тонну. */
+.report-total {
+  background: linear-gradient(100deg, #edf5ff, #dcecff);
+  border-radius: 14px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 20px;
+  padding: 22px 25px;
+}
+/* Подпись и значение одного показателя в блоке итоговой стоимости. */
+.report-total > div {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+/* Цвет поясняющих подписей над итоговыми суммами. */
+.report-total small {
+  color: var(--muted);
+}
+/* Крупные числа и формула итоговой стоимости. */
+.report-total strong {
+  font-size: clamp(21px, 2.2vw, 31px);
+  font-variant-numeric: tabular-nums;
+}
+/* Разделитель перед стоимостью за тонну в итоговом блоке. */
+.report-total > div + div {
+  border-left: 1px solid #b2cae9;
+  padding-left: 25px;
+}
+/* Полоса срока доставки и экономии в подробном отчёте. */
+.report-metrics {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 17px 24px;
+  margin-top: 10px;
+  background: #f0f6fe;
+  border-radius: 12px;
+  font-size: 14px;
+}
+/* Расстояние между разделами подробного отчёта. */
+.report-section {
+  margin-top: 28px;
+}
+/* Сетка компонентов стоимости перевозки. */
+.cost-components {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 35px;
+}
+/* Строка компонента стоимости: название, сумма и нижний разделитель. */
+.cost-components > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 13px 0;
+  border-bottom: 1px solid #d7e2ef;
+  font-size: 14px;
+}
+/* Суммы компонентов стоимости остаются на одной строке и используют табличные цифры. */
+.cost-components b {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+/* Синее выделение итоговой строки разбивки стоимости. */
+.cost-components .cost-total {
+  color: #0063e5;
+  font-weight: 650;
+}
+/* Формула расчёта на светлом фоне с крупными числами. */
+.formula {
+  background: #edf4fe;
+  border-radius: 12px;
+  padding: 17px 22px;
+  margin: 15px 0 10px;
+  font-size: clamp(18px, 2vw, 25px);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+/* Горизонтальная прокрутка широких подробных таблиц. */
+.table-scroll {
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+/* Общий вид таблиц подробного отчёта: ширина, интервалы, выравнивание и цифры. */
+.detail-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 14px;
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+}
+/* Заголовок над подробной таблицей. */
+.detail-table caption {
+  text-align: left;
+  font-size: 21px;
+  font-weight: 650;
+  color: var(--ink);
+  padding-bottom: 15px;
+}
+/* Отступы и высота строки в ячейках подробных таблиц. */
+.detail-table th,
+.detail-table td {
+  padding: 12px 16px;
+  line-height: 1.45;
+}
+/* Светлый фон шапки подробной таблицы. */
+.detail-table thead {
+  background: #eaf1fb;
+  font-size: 13px;
+}
+/* Подписи столбцов подробной таблицы. */
+.detail-table thead th {
+  font-weight: 500;
+  color: #405673;
+}
+/* Начертание названий строк в подробной таблице. */
+.detail-table tbody th {
+  font-weight: 500;
+}
+/* Нижние границы строк подробной таблицы. */
+.detail-table tbody td,
+.detail-table tbody th {
+  border-bottom: 1px solid #d5e1ef;
+}
+/* Скругление левого края заголовочной ячейки подробной таблицы. */
+.detail-table th:first-child {
+  border-radius: 9px 0 0 9px;
+}
+/* Скругление правого края последней заголовочной или итоговой ячейки. */
+.detail-table th:last-child,
+.detail-table tfoot td:last-child {
+  border-radius: 0 9px 9px 0;
+}
+/* Голубой фон и выделение итоговой строки подробной таблицы. */
+.detail-table tfoot {
+  background: #dfedff;
+  font-weight: 650;
+}
+/* Небольшое пояснение к таблице или способу вычисления показателей. */
+.table-note {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 10px;
+  line-height: 1.6;
+}
+/* Две колонки источников и допущений с верхним пунктирным разделителем. */
+.sources-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 35px;
+  border-top: 1px dashed #b7cae3;
+  padding-top: 24px;
+  margin-top: 10px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+/* Размер заголовков блоков источников и допущений. */
+.sources-grid h3 {
+  font-size: 19px;
+}
+/* Разделитель и внутренний отступ второй колонки источников и допущений. */
+.sources-grid section + section {
+  border-left: 1px solid #c4d5eb;
+  padding-left: 30px;
+}
+/* Отступ списка допущений модели. */
+.sources-grid ul {
+  margin: 0;
+  padding-left: 18px;
+}
+/* Расстояние между пунктами списка допущений. */
+.sources-grid li + li {
+  margin-top: 6px;
+}
+/* Расстояние после описания одного источника данных. */
+.source-item {
+  margin-bottom: 17px;
+}
+/* Отступ перед описанием источника данных. */
+.source-item p {
+  margin-top: 6px;
+}
+/* Цвет технического идентификатора источника. */
+.source-item small {
+  color: var(--muted);
+}
+/* Ссылка возврата от подробного отчёта к сравнению схем. */
+.report-card > .text-button {
+  display: inline-block;
+  margin-top: 28px;
+  font-size: 15px;
+}
+/* Общий вид информационного сообщения: отступы, скругления и текст. */
+.notice {
+  border-radius: 12px;
+  padding: 14px 18px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+/* Расстояние между заголовком и пояснением информационного сообщения. */
+.notice p {
+  margin-top: 4px;
+}
+/* Цвет и нижний отступ предупреждения об ограничениях расчёта. */
+.notice.warning {
+  color: #6c4a26;
+  margin-bottom: 10px;
+}
+/* Расстояние после предупреждения внутри подробного отчёта. */
+.report-card > .notice {
+  margin-bottom: 18px;
+}
+/* Область причин недоступности схем и пояснения рекомендации после отчёта. */
+.result-notices {
+  margin-top: 14px;
+  font-size: 13px;
+}
+/* Раскрываемый блок источников, предупреждений и допущений под результатом. */
+.method-notes {
+  border: 1px solid #aacafa;
+  border-radius: 12px;
+  margin-top: 22px;
+  background: #edf5ff99;
+  font-size: 14px;
+}
+/* Кликабельный заголовок раскрываемого блока источников и допущений. */
+.method-notes > summary {
+  padding: 15px 20px;
+  font-weight: 600;
+  cursor: pointer;
+}
+/* Внутренние отступы раскрытого блока источников и допущений. */
+.method-body {
+  padding: 4px 24px 24px;
+}
+/* Список предупреждений и ограничений расчётной модели. */
+.method-body > section ul {
+  font-size: 13px;
+  line-height: 1.6;
+  padding-left: 18px;
+}
+/* Отступ перед раскрываемой таблицей загрузки участков маршрута. */
+.method-body > details {
+  margin-top: 22px;
+}
+/* Заголовок раскрываемой таблицы загрузки участков. */
+.method-body > details summary {
+  cursor: pointer;
+  margin-bottom: 16px;
+}
+/* Небольшое пояснение об условности данных под результатом расчёта. */
+.result-disclaimer {
+  color: #5f7086;
+  font-size: 12px;
+  margin: 15px 2px;
+}
+/* Ссылка возврата к списку истории над сохранённым расчётом. */
+.back-link {
+  display: inline-block;
+  margin-bottom: 24px;
+}
+/* Подсказка горизонтальной прокрутки таблицы на узких экранах. */
+.mobile-scroll-hint {
+  display: none;
+}
+/* История расчётов. */
+/* Строка поиска по маршруту или грузу в истории расчётов. */
+.history-search {
+  max-width: 940px;
+  flex-direction: row;
+  align-items: center;
+  gap: 14px;
+  background: #fcfdffbd;
+  border: 1px solid #b6cce5;
+  border-radius: 12px;
+  padding: 7px 18px;
+  margin: 30px 0 35px;
+}
+/* Размер значка поиска в истории. */
+.history-search svg {
+  width: 23px;
+  height: 23px;
+  stroke-width: 1.7;
+  flex-shrink: 0;
+}
+/* Поле ввода поискового запроса в истории. */
+.history-search input {
+  border: 0;
+  padding: 9px 0;
+  font-size: 17px;
+}
+/* Заголовок даты, объединяющей расчёты в истории. */
+.history-date {
+  font-size: 24px;
+  margin: 30px 0 17px;
+}
+/* Билет сохранённого расчёта: колонки маршрута, рекомендации, времени и действия. */
+.history-ticket {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr auto auto;
+  gap: 22px;
+  align-items: center;
+  padding: 25px 28px;
+  margin-bottom: 16px;
+}
+/* Название маршрута в билете истории. */
+.history-ticket h3 {
+  font-size: 22px;
+  margin-bottom: 5px;
+}
+/* Описание груза, объёма и стоимости в билете истории. */
+.history-ticket p {
+  font-size: 14px;
+  margin-top: 5px;
+}
+/* Колонка рекомендации в билете истории с разделителем слева. */
+.history-recommendation {
+  border-left: 1px solid #c8d7e8;
+  padding-left: 25px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+/* Название рекомендованной схемы в билете истории. */
+.history-recommendation b {
+  font-size: 17px;
+}
+/* Цвет и размер второстепенных подписей и времени выполнения расчёта в истории. */
+.history-recommendation small,
+.history-ticket time {
+  color: #64738a;
+  font-size: 12px;
+}
+/* Положение или видимость времени расчёта в билете истории. */
+.history-ticket time {
+  align-self: start;
+}
+/* Кнопка открытия сохранённого расчёта и её пунктирный разделитель. */
+.history-open {
+  border-left: 2px dotted #b3c9e5;
+  align-self: stretch;
+  padding-left: 25px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+/* Пояснение о локальном хранении истории в браузере. */
+.history-footnote {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 30px;
+}
+/* Карточка пустого состояния или недоступного каталога. */
+.empty-state {
+  padding: 50px;
+  text-align: center;
+}
+/* Заголовки пустого состояния или ошибки загрузки каталога. */
+.empty-state h1,
+.empty-state h2 {
+  font-size: 30px;
+  line-height: 1.2;
+  margin-bottom: 15px;
+}
+/* Описание пустого состояния с ограниченной шириной текста. */
+.empty-state p {
+  color: var(--muted);
+  max-width: 620px;
+  margin: 0 auto 25px;
+}
+/* Основное действие в карточке пустого состояния. */
+.empty-state .primary {
+  width: auto;
+  margin: 24px auto 0;
+  padding-inline: 25px;
+}
+/* Закреплённая кнопка и панель ИИ-ассистента поверх содержимого страницы. */
+/* Закреплённая кнопка ИИ-ассистента: положение, размеры, цвет и слой поверх страницы. */
+.assistant {
+  background: var(--blue);
+  z-index: 50;
+  font-weight: 550;
+  font-size: 16px;
+  min-height: 49px;
+  padding: 13px 22px;
+}
+/* Цвет закреплённой кнопки ассистента при наведении. */
+.assistant:hover {
+  background: #0062e1;
+}
+/* Размеры, положение, фон и тень панели ИИ-ассистента поверх страницы. */
+.assistant-panel {
+  position: fixed;
+  right: clamp(18px, 3vw, 44px);
+  bottom: 88px;
+  width: min(460px, 37vw);
+  height: min(650px, calc(100svh - 115px));
+  background: #fff;
+  border-radius: 23px;
+  box-shadow:
+    0 10px 40px #23436c33,
+    0 2px 7px #23436c22;
+  z-index: 49;
+  display: flex;
+  flex-direction: column;
+  padding: 21px;
+  border: 1px solid #c4d5e9;
+}
+/* Верхняя строка панели ассистента с названием и крестиком закрытия. */
+.assistant-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-bottom: 1px solid #d0deed;
+  padding-bottom: 16px;
+}
+/* Размер заголовка панели ИИ-ассистента. */
+.assistant-heading h2 {
+  font-size: 23px;
+  margin: 0;
+}
+/* Синий цвет декоративного элемента рядом с названием ассистента. */
+.assistant-heading h2 > span {
+  color: var(--blue);
+}
+/* Прокручиваемая область содержимого панели ассистента. */
+.assistant-content {
+  overflow-y: auto;
+  flex: 1;
+  padding: 28px 4px;
+}
+/* Плашка доступности сервиса ИИ-ассистента. */
+.availability {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border-radius: 20px;
+  background: #edf3fb;
+  color: #63748a;
+  font-size: 12px;
+  padding: 7px 11px;
+  margin-bottom: 22px;
+}
+/* Круглый индикатор внутри плашки доступности ассистента. */
+.availability:before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  background: #879bb4;
+  border-radius: 50%;
+}
+/* Размер заголовка пояснения внутри панели ассистента. */
+.assistant-content h3 {
+  font-size: 21px;
+}
+/* Основной поясняющий текст внутри панели ассистента. */
+.assistant-content p {
+  font-size: 14px;
+  color: #596a80;
+  margin-bottom: 18px;
+}
+/* Голубая карточка текущего маршрута и объёма внутри панели ассистента. */
+.assistant-context {
+  background: #eaf3ff;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 18px;
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+/* Цвет подписи «Текущий расчёт» в панели ассистента. */
+.assistant-context small {
+  color: #607792;
+}
+/* Область черновика сообщения ассистенту с кнопкой отправки и пояснением. */
+.assistant-compose {
+  display: grid;
+  grid-template-columns: 1fr 45px;
+  gap: 8px;
+  border: 1px solid #c2d3e8;
+  border-radius: 16px;
+  padding: 12px;
+}
+/* Размер, фон и текст поля сообщения ассистенту. */
+.assistant-compose textarea {
+  font: inherit;
+  font-size: 14px;
+  resize: none;
+  height: 65px;
+  min-width: 0;
+  border: 0;
+  padding: 3px;
+  background: transparent;
+  color: var(--ink);
+}
+/* Рамка фокуса поля сообщения ассистенту. */
+.assistant-compose textarea:focus {
+  outline: 2px solid #9dc2f4;
+  outline-offset: 2px;
+}
+/* Синяя кнопка отправки сообщения ассистенту. */
+.assistant-compose button {
+  background: var(--blue);
+  border: 0;
+  color: white;
+  border-radius: 10px;
+  font-size: 27px;
+  align-self: end;
+  height: 44px;
+}
+/* Небольшая подпись доступности отправки под полем сообщения. */
+.assistant-compose small {
+  grid-column: 1 / -1;
+  color: #6c7c91;
+  font-size: 10px;
+}
+/* Адаптация интерфейса для экранов шириной до 1150 пикселей. */
+@media (max-width: 1150px) {
+  /* Десктопная сетка авторизации: ширина карточки, положение колонок и расстояние между ними. */
+  .auth-layout {
+    grid-template-columns: minmax(0, 1fr) 420px;
+    gap: 40px;
+  }
+  /* Белая карточка авторизации: ширина, внутренние отступы и вертикальное расположение элементов. */
+  .auth-ticket {
+    width: 420px;
+    padding-inline: 32px;
+  }
+  /* Строка открытия условий с маршрутом, объёмом и ограничением срока. */
+  .conditions-summary > summary {
+    gap: 14px;
+    font-size: 13px;
+  }
+  /* Пунктирные разделители и отступы между краткими показателями условий. */
+  .conditions-summary > summary > span:not(.chevron) {
+    padding-left: 14px;
+  }
+  /* Заголовок страницы и расположенные рядом действия. */
+  .page-title {
+    align-items: flex-start;
+  }
+  /* Группа кнопок изменения условий и создания нового расчёта. */
+  .title-actions {
+    flex-direction: column;
+    gap: 7px;
+  }
+  /* Билет сохранённого расчёта: колонки маршрута, рекомендации, времени и действия. */
+  .history-ticket {
+    grid-template-columns: 1.1fr 1fr auto;
+  }
+  /* Положение или видимость времени расчёта в билете истории. */
+  .history-ticket time {
+    display: none;
+  }
+  /* Кнопка открытия сохранённого расчёта и её пунктирный разделитель. */
+  .history-open {
+    padding-left: 18px;
+    white-space: normal;
+  }
+  /* Размеры, положение, фон и тень панели ИИ-ассистента поверх страницы. */
+  .assistant-panel {
+    width: 400px;
+  }
+  /* Подсказка горизонтальной прокрутки таблицы на узких экранах. */
+  .mobile-scroll-hint {
+    display: block;
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+}
+/* Адаптация интерфейса для экранов шириной до 760 пикселей. */
+@media (max-width: 760px) {
+  /* Общая шапка приложения: высота, боковые отступы и положение поверх содержимого. */
+  header.app-header {
+    min-height: 74px;
+    padding-inline: 18px;
+  }
+  /* Вкладки и меню аккаунта в правой части шапки. */
+  .header-controls {
+    gap: 12px;
+  }
+  /* Круглый значок аккаунта с инициалами пользователя. */
+  .account > summary span {
+    width: 36px;
+    height: 36px;
+    font-size: 13px;
+  }
+  /* Более широкая основная область для результатов и истории расчётов. */
+  main.wide-main {
+    padding: 27px 15px 110px;
+  }
+  /* Размеры шапки авторизации на соответствующей ширине экрана. */
+  .auth-header {
+    padding-top: 0;
+    min-height: 68px;
+  }
+  /* Десктопная сетка авторизации: ширина карточки, положение колонок и расстояние между ними. */
+  .auth-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    padding: 25px 20px 40px;
+    min-height: auto;
+  }
+  /* Левый текстовый блок авторизации и его вертикальный сдвиг. */
+  .auth-intro {
+    width: min(460px, 100%);
+  }
+  /* Размер и высота строк текста «Планирование перевозок». */
+  .auth-intro h1 {
+    font-size: 38px;
+  }
+  /* Размер, ширина и отступ описания продукта слева от формы. */
+  .auth-intro p {
+    font-size: 17px;
+    margin-top: 15px;
+  }
+  /* Ширина обёртки карточки авторизации на узком экране. */
+  .auth-layout > .ticket-shadow {
+    width: min(460px, 100%);
+  }
+  /* Белая карточка авторизации: ширина, внутренние отступы и вертикальное расположение элементов. */
+  .auth-ticket {
+    width: 100%;
+    min-height: 550px;
+    padding: 30px 28px;
+  }
+  /* Заголовки «Вход», «Регистрация» и «Код из письма» внутри карточки. */
+  .auth-ticket h2 {
+    font-size: 33px;
+  }
+  /* Заголовок страницы и расположенные рядом действия. */
+  .page-title {
+    flex-wrap: wrap;
+    gap: 17px;
+  }
+  /* Размер основного заголовка результатов или истории. */
+  .page-title h1 {
+    font-size: 32px;
+  }
+  /* Группа кнопок изменения условий и создания нового расчёта. */
+  .title-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  /* Дополнительная кнопка с тонкой синей рамкой и светлым фоном. */
+  .outline-button {
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+  /* Строка открытия условий с маршрутом, объёмом и ограничением срока. */
+  .conditions-summary > summary {
+    flex-wrap: wrap;
+    padding: 17px;
+    gap: 12px;
+  }
+  /* Ширина и размер подписи раскрываемых условий на узком экране. */
+  .conditions-summary > summary b {
+    flex-basis: calc(100% - 36px);
+    font-size: 17px;
+  }
+  /* Пунктирные разделители и отступы между краткими показателями условий. */
+  .conditions-summary > summary > span:not(.chevron) {
+    border: 0;
+    padding: 0;
+  }
+  /* Положение стрелки раскрытия условий на узком экране. */
+  .conditions-summary .chevron {
+    position: absolute;
+    right: 18px;
+    top: 17px;
+  }
+  /* Внутренние отступы подробных условий под раскрывающейся строкой. */
+  .conditions-expanded {
+    padding-inline: 17px;
+  }
+  /* Сетка основных параметров выполненного расчёта. */
+  .facts {
+    grid-template-columns: 1fr 1fr;
+  }
+  /* Заголовок сравнения схем и отступ при переходе к нему по странице. */
+  .comparison-title {
+    font-size: 26px;
+  }
+  /* Внутренние отступы белого билета подробного расчёта. */
+  .report-card {
+    padding: 24px 20px;
+  }
+  /* Расположение заголовка «Подробный расчёт» и названия выбранной схемы. */
+  .report-title {
+    display: block;
+  }
+  /* Размер заголовка подробного расчёта. */
+  .report-title h2 {
+    font-size: 24px;
+    margin-bottom: 10px;
+  }
+  /* Синее название схемы и разделитель в заголовке отчёта. */
+  .report-title h3 {
+    border: 0;
+    padding: 0;
+    font-size: 21px;
+  }
+  /* Голубой блок с итоговой формулой стоимости и ценой за тонну. */
+  .report-total {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 18px;
+  }
+  /* Разделитель перед стоимостью за тонну в итоговом блоке. */
+  .report-total > div + div {
+    border: 0;
+    padding: 0;
+  }
+  /* Крупные числа и формула итоговой стоимости. */
+  .report-total strong {
+    font-size: 23px;
+  }
+  /* Полоса срока доставки и экономии в подробном отчёте. */
+  .report-metrics {
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+  }
+  /* Сетка компонентов стоимости перевозки. */
+  .cost-components {
+    grid-template-columns: 1fr;
+  }
+  /* Строка компонента стоимости: название, сумма и нижний разделитель. */
+  .cost-components > div {
+    font-size: 13px;
+  }
+  /* Общий вид таблиц подробного отчёта: ширина, интервалы, выравнивание и цифры. */
+  .detail-table {
+    min-width: 450px;
+    font-size: 13px;
+  }
+  /* Заголовок над подробной таблицей. */
+  .detail-table caption {
+    font-size: 19px;
+  }
+  /* Отступы и высота строки в ячейках подробных таблиц. */
+  .detail-table th,
+  .detail-table td {
+    padding: 11px 12px;
+  }
+  /* Две колонки источников и допущений с верхним пунктирным разделителем. */
+  .sources-grid {
+    grid-template-columns: 1fr;
+    gap: 22px;
+  }
+  /* Разделитель и внутренний отступ второй колонки источников и допущений. */
+  .sources-grid section + section {
+    border: 0;
+    padding: 0;
+  }
+  /* Билет сохранённого расчёта: колонки маршрута, рекомендации, времени и действия. */
+  .history-ticket {
+    grid-template-columns: 1fr;
+    gap: 18px;
+    padding: 24px;
+  }
+  /* Колонка рекомендации в билете истории с разделителем слева. */
+  .history-recommendation {
+    border: 0;
+    padding: 0;
+  }
+  /* Название маршрута в билете истории. */
+  .history-ticket h3 {
+    font-size: 23px;
+  }
+  /* Кнопка открытия сохранённого расчёта и её пунктирный разделитель. */
+  .history-open {
+    border-left: 0;
+    border-top: 1px dashed #b6cde7;
+    padding: 16px 0 0;
+  }
+  /* Строка поиска по маршруту или грузу в истории расчётов. */
+  .history-search {
+    margin-block: 24px;
+  }
+  /* Поле ввода поискового запроса в истории. */
+  .history-search input {
+    font-size: 14px;
+  }
+  /* Карточка пустого состояния или недоступного каталога. */
+  .empty-state {
+    padding: 35px 24px;
+  }
+  /* Размеры, положение, фон и тень панели ИИ-ассистента поверх страницы. */
+  .assistant-panel {
+    right: 14px;
+    bottom: 78px;
+    width: min(420px, calc(100vw - 28px));
+    height: min(620px, calc(100svh - 100px));
+    padding: 18px;
+  }
+  /* Закреплённая кнопка ИИ-ассистента: положение, размеры, цвет и слой поверх страницы. */
+  .assistant {
+    right: 14px;
+    bottom: 14px;
+    font-size: 14px;
+    min-height: 46px;
+  }
+}
+/* Адаптация интерфейса для экранов шириной до 400 пикселей. */
+@media (max-width: 400px) {
+  /* Общая шапка приложения: высота, боковые отступы и положение поверх содержимого. */
+  header.app-header {
+    padding-inline: 12px;
+  }
+  /* Вкладки и меню аккаунта в правой части шапки. */
+  .header-controls {
+    gap: 8px;
+  }
+  /* Логотип и надпись «Попутно»: выравнивание, промежуток между ними и оформление текста. */
+  .brand {
+    font-size: 21px;
+    gap: 4px;
+  }
+  /* Размер графического знака логотипа без сжатия внутри строки. */
+  .brand-mark {
+    width: 30px;
+  }
+  /* Размеры и оформление отдельных элементов верхней навигации. */
+  nav span,
+  nav button {
+    padding: 7px 8px;
+    font-size: 12px;
+  }
+  /* Круглый значок аккаунта с инициалами пользователя. */
+  .account > summary span {
+    width: 30px;
+    height: 30px;
+    font-size: 11px;
+  }
+  /* Десктопная сетка авторизации: ширина карточки, положение колонок и расстояние между ними. */
+  .auth-layout {
+    padding-inline: 14px;
+  }
+  /* Белая карточка авторизации: ширина, внутренние отступы и вертикальное расположение элементов. */
+  .auth-ticket {
+    padding-inline: 23px;
+  }
+  /* Шесть ячеек кода из письма: сетка, промежутки и отступы. */
+  .code-inputs {
+    gap: 5px;
+  }
+}
+/* Настройки интерфейса для пользователей, предпочитающих уменьшенное движение. */
+@media (prefers-reduced-motion: reduce) {
+  /* Отключаем анимацию переходов и плавную прокрутку по настройке пользователя. */
+  * {
+    scroll-behavior: auto !important;
+    transition: none !important;
+  }
+}
+/* Размер и синий контур значка сообщения в заголовке панели ассистента. */
+.assistant-heading .chat-icon {
+  width: 25px;
+  height: 25px;
+  vertical-align: middle;
+  margin-right: 4px;
+  fill: none;
+  stroke: var(--blue);
+  stroke-width: 1.7;
+}
+
+/* Поиск населённых пунктов: поле и привязанный к нему список подсказок. */
+.settlement-picker {
+  position: relative;
+  min-width: 0;
+}
+/* Отступ между подписью населённого пункта и полем поиска. */
+.settlement-picker > label {
+  margin-bottom: 5px;
+}
+/* Список населённых пунктов поверх формы с собственной прокруткой. */
+.settlement-menu {
+  position: absolute;
+  z-index: 20;
+  left: 0;
+  right: 0;
+  top: 100%;
+  max-height: 290px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid #b8cfe8;
+  border-radius: 12px;
+  padding: 5px;
+  box-shadow: 0 10px 25px #28486625;
+}
+/* Одна подсказка населённого пункта с дополнительной подписью региона. */
+.settlement-menu button {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 11px 12px;
+  color: var(--ink);
+  font-size: 12px;
+  border-radius: 7px;
+}
+/* Подсветка подсказки населённого пункта при наведении и навигации с клавиатуры. */
+.settlement-menu button:hover,
+.settlement-menu button[aria-selected="true"] {
+  background: #e8f2ff;
+}
+/* Подписи загрузки, ошибки и ограничения поиска населённых пунктов. */
+.settlement-menu p,
+.settlement-menu small,
+.selection-hint {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.6;
+}
+/* Внутренние отступы сообщений в списке подсказок. */
+.settlement-menu p {
+  padding: 10px;
+}
+/* Форма нового сетевого расчёта не обрезает выпадающие подсказки. */
+.network-form .ticket {
+  overflow: visible;
+  background: transparent;
+  mask: none;
+}
+/* Белая часть билета оставляет подсказки городов поверх декоративного фона. */
+.network-form .paper {
+  position: relative;
+  isolation: isolate;
+  background: transparent;
+}
+/* Отдельный фон создаёт боковую перфорацию и вырезы у купона, не обрезая списки городов. */
+.network-form .paper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: 22px 0 0 22px;
+  background: var(--paper);
+  mask-image:
+    radial-gradient(circle at 0 22px, transparent 8px, #000 8.8px),
+    radial-gradient(circle at 100% 0, transparent 9px, #000 10px),
+    radial-gradient(circle at 100% 100%, transparent 9px, #000 10px);
+  mask-size:
+    100% 44px,
+    100% 100%,
+    100% 100%;
+  mask-repeat: repeat-y, no-repeat, no-repeat;
+  mask-composite: intersect;
+}
+/* Голубой купон отделён синей перфорацией; вырезы сверху и снизу продолжают белую часть билета. */
+.network-form aside {
+  border-radius: 0 22px 22px 0;
+  border-left: 2px dotted #639ce5;
+  mask-image:
+    radial-gradient(circle at 0 0, transparent 9px, #000 10px),
+    radial-gradient(circle at 0 100%, transparent 9px, #000 10px);
+  mask-composite: intersect;
+}
+/* Вырезы купона сделаны прозрачной маской вместо накладных кружков. */
+.network-form aside::before,
+.network-form aside::after {
+  content: none;
+}
+/* Размер подписей и полей расширенной формы перевозки. */
+.network-form label,
+.network-form input,
+.network-form select {
+  font-size: 12px;
+}
+/* Маршрут сетевого расчёта оставляет достаточно места для поиска населённых пунктов. */
+.network-form .route {
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+}
+/* Промежуточная остановка: пункт, дополнительное пребывание и удаление. */
+.network-stop {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 150px 24px;
+  align-items: end;
+  gap: 15px;
+  margin-bottom: 18px;
+}
+/* Пояснение к действию остановки занимает всю ширину строки. */
+.network-stop > small {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.6;
+}
+/* Позиция груза в сетевом расчёте: умеренные отступы между расширенными полями. */
+.network-cargo {
+  gap: 12px;
+}
+/* Пояснения параметров груза и расчёта раскрываются по нажатию. */
+.cargo-properties > summary,
+.calculation-settings > summary {
+  cursor: pointer;
+  color: var(--blue);
+  font-size: 11px;
+  line-height: 1.6;
+}
+/* Отступы дополнительных параметров груза и общих условий расчёта. */
+.cargo-properties > label,
+.cargo-properties > div,
+.calculation-settings > label {
+  margin-top: 13px;
+}
+/* Два связанных параметра располагаются рядом, например интервал и его единица. */
+.paired-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+/* Переключатель поддерживает три режима расписания. */
+.schedule-toggle {
+  flex-wrap: wrap;
+}
+/* Компактные кнопки разовой, регулярной и явной отправки. */
+.schedule-toggle button {
+  font-size: 10px;
+}
+/* Отступы полей даты начала, периода и максимального срока. */
+.schedule-field,
+.network-form .paired-fields {
+  margin-top: 15px;
+}
+/* Список разрешённых видов транспорта без стандартной рамки fieldset. */
+.mode-choice {
+  border: 0;
+  border-top: 1px solid var(--line);
+  padding: 15px 0 0;
+  margin: 22px 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  min-width: 0;
+}
+/* Название группы выбора видов транспорта. */
+.mode-choice legend {
+  font-size: 13px;
+  font-weight: 600;
+  padding-right: 10px;
+}
+/* Подпись вида транспорта и чекбокс стоят на одной строке. */
+.mode-choice label {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 7px;
+  color: var(--ink);
+  font-size: 10px;
+}
+/* Размер чекбоксов выбора видов транспорта. */
+.mode-choice input {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--blue);
+  flex-shrink: 0;
+}
+/* Строка явной даты отправки с кнопкой удаления. */
+.explicit-date {
+  display: flex;
+  gap: 8px;
+  align-items: end;
+  margin-top: 15px;
+}
+/* Поле явной даты занимает свободное место в строке. */
+.explicit-date label {
+  flex: 1;
+  min-width: 0;
+}
+/* Вопросы сервера по конкретному грузу, не заменяющие введённые данные. */
+.cargo-questions {
+  background: #fff8e9;
+  color: #79562b;
+  padding: 14px;
+  border-radius: 10px;
+  font-size: 11px;
+  line-height: 1.7;
+}
+/* Отступ списка уточняющих вопросов по грузу. */
+.cargo-questions ul {
+  margin: 8px 0 0;
+  padding-left: 16px;
+}
+/* Общее сообщение об уточнениях сохраняет компактный размер текста. */
+.form-questions {
+  font-size: 12px;
+}
+/* Фильтры найденных вариантов по видам транспорта. */
+.candidate-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 18px 0 10px;
+}
+/* Одна кнопка фильтра найденных вариантов. */
+.candidate-filters button {
+  padding: 9px 14px;
+  border-radius: 20px;
+  border: 1px solid #aac8ed;
+  background: #f6faff;
+  color: #40617f;
+  font-size: 11px;
+}
+/* Выбранный фильтр транспорта выделяется синим. */
+.candidate-filters button[aria-pressed="true"] {
+  background: var(--blue);
+  color: #fff;
+  border-color: var(--blue);
+}
+/* Номер варианта различает цепочки с одинаковыми видами транспорта. */
+.candidate-number {
+  font-size: 10px;
+  font-weight: 400;
+  opacity: 0.8;
+}
+/* Сведения об источниках сетевого расчёта отделены от предыдущего раздела. */
+.network-sources {
+  border-top: 1px dashed #b7cae3;
+  padding-top: 22px;
+  font-size: 12px;
+  line-height: 1.7;
+}
+/* Ссылки на первичные источники в отчёте. */
+.network-sources a {
+  color: var(--blue);
+}
+/* Параметры сценария раскрываются отдельно от основного описания источника. */
+.network-sources details,
+.ledger-details {
+  margin-top: 16px;
+}
+/* Заголовки раскрываемых параметров источника и детальных начислений. */
+.network-sources summary,
+.ledger-details summary {
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--blue);
+}
+/* Пары параметров сценария из ответа сервера располагаются столбцом. */
+.network-sources dl > div {
+  margin-top: 10px;
+  overflow-wrap: anywhere;
+}
+/* Пояснение значения параметра источника под его названием. */
+.network-sources dd {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+/* Маркировка подтверждённых, сценарных и заявленных данных в источниках. */
+.evidence-label {
+  display: inline-block;
+  margin: 6px 10px;
+  padding: 3px 8px;
+  font-size: 10px;
+  color: #506b86;
+  background: #e8f1fc;
+  border-radius: 6px;
+}
+/* Заголовок временной шкалы и выбор партии для подробного просмотра. */
+.timeline-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+}
+/* Компактный список выбора партии в подробном отчёте. */
+.timeline-title label {
+  max-width: 220px;
+}
+/* Нумерованная последовательность обработки и транспортных этапов. */
+.route-timeline {
+  list-style: none;
+  padding: 0 0 0 19px;
+  border-left: 2px solid #bad7fb;
+  margin: 20px 0 0 6px;
+}
+/* Один этап временной шкалы с точкой у линии маршрута. */
+.route-timeline li {
+  position: relative;
+  padding: 0 0 24px 12px;
+  font-size: 12px;
+}
+/* Синяя точка отмечает начало этапа временной шкалы. */
+.route-timeline li::before {
+  content: "";
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  background: var(--blue);
+  border: 3px solid #e2efff;
+  box-sizing: content-box;
+  border-radius: 50%;
+  left: -27px;
+  top: 3px;
+}
+/* Тип операции и номер партии в заголовке этапа. */
+.timeline-label {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 7px;
+}
+/* Второстепенный номер партии на временной шкале. */
+.timeline-label small {
+  color: var(--muted);
+  font-size: 10px;
+}
+/* На узких экранах расширенная форма и временная шкала переходят в один столбец. */
+@media (max-width: 760px) {
+  /* Купон под формой получает нижние скругления. */
+  .network-form aside {
+    border-radius: 0 0 22px 22px;
+  }
+  /* Основная часть билета получает верхние скругления. */
+  .network-form .paper {
+    border-radius: 22px 22px 0 0;
+  }
+  /* Поля маршрута и остановки не расширяют экран. */
+  .network-form .route,
+  .network-stop {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  /* Дополнительное пояснение остановки сохраняет обычную ширину. */
+  .network-stop > small {
+    grid-column: auto;
+  }
+  /* Выбор партии располагается под названием временной шкалы. */
+  .timeline-title {
+    display: block;
+  }
+}
+/* Купон располагает итог обычным блоком рядом с условиями перевозки. */
+.network-form aside {
+  display: block;
+}
+/* Правая часть прокручивается вместе со всем билетом без закрепления на экране. */
+.network-coupon {
+  position: static;
+}
+/* В новом купоне кнопка не уходит к нижнему краю длинного билета. */
+.network-coupon .action {
+  margin-top: 24px;
+}
+
+/* Пустой объём обозначен небольшим спокойным прочерком вместо крупного числа. */
+.network-coupon .volume-empty {
+  font-size: 42px;
+  color: #70839a;
+  font-weight: 400;
+  min-height: 78px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+/* Единица измерения в пустом состоянии не перетягивает внимание. */
+.network-coupon .volume-empty small {
+  font-size: 26px;
+  color: inherit;
+}
+/* Верхние вкладки образуют небольшой билет с вырезами у линии отрыва. */
+.app-header nav {
+  position: relative;
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid #aecbee;
+  border-radius: 11px;
+  background: #edf4fc;
+  mask-image:
+    radial-gradient(circle at 50% 0, transparent 3px, #000 4px),
+    radial-gradient(circle at 50% 100%, transparent 3px, #000 4px);
+  mask-composite: intersect;
+}
+/* Две равные половины навигационного билета без внутренних скруглённых плашек. */
+.app-header nav button {
+  width: 108px;
+  min-height: 38px;
+  padding: 8px 12px;
+  border-radius: 0;
+}
+/* Активная половина билета получает лёгкую голубую заливку. */
+.app-header nav button[aria-current="page"] {
+  background: #cfe4ff;
+}
+/* Пунктирная линия отрыва между вкладками. */
+.app-header nav::after {
+  content: "";
+  position: absolute;
+  top: 5px;
+  bottom: 5px;
+  left: 50%;
+  border-left: 2px dotted #7ba8df;
+  pointer-events: none;
+}
+/* Круг аккаунта центрирует строку инициалов независимо от высоты строки страницы. */
+.account > summary span {
+  line-height: 1;
+  padding: 0;
+}
+/* Оптическая поправка для прописных букв шрифта Bounded внутри круга. */
+.account-initials {
+  display: block;
+  font-weight: inherit;
+  transform: translateY(0.08em);
+}
