@@ -15,14 +15,20 @@ class Mailer:
         self.settings = settings
 
     def send_verification(self, email, code):
+        self.send_code(email, code, "Подтверждение почты — проект А1", "подтверждения", "регистрацию или подтверждение")
+
+    def send_password_reset(self, email, code):
+        self.send_code(email, code, "Восстановление пароля — Попутно", "восстановления", "смену пароля")
+
+    def send_code(self, email, code, subject, purpose, request):
         message = EmailMessage()
         message["From"] = self.settings.mail_from
         message["To"] = email
-        message["Subject"] = "Подтверждение почты — проект А1"
+        message["Subject"] = subject
         message.set_content(
-            f"Ваш код подтверждения: {code}\n\n"
+            f"Ваш код {purpose}: {code}\n\n"
             f"Код действует {self.settings.verification_ttl_seconds // 60} минут и используется один раз.\n"
-            "Если вы не запрашивали регистрацию или подтверждение, проигнорируйте письмо.\n",
+            f"Если вы не запрашивали {request}, проигнорируйте письмо.\n",
             cte="8bit",
         )
         try:

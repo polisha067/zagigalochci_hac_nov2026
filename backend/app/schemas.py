@@ -3,16 +3,18 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, SecretStr, field_validator
 
 
-class Credentials(BaseModel):
+class EmailRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     email: EmailStr = Field(max_length=254)
-    password: SecretStr
-
     @field_validator("email", mode="before")
     @classmethod
     def normalize_email(cls, value):
         return value.strip().lower() if isinstance(value, str) else value
+
+
+class Credentials(EmailRequest):
+    password: SecretStr
 
     @field_validator("password")
     @classmethod
@@ -62,6 +64,22 @@ class ResendRequest(BaseModel):
 
 class VerifyEmailRequest(ResendRequest):
     code: str = Field(min_length=6, max_length=6, pattern=r"^[0-9]{6}$")
+
+
+class PasswordResetRequested(BaseModel):
+    status: str = "accepted"
+    verification_id: str
+    expires_in: int
+    resend_after: int
+
+
+class ResetPasswordRequest(VerifyEmailRequest):
+    new_password: SecretStr
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_password(cls, value):
+        return Credentials.validate_password(value)
 
 
 class ErrorDetail(BaseModel):

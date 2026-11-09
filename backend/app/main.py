@@ -8,7 +8,7 @@ from typing import Literal, Optional, Union
 import json
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, HTTPException, Request, Response, Query
+from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Request, Response, Query
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -18,7 +18,8 @@ from starlette.concurrency import run_in_threadpool
 from .config import Settings
 from .database import Database
 from .mailer import MailDeliveryError, Mailer
-from .schemas import Credentials, ErrorResponse, RegisterRequest, ResendRequest, UserResponse, VerificationResponse, VerificationRequired, VerifyEmailRequest
+from .password_reset import reset_password, send_reset_code
+from .schemas import Credentials, EmailRequest, PasswordResetRequested, ResetPasswordRequest, ErrorResponse, RegisterRequest, ResendRequest, UserResponse, VerificationResponse, VerificationRequired, VerifyEmailRequest
 from .verification import VerificationProblem, VerificationService
 from backend.a1_forecast import Granularity, MAX_FORECAST_YEAR, MIN_FORECAST_YEAR, forecast_options, forecast_route
 from backend.calculation_models import CalculationRequest, CalculationResponse, MAX_SHIPMENTS
@@ -142,7 +143,7 @@ def create_app(settings=None):
 
     def limit_attempts(request, action):
         ip = request.client.host if request.client else "unknown"
-        limit = {"login": settings.login_limit, "register": settings.register_limit, "verify": settings.verify_limit, "resend": settings.resend_limit}[action]
+        limit = {"login": settings.login_limit, "register": settings.register_limit, "verify": settings.verify_limit, "resend": settings.resend_limit, "password-reset-request": settings.resend_limit, "password-reset-confirm": settings.verify_limit}[action]
         retry = database.consume_attempt(action + ":" + digest(ip), int(time.time()), settings.rate_window_seconds, limit)
         if retry:
             raise error(429, "too_many_attempts", "Слишком много попыток. Попробуйте позже", {"Retry-After": str(retry)})
@@ -220,9 +221,39 @@ def create_app(settings=None):
             # Старые аккаунты проходят подтверждение после проверки своего пароля.
             return app.state.verification.issue(row["email"], row["name"], row["password_hash"], row["id"])
         with database.connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            current = connection.execute("SELECT password_hash FROM users WHERE id = ?", (row["id"],)).fetchone()
+            if current is None or current["password_hash"] != stored_hash:
+                raise error(401, "invalid_credentials", "Неверная почта или пароль")
             token = new_session(connection, request, row["id"])
         set_cookie(response, token)
         return {"user": public_user(row)}
+
+    @app.post("/auth/forgot-password", response_model=PasswordResetRequested, status_code=202, tags=["Авторизация"])
+    def forgot_password(payload: EmailRequest, request: Request, background: BackgroundTasks):
+        limit_attempts(request, "password-reset-request")
+        email = str(payload.email)
+        now = int(time.time())
+        bucket = "password-reset:" + digest(email)
+        for suffix, window, limit in (
+            (":cooldown", settings.verification_cooldown_seconds, 1),
+            (":hour", 3600, settings.verification_email_limit),
+        ):
+            retry = database.consume_attempt(bucket + suffix, now, window, limit)
+            if retry:
+                raise error(429, "too_many_attempts", "Подождите перед повторным запросом кода", {"Retry-After": str(retry)})
+        verification_id = secrets.token_urlsafe(32)
+        background.add_task(send_reset_code, app.state.verification, email, verification_id,
+                            now + settings.verification_ttl_seconds)
+        return {"verification_id": verification_id, "expires_in": settings.verification_ttl_seconds,
+                "resend_after": settings.verification_cooldown_seconds}
+
+    @app.post("/auth/reset-password", status_code=204, tags=["Авторизация"])
+    def confirm_password_reset(payload: ResetPasswordRequest, request: Request):
+        limit_attempts(request, "password-reset-confirm")
+        reset_password(app.state.verification, app.state.password_hash, payload.verification_id,
+                       payload.code, payload.new_password.get_secret_value())
+        return Response(status_code=204)
 
     @app.get("/auth/me", response_model=UserResponse, tags=["Авторизация"])
     def me(user=Depends(require_user)):

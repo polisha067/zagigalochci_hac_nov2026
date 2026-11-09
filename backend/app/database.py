@@ -45,6 +45,13 @@ class Database:
                     count INTEGER NOT NULL,
                     expires_at INTEGER NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS password_resets (
+                    verification_id TEXT PRIMARY KEY,
+                    user_id TEXT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+                    code_hash TEXT NOT NULL,
+                    expires_at INTEGER NOT NULL,
+                    attempts INTEGER NOT NULL DEFAULT 0
+                );
                 CREATE TABLE IF NOT EXISTS pending_registrations (
                     verification_id TEXT PRIMARY KEY,
                     email TEXT NOT NULL UNIQUE,
