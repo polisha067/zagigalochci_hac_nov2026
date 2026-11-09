@@ -10,13 +10,13 @@ from fastapi.testclient import TestClient
 
 from backend.app.mailer import MailDeliveryError, Mailer
 from backend.app.main import create_app
-from test_auth import AuthTests as _AuthTests
+from backend import test_auth as auth_helpers
 
 
 # Наследуем только вспомогательные методы, а не весь набор тестов авторизации.
 class VerificationTests(unittest.TestCase):
-    setUp = _AuthTests.setUp
-    last_code = _AuthTests.last_code
+    setUp = auth_helpers.AuthTests.setUp
+    last_code = auth_helpers.AuthTests.last_code
 
     def begin(self):
         response = self.client.post("/auth/register", json=self.account)
@@ -191,7 +191,3 @@ class VerificationTests(unittest.TestCase):
             Mailer(settings).send_verification("recipient@example.com", "012345")
             smtp.return_value.starttls.assert_called_once()
             smtp.return_value.login.assert_called_once()
-
-
-# unittest иначе повторно обнаружит импортированный набор AuthTests.
-del _AuthTests

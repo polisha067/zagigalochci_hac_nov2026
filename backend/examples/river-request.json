@@ -1,0 +1,39 @@
+{
+  "engine": "network",
+  "network_id": "river-krasnoyarsk-dudinka-scenario-v1",
+  "origin_hub_id": "krasnoyarsk-river-scenario",
+  "destination_hub_id": "dudinka-polyarny-scenario",
+  "cargoes": [
+    {
+      "id": "goods",
+      "name": "Книги в коробках",
+      "weight_tonnes": 10,
+      "volume_m3": 20,
+      "packaging": "boxes",
+      "splittable": true,
+      "max_piece_tonnes": 0.02,
+      "max_piece_dimensions_m": [
+        0.5,
+        0.4,
+        0.3
+      ],
+      "properties": {
+        "phase": "solid",
+        "hazardous": false,
+        "handling_profile": "dry_general",
+        "temperature_control_required": false
+      }
+    }
+  ],
+  "schedule": {
+    "mode": "once",
+    "ready_at": "2026-06-08T08:00:00+07:00"
+  },
+  "max_delivery_hours": 480,
+  "capacity_basis": "mass_and_volume",
+  "cost_basis": "including_vat",
+  "data_policy": "allow_assumptions",
+  "required_modes": [
+    "river"
+  ]
+}

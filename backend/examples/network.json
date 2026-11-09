@@ -1,0 +1,2140 @@
+{
+  "id": "synthetic-network-v1",
+  "coverage": "Только учебная сеть. Хабы и грузовые услуги вымышленные; покрытие России не заявляется.",
+  "sources": [
+    {
+      "id": "synthetic-network-fixture",
+      "status": "synthetic",
+      "date": "2026-11-08",
+      "description": "Синтетические площадки, соединения, ограничения и тарифы для тестов шести физических видов и мультимодальных цепочек. Не реальные услуги/рейсы."
+    }
+  ],
+  "cargo_types": {
+    "flour": {
+      "name": "Мука",
+      "phase": "solid",
+      "hazardous": false,
+      "handling_profile": "dry_food",
+      "packagings": [
+        "bags"
+      ],
+      "evidence": {
+        "source_ids": [
+          "synthetic-network-fixture"
+        ],
+        "status": "synthetic",
+        "observed_on": "2026-11-08",
+        "valid_from": "2026-01-01T00:00:00Z",
+        "valid_until": "2030-01-01T00:00:00Z"
+      },
+      "aliases": [
+        "пшеничная мука",
+        "мука пшеничная",
+        "flour"
+      ]
+    },
+    "sugar": {
+      "name": "Сахар",
+      "phase": "solid",
+      "hazardous": false,
+      "handling_profile": "dry_food",
+      "packagings": [
+        "bags"
+      ],
+      "evidence": {
+        "source_ids": [
+          "synthetic-network-fixture"
+        ],
+        "status": "synthetic",
+        "observed_on": "2026-11-08",
+        "valid_from": "2026-01-01T00:00:00Z",
+        "valid_until": "2030-01-01T00:00:00Z"
+      },
+      "aliases": [
+        "сахар-песок",
+        "сахар песок",
+        "sugar"
+      ]
+    },
+    "test_liquid": {
+      "name": "Учебная неопасная техническая жидкость",
+      "phase": "liquid",
+      "hazardous": false,
+      "handling_profile": "test_liquid",
+      "packagings": [
+        "bulk_liquid"
+      ],
+      "evidence": {
+        "source_ids": [
+          "synthetic-network-fixture"
+        ],
+        "status": "synthetic",
+        "observed_on": "2026-11-08",
+        "valid_from": "2026-01-01T00:00:00Z",
+        "valid_until": "2030-01-01T00:00:00Z"
+      }
+    }
+  },
+  "compatibility": {
+    "flour|sugar": true,
+    "flour|test_liquid": false,
+    "sugar|test_liquid": false
+  },
+  "hubs": [
+    {
+      "id": "origin",
+      "name": "Учебный мультимодальный комплекс А",
+      "city": "Учебный город начала",
+      "kind": "logistics_hub",
+      "available": true,
+      "modes": [
+        "road",
+        "rail",
+        "sea",
+        "river",
+        "air",
+        "pipeline"
+      ],
+      "rail_gauges_mm": [
+        1520
+      ],
+      "cargo_types": [
+        "flour",
+        "sugar",
+        "test_liquid"
+      ],
+      "packagings": [
+        "bags",
+        "bulk_liquid"
+      ],
+      "hazardous_allowed": false,
+      "windows": [
+        {
+          "start": "2026-01-01T00:00:00Z",
+          "end": "2030-01-01T00:00:00Z"
+        }
+      ],
+      "storage_tonnes": 200,
+      "storage_m3": 1000,
+      "max_storage_hours": 1000,
+      "storage_quote": {
+        "basis": "per_tonne_hour",
+        "rate_rub": 0.5,
+        "tax_basis": "including_vat",
+        "evidence": {
+          "source_ids": [
+            "synthetic-network-fixture"
+          ],
+          "status": "synthetic",
+          "observed_on": "2026-11-08",
+          "valid_from": "2026-01-01T00:00:00Z",
+          "valid_until": "2030-01-01T00:00:00Z"
+        },
+        "component": "storage"
+      },
+      "entry": {
+        "fixed_hours": 0.25,
+        "tonnes_per_hour": 100,
+        "resource_id": "origin-handling",
+        "lanes": 2,
+        "quote": {
+          "basis": "per_tonne",
+          "rate_rub": 100,
+          "tax_basis": "including_vat",
+          "evidence": {
+            "source_ids": [
+              "synthetic-network-fixture"
+            ],
+            "status": "synthetic",
+            "observed_on": "2026-11-08",
+            "valid_from": "2026-01-01T00:00:00Z",
+            "valid_until": "2030-01-01T00:00:00Z"
+          },
+          "component": "handling"
+        },
+        "evidence": {
+          "source_ids": [
+            "synthetic-network-fixture"
+          ],
+          "status": "synthetic",
+          "observed_on": "2026-11-08",
+          "valid_from": "2026-01-01T00:00:00Z",
+          "valid_until": "2030-01-01T00:00:00Z"
+        }
+      },
+      "exit": {
+        "fixed_hours": 0.25,
+        "tonnes_per_hour": 100,
+        "resource_id": "origin-handling",
+        "lanes": 2,
+        "quote": {
+          "basis": "per_tonne",
+          "rate_rub": 100,
+          "tax_basis": "including_vat",
+          "evidence": {
+            "source_ids": [
+              "synthetic-network-fixture"
+            ],
+            "status": "synthetic",
+            "observed_on": "2026-11-08",
+            "valid_from": "2026-01-01T00:00:00Z",
+            "valid_until": "2030-01-01T00:00:00Z"
+          },
+          "component": "handling"
+        },
+        "evidence": {
+          "source_ids": [
+            "synthetic-network-fixture"
+          ],
+          "status": "synthetic",
+          "observed_on": "2026-11-08",
+          "valid_from": "2026-01-01T00:00:00Z",
+          "valid_until": "2030-01-01T00:00:00Z"
+        }
+      },
+      "evidence": {
+        "source_ids": [
+          "synthetic-network-fixture"
+        ],
+        "status": "synthetic",
+        "observed_on": "2026-11-08",
+        "valid_from": "2026-01-01T00:00:00Z",
+        "valid_until": "2030-01-01T00:00:00Z"
+      },
+      "cargo_profiles": [
+        "dry_food"
+      ]
+    },
+    {
+      "id": "rail_hub",
+      "name": "Учебный ж/д хаб",
+      "city": "Учебный город А",
+      "kind": "logistics_hub",
+      "available": true,
+      "modes": [
+        "road",
+        "rail",
+        "sea",
+        "river",
+        "air"
+      ],
+      "rail_gauges_mm": [
+        1520
+      ],
+      "cargo_types": [
+        "flour",
+        "sugar",
+        "test_liquid"
+      ],
+      "packagings": [
+        "bags",
+        "bulk_liquid"
+      ],
+      "hazardous_allowed": false,
+      "windows": [
+        {
+          "start": "2026-01-01T00:00:00Z",
+          "end": "2030-01-01T00:00:00Z"
+        }
+      ],
+      "storage_tonnes": 200,
+      "storage_m3": 1000,
+      "max_storage_hours": 1000,
+      "storage_quote": {
+        "basis": "per_tonne_hour",
+        "rate_rub": 0.5,
+        "tax_basis": "including_vat",
+        "evidence": {
+          "source_ids": [
+            "synthetic-network-fixture"
+          ],
+          "status": "synthetic",
+          "observed_on": "2026-11-08",
+          "valid_from": "2026-01-01T00:00:00Z",
+          "valid_until": "2030-01-01T00:00:00Z"
+        },
+        "component": "storage"
+      },
+      "entry": {
+        "fixed_hours": 0.25,
+        "tonnes_per_hour": 100,
+        "resource_id": "rail_hub-handling",
+        "lanes": 2,
+        "quote": {
+          "basis": "per_tonne",
+          "rate_rub": 100,
+          "tax_basis": "including_vat",
+          "evidence": {
+            "source_ids": [
+              "synthetic-network-fixture"
+            ],
+            "status": "synthetic",
+            "observed_on": "2026-11-08",
+            "valid_from": "2026-01-01T00:00:00Z",
+            "valid_until": "2030-01-01T00:00:00Z"
+          },
+          "component": "handling"
+        },
+        "evidence": {
+          "source_ids": [
+            "synthetic-network-fixture"
+          ],
+          "status": "synthetic",
+          "observed_on": "2026-11-08",
+          "valid_from": "2026-01-01T00:00:00Z",
+          "valid_until": "2030-01-01T00:00:00Z"
+        }
+      },
+      "exit": {
+        "fixed_hours": 0.25,
+        "tonnes_per_hour": 100,
+        "resource_id": "rail_hub-handling",
+        "lanes": 2,
+        "quote": {
+          "basis": "per_tonne",
+          "rate_rub": 100,
+          "tax_basis": "including_vat",
+          "evidence": {
+            "source_ids": [
+              "synthetic-network-fixture"
+            ],
+            "status": "synthetic",
+            "observed_on": "2026-11-08",
+            "valid_from": "2026-01-01T00:00:00Z",
+            "valid_until": "2030-01-01T00:00:00Z"
+          },
+          "component": "handling"
+        },
+        "evidence": {
+          "source_ids": [
+            "synthetic-network-fixture"
+          ],
+          "status": "synthetic",
+          "observed_on": "2026-11-08",
+          "valid_from": "2026-01-01T00:00:00Z",
+          "valid_until": "2030-01-01T00:00:00Z"
+        }
+      },
+      "evidence": {
+        "source_ids": [
+          "synthetic-network-fixture"
+        ],
+        "status": "synthetic",
+        "observed_on": "2026-11-08",
+        "valid_from": "2026-01-01T00:00:00Z",
+        "valid_until": "2030-01-01T00:00:00Z"
+      },
+      "cargo_profiles": [
+        "dry_food"
+      ]
+    },
+    {
+      "id": "sea_hub",
+      "name": "Учебный морской хаб",
+      "city": "Учебный город Б",
+      "kind": "logistics_hub",
+      "available": true,
+      "modes": [
+        "road",
+        "rail",
+        "sea",
+        "river",
+        "air"
+      ],
+      "rail_gauges_mm": [
+        1520
+      ],
+      "cargo_types": [
+        "flour",
+        "sugar",
+        "test_liquid"
+      ],
+      "packagings": [
+        "bags",
+        "bulk_liquid"
+      ],
+      "hazardous_allowed": false,
+      "windows": [
+        {
+          "start": "2026-01-01T00:00:00Z",
+          "end": "2030-01-01T00:00:00Z"
+        }
+      ],
+      "storage_tonnes": 200,
+      "storage_m3": 1000,
+      "max_storage_hours": 1000,
+      "storage_quote": {
+        "basis": "per_tonne_hour",
+        "rate_rub": 0.5,
+        "tax_basis": "including_vat",
+        "evidence": {
+          "source_ids": [
+            "synthetic-network-fixture"
+          ],
+          "status": "synthetic",
+          "observed_on": "2026-11-08",
+          "valid_from": "2026-01-01T00:00:00Z",
+          "valid_until": "2030-01-01T00:00:00Z"
+        },
+        "component": "storage"
+      },
+      "entry": {
+        "fixed_hours": 0.25,
+        "tonnes_per_hour": 100,
+        "resource_id": "sea_hub-handling",
+        "lanes": 2,
+        "quote": {
+          "basis": "per_tonne",
+          "rate_rub": 100,
+          "tax_basis": "including_vat",
+          "evidence": {
+            "source_ids": [
+              "synthetic-network-fixture"
+            ],
+            "status": "synthetic",
+            "observed_on": "2026-11-08",
+            "valid_from": "2026-01-01T00:00:00Z",
+            "valid_until": "2030-01-01T00:00:00Z"
+          },
+          "component": "handling"
+        },
+        "evidence": {
+          "source_ids": [
+            "synthetic-network-fixture"
+          ],
+          "status": "synthetic",
+          "observed_on": "2026-11-08",
+          "valid_from": "2026-01-01T00:00:00Z",
+          "valid_until": "2030-01-01T00:00:00Z"
+        }
+      },
+      "exit": {
+        "fixed_hours": 0.25,
+        "tonnes_per_hour": 100,
+        "resource_id": "sea_hub-handling",
+        "lanes": 2,
+        "quote": {
+          "basis": "per_tonne",
+          "rate_rub": 100,
+          "tax_basis": "including_vat",
+          "evidence": {
+            "source_ids": [
+              "synthetic-network-fixture"
+            ],
+            "status": "synthetic",
+            "observed_on": "2026-11-08",
+            "valid_from": "2026-01-01T00:00:00Z",
+            "valid_until": "2030-01-01T00:00:00Z"
+          },
+          "component": "handling"
+        },
+        "evidence": {
+          "source_ids": [
+            "synthetic-network-fixture"
+          ],
+          "status": "synthetic",
+          "observed_on": "2026-11-08",
+          "valid_from": "2026-01-01T00:00:00Z",
+          "valid_until": "2030-01-01T00:00:00Z"
+        }
+      },
+      "evidence": {
+        "source_ids": [
+          "synthetic-network-fixture"
+        ],
+        "status": "synthetic",
+        "observed_on": "2026-11-08",
+        "valid_from": "2026-01-01T00:00:00Z",
+        "valid_until": "2030-01-01T00:00:00Z"
+      },
+      "cargo_profiles": [
+        "dry_food"
+      ]
+    },
+    {
+      "id": "air_hub",
+      "name": "Учебный авиахаб",
+      "city": "Учебный город В",
+      "kind": "logistics_hub",
+      "available": true,
+      "modes": [
+        "road",
+        "rail",
+        "sea",
+        "river",
+        "air"
+      ],
+      "rail_gauges_mm": [
+        1520
+      ],
+      "cargo_types": [
+        "flour",
+        "sugar",
+        "test_liquid"
+      ],
+      "packagings": [
+        "bags",
+        "bulk_liquid"
+      ],
+      "hazardous_allowed": false,
+      "windows": [
+        {
+          "start": "2026-01-01T00:00:00Z",
+          "end": "2030-01-01T00:00:00Z"
+        }
+      ],
+      "storage_tonnes": 200,
+      "storage_m3": 1000,
+      "max_storage_hours": 1000,
+      "storage_quote": {
+        "basis": "per_tonne_hour",
+        "rate_rub": 0.5,
+        "tax_basis": "including_vat",
+        "evidence": {
+          "source_ids": [
+            "synthetic-network-fixture"
+          ],
+          "status": "synthetic",
+          "observed_on": "2026-11-08",
+          "valid_from": "2026-01-01T00:00:00Z",
+          "valid_until": "2030-01-01T00:00:00Z"
+        },
+        "component": "storage"
+      },
+      "entry": {
+        "fixed_hours": 0.25,
+        "tonnes_per_hour": 100,
+        "resource_id": "air_hub-handling",
+        "lanes": 2,
+        "quote": {
+          "basis": "per_tonne",
+          "rate_rub": 100,
+          "tax_basis": "including_vat",
+          "evidence": {
+            "source_ids": [
+              "synthetic-network-fixture"
+            ],
+            "status": "synthetic",
+            "observed_on": "2026-11-08",
+            "valid_from": "2026-01-01T00:00:00Z",
+            "valid_until": "2030-01-01T00:00:00Z"
+          },
+          "component": "handling"
+        },
+        "evidence": {
+          "source_ids": [
+            "synthetic-network-fixture"
+          ],
+          "status": "synthetic",
+          "observed_on": "2026-11-08",
+          "valid_from": "2026-01-01T00:00:00Z",
+          "valid_until": "2030-01-01T00:00:00Z"
+        }
+      },
+      "exit": {
+        "fixed_hours": 0.25,
+        "tonnes_per_hour": 100,
+        "resource_id": "air_hub-handling",
+        "lanes": 2,
+        "quote": {
+          "basis": "per_tonne",
+          "rate_rub": 100,
+          "tax_basis": "including_vat",
+          "evidence": {
+            "source_ids": [
+              "synthetic-network-fixture"
+            ],
+            "status": "synthetic",
+            "observed_on": "2026-11-08",
+            "valid_from": "2026-01-01T00:00:00Z",
+            "valid_until": "2030-01-01T00:00:00Z"
+          },
+          "component": "handling"
+        },
+        "evidence": {
+          "source_ids": [
+            "synthetic-network-fixture"
+          ],
+          "status": "synthetic",
+          "observed_on": "2026-11-08",
+          "valid_from": "2026-01-01T00:00:00Z",
+          "valid_until": "2030-01-01T00:00:00Z"
+        }
+      },
+      "evidence": {
+        "source_ids": [
+          "synthetic-network-fixture"
+        ],
+        "status": "synthetic",
+        "observed_on": "2026-11-08",
+        "valid_from": "2026-01-01T00:00:00Z",
+        "valid_until": "2030-01-01T00:00:00Z"
+      },
+      "cargo_profiles": [
+        "dry_food"
+      ]
+    },
+    {
+      "id": "river_hub",
+      "name": "Учебный речной хаб",
+      "city": "Учебный город Г",
+      "kind": "logistics_hub",
+      "available": true,
+      "modes": [
+        "road",
+        "river",
+        "rail",
+        "sea"
+      ],
+      "rail_gauges_mm": [
+        1520
+      ],
+      "cargo_types": [
+        "flour",
+        "sugar",
+        "test_liquid"
+      ],
+      "packagings": [
+        "bags",
+        "bulk_liquid"
+      ],
+      "hazardous_allowed": false,
+      "windows": [
+        {
+          "start": "2026-01-01T00:00:00Z",
+          "end": "2030-01-01T00:00:00Z"
+        }
+      ],
+      "storage_tonnes": 200,
+      "storage_m3": 1000,
+      "max_storage_hours": 1000,
+      "storage_quote": {
+        "basis": "per_tonne_hour",
+        "rate_rub": 0.5,
+        "tax_basis": "including_vat",
+        "evidence": {
+          "source_ids": [
+            "synthetic-network-fixture"
+          ],
+          "status": "synthetic",
+          "observed_on": "2026-11-08",
+          "valid_from": "2026-01-01T00:00:00Z",
+          "valid_until": "2030-01-01T00:00:00Z"
+        },
+        "component": "storage"
+      },
+      "entry": {
+        "fixed_hours": 0.25,
+        "tonnes_per_hour": 100,
+        "resource_id": "river_hub-handling",
+        "lanes": 2,
+        "quote": {
+          "basis": "per_tonne",
+          "rate_rub": 100,
+          "tax_basis": "including_vat",
+          "evidence": {
+            "source_ids": [
+              "synthetic-network-fixture"
+            ],
+            "status": "synthetic",
+            "observed_on": "2026-11-08",
+            "valid_from": "2026-01-01T00:00:00Z",
+            "valid_until": "2030-01-01T00:00:00Z"
+          },
+          "component": "handling"
+        },
+        "evidence": {
+          "source_ids": [
+            "synthetic-network-fixture"
+          ],
+          "status": "synthetic",
+          "observed_on": "2026-11-08",
+          "valid_from": "2026-01-01T00:00:00Z",
+          "valid_until": "2030-01-01T00:00:00Z"
+        }
+      },
+      "exit": {
+        "fixed_hours": 0.25,
+        "tonnes_per_hour": 100,
+        "resource_id": "river_hub-handling",
+        "lanes": 2,
+        "quote": {
+          "basis": "per_tonne",
+          "rate_rub": 100,
+          "tax_basis": "including_vat",
+          "evidence": {
+            "source_ids": [
+              "synthetic-network-fixture"
+            ],
+            "status": "synthetic",
+            "observed_on": "2026-11-08",
+            "valid_from": "2026-01-01T00:00:00Z",
+            "valid_until": "2030-01-01T00:00:00Z"
+          },
+          "component": "handling"
+        },
+        "evidence": {
+          "source_ids": [
+            "synthetic-network-fixture"
+          ],
+          "status": "synthetic",
+          "observed_on": "2026-11-08",
+          "valid_from": "2026-01-01T00:00:00Z",
+          "valid_until": "2030-01-01T00:00:00Z"
+        }
+      },
+      "evidence": {
+        "source_ids": [
+          "synthetic-network-fixture"
+        ],
+        "status": "synthetic",
+        "observed_on": "2026-11-08",
+        "valid_from": "2026-01-01T00:00:00Z",
+        "valid_until": "2030-01-01T00:00:00Z"
+      },
+      "cargo_profiles": [
+        "dry_food"
+      ]
+    },
+    {
+      "id": "destination",
+      "name": "Получатель — учебный хаб",
+      "city": "Учебный город Д",
+      "kind": "logistics_hub",
+      "available": true,
+      "modes": [
+        "road",
+        "rail",
+        "sea",
+        "river",
+        "air",
+        "pipeline"
+      ],
+      "rail_gauges_mm": [
+        1520
+      ],
+      "cargo_types": [
+        "flour",
+        "sugar",
+        "test_liquid"
+      ],
+      "packagings": [
+        "bags",
+        "bulk_liquid"
+      ],
+      "hazardous_allowed": false,
+      "windows": [
+        {
+          "start": "2026-01-01T00:00:00Z",
+          "end": "2030-01-01T00:00:00Z"
+        }
+      ],
+      "storage_tonnes": 200,
+      "storage_m3": 1000,
+      "max_storage_hours": 1000,
+      "storage_quote": {
+        "basis": "per_tonne_hour",
+        "rate_rub": 0.5,
+        "tax_basis": "including_vat",
+        "evidence": {
+          "source_ids": [
+            "synthetic-network-fixture"
+          ],
+          "status": "synthetic",
+          "observed_on": "2026-11-08",
+          "valid_from": "2026-01-01T00:00:00Z",
+          "valid_until": "2030-01-01T00:00:00Z"
+        },
+        "component": "storage"
+      },
+      "entry": {
+        "fixed_hours": 0.25,
+        "tonnes_per_hour": 100,
+        "resource_id": "destination-handling",
+        "lanes": 2,
+        "quote": {
+          "basis": "per_tonne",
+          "rate_rub": 100,
+          "tax_basis": "including_vat",
+          "evidence": {
+            "source_ids": [
+              "synthetic-network-fixture"
+            ],
+            "status": "synthetic",
+            "observed_on": "2026-11-08",
+            "valid_from": "2026-01-01T00:00:00Z",
+            "valid_until": "2030-01-01T00:00:00Z"
+          },
+          "component": "handling"
+        },
+        "evidence": {
+          "source_ids": [
+            "synthetic-network-fixture"
+          ],
+          "status": "synthetic",
+          "observed_on": "2026-11-08",
+          "valid_from": "2026-01-01T00:00:00Z",
+          "valid_until": "2030-01-01T00:00:00Z"
+        }
+      },
+      "exit": {
+        "fixed_hours": 0.25,
+        "tonnes_per_hour": 100,
+        "resource_id": "destination-handling",
+        "lanes": 2,
+        "quote": {
+          "basis": "per_tonne",
+          "rate_rub": 100,
+          "tax_basis": "including_vat",
+          "evidence": {
+            "source_ids": [
+              "synthetic-network-fixture"
+            ],
+            "status": "synthetic",
+            "observed_on": "2026-11-08",
+            "valid_from": "2026-01-01T00:00:00Z",
+            "valid_until": "2030-01-01T00:00:00Z"
+          },
+          "component": "handling"
+        },
+        "evidence": {
+          "source_ids": [
+            "synthetic-network-fixture"
+          ],
+          "status": "synthetic",
+          "observed_on": "2026-11-08",
+          "valid_from": "2026-01-01T00:00:00Z",
+          "valid_until": "2030-01-01T00:00:00Z"
+        }
+      },
+      "evidence": {
+        "source_ids": [
+          "synthetic-network-fixture"
+        ],
+        "status": "synthetic",
+        "observed_on": "2026-11-08",
+        "valid_from": "2026-01-01T00:00:00Z",
+        "valid_until": "2030-01-01T00:00:00Z"
+      },
+      "cargo_profiles": [
+        "dry_food"
+      ]
+    }
+  ],
+  "services": [
+    {
+      "id": "direct-road",
+      "from_hub": "origin",
+      "to_hub": "destination",
+      "mode": "road",
+      "available": true,
+      "cargo_types": [
+        "flour",
+        "sugar"
+      ],
+      "packagings": [
+        "bags"
+      ],
+      "hazardous_allowed": false,
+      "windows": [
+        {
+          "start": "2026-01-01T00:00:00Z",
+          "end": "2030-01-01T00:00:00Z"
+        }
+      ],
+      "timetable": {
+        "kind": "on_demand"
+      },
+      "travel_hours": 24,
+      "distance_km": 100,
+      "min_batch_tonnes": 0,
+      "unit_tonnes": 20,
+      "unit_m3": 80,
+      "available_units": 10,
+      "booking": "dedicated",
+      "capacity_scope": "fleet",
+      "resource_id": "direct-road-resource",
+      "turnaround_hours": 24,
+      "quote": {
+        "basis": "per_unit",
+        "rate_rub": 30000,
+        "tax_basis": "including_vat",
+        "evidence": {
+          "source_ids": [
+            "synthetic-network-fixture"
+          ],
+          "status": "synthetic",
+          "observed_on": "2026-11-08",
+          "valid_from": "2026-01-01T00:00:00Z",
+          "valid_until": "2030-01-01T00:00:00Z"
+        },
+        "component": "transport"
+      },
+      "evidence": {
+        "source_ids": [
+          "synthetic-network-fixture"
+        ],
+        "status": "synthetic",
+        "observed_on": "2026-11-08",
+        "valid_from": "2026-01-01T00:00:00Z",
+        "valid_until": "2030-01-01T00:00:00Z"
+      },
+      "cargo_profiles": [
+        "dry_food"
+      ]
+    },
+    {
+      "id": "direct-rail",
+      "from_hub": "origin",
+      "to_hub": "destination",
+      "mode": "rail",
+      "available": true,
+      "cargo_types": [
+        "flour",
+        "sugar"
+      ],
+      "packagings": [
+        "bags"
+      ],
+      "hazardous_allowed": false,
+      "windows": [
+        {
+          "start": "2026-01-01T00:00:00Z",
+          "end": "2030-01-01T00:00:00Z"
+        }
+      ],
+      "timetable": {
+        "kind": "interval",
+        "anchor": "2026-11-09T00:00:00+03:00",
+        "every_hours": 24
+      },
+      "travel_hours": 30,
+      "distance_km": 100,
+      "min_batch_tonnes": 0,
+      "unit_tonnes": 20,
+      "unit_m3": 80,
+      "available_units": 10,
+      "booking": "dedicated",
+      "capacity_scope": "departure",
+      "resource_id": "direct-rail-resource",
+      "turnaround_hours": null,
+      "quote": {
+        "basis": "per_unit",
+        "rate_rub": 24000,
+        "tax_basis": "including_vat",
+        "evidence": {
+          "source_ids": [
+            "synthetic-network-fixture"
+          ],
+          "status": "synthetic",
+          "observed_on": "2026-11-08",
+          "valid_from": "2026-01-01T00:00:00Z",
+          "valid_until": "2030-01-01T00:00:00Z"
+        },
+        "component": "transport"
+      },
+      "evidence": {
+        "source_ids": [
+          "synthetic-network-fixture"
+        ],
+        "status": "synthetic",
+        "observed_on": "2026-11-08",
+        "valid_from": "2026-01-01T00:00:00Z",
+        "valid_until": "2030-01-01T00:00:00Z"
+      },
+      "rail_gauge_mm": 1520,
+      "cargo_profiles": [
+        "dry_food"
+      ]
+    },
+    {
+      "id": "direct-sea",
+      "from_hub": "origin",
+      "to_hub": "destination",
+      "mode": "sea",
+      "available": true,
+      "cargo_types": [
+        "flour",
+        "sugar"
+      ],
+      "packagings": [
+        "bags"
+      ],
+      "hazardous_allowed": false,
+      "windows": [
+        {
+          "start": "2026-01-01T00:00:00Z",
+          "end": "2030-01-01T00:00:00Z"
+        }
+      ],
+      "timetable": {
+        "kind": "interval",
+        "anchor": "2026-11-09T00:00:00+03:00",
+        "every_hours": 24
+      },
+      "travel_hours": 80,
+      "distance_km": 100,
+      "min_batch_tonnes": 0,
+      "unit_tonnes": 20,
+      "unit_m3": 80,
+      "available_units": 10,
+      "booking": "dedicated",
+      "capacity_scope": "departure",
+      "resource_id": "direct-sea-resource",
+      "turnaround_hours": null,
+      "quote": {
+        "basis": "per_unit",
+        "rate_rub": 18000,
+        "tax_basis": "including_vat",
+        "evidence": {
+          "source_ids": [
+            "synthetic-network-fixture"
+          ],
+          "status": "synthetic",
+          "observed_on": "2026-11-08",
+          "valid_from": "2026-01-01T00:00:00Z",
+          "valid_until": "2030-01-01T00:00:00Z"
+        },
+        "component": "transport"
+      },
+      "evidence": {
+        "source_ids": [
+          "synthetic-network-fixture"
+        ],
+        "status": "synthetic",
+        "observed_on": "2026-11-08",
+        "valid_from": "2026-01-01T00:00:00Z",
+        "valid_until": "2030-01-01T00:00:00Z"
+      },
+      "vessel_draft_m": 2,
+      "max_draft_m": 4,
+      "ice_class_required": false,
+      "cargo_profiles": [
+        "dry_food"
+      ]
+    },
+    {
+      "id": "direct-river",
+      "from_hub": "origin",
+      "to_hub": "destination",
+      "mode": "river",
+      "available": true,
+      "cargo_types": [
+        "flour",
+        "sugar"
+      ],
+      "packagings": [
+        "bags"
+      ],
+      "hazardous_allowed": false,
+      "windows": [
+        {
+          "start": "2026-01-01T00:00:00Z",
+          "end": "2030-01-01T00:00:00Z"
+        }
+      ],
+      "timetable": {
+        "kind": "interval",
+        "anchor": "2026-11-09T00:00:00+03:00",
+        "every_hours": 24
+      },
+      "travel_hours": 90,
+      "distance_km": 100,
+      "min_batch_tonnes": 0,
+      "unit_tonnes": 20,
+      "unit_m3": 80,
+      "available_units": 10,
+      "booking": "dedicated",
+      "capacity_scope": "departure",
+      "resource_id": "direct-river-resource",
+      "turnaround_hours": null,
+      "quote": {
+        "basis": "per_unit",
+        "rate_rub": 15000,
+        "tax_basis": "including_vat",
+        "evidence": {
+          "source_ids": [
+            "synthetic-network-fixture"
+          ],
+          "status": "synthetic",
+          "observed_on": "2026-11-08",
+          "valid_from": "2026-01-01T00:00:00Z",
+          "valid_until": "2030-01-01T00:00:00Z"
+        },
+        "component": "transport"
+      },
+      "evidence": {
+        "source_ids": [
+          "synthetic-network-fixture"
+        ],
+        "status": "synthetic",
+        "observed_on": "2026-11-08",
+        "valid_from": "2026-01-01T00:00:00Z",
+        "valid_until": "2030-01-01T00:00:00Z"
+      },
+      "vessel_draft_m": 2,
+      "max_draft_m": 4,
+      "ice_class_required": false,
+      "cargo_profiles": [
+        "dry_food"
+      ]
+    },
+    {
+      "id": "direct-air",
+      "from_hub": "origin",
+      "to_hub": "destination",
+      "mode": "air",
+      "available": true,
+      "cargo_types": [
+        "flour",
+        "sugar"
+      ],
+      "packagings": [
+        "bags"
+      ],
+      "hazardous_allowed": false,
+      "windows": [
+        {
+          "start": "2026-01-01T00:00:00Z",
+          "end": "2030-01-01T00:00:00Z"
+        }
+      ],
+      "timetable": {
+        "kind": "interval",
+        "anchor": "2026-11-09T00:00:00+03:00",
+        "every_hours": 12
+      },
+      "travel_hours": 5,
+      "distance_km": 100,
+      "min_batch_tonnes": 0,
+      "unit_tonnes": 10,
+      "unit_m3": 60,
+      "available_units": 10,
+      "booking": "shared",
+      "capacity_scope": "departure",
+      "resource_id": "direct-air-resource",
+      "turnaround_hours": null,
+      "quote": {
+        "basis": "per_kg",
+        "rate_rub": 15,
+        "tax_basis": "including_vat",
+        "evidence": {
+          "source_ids": [
+            "synthetic-network-fixture"
+          ],
+          "status": "synthetic",
+          "observed_on": "2026-11-08",
+          "valid_from": "2026-01-01T00:00:00Z",
+          "valid_until": "2030-01-01T00:00:00Z"
+        },
+        "volumetric_kg_per_m3": 200,
+        "component": "transport"
+      },
+      "evidence": {
+        "source_ids": [
+          "synthetic-network-fixture"
+        ],
+        "status": "synthetic",
+        "observed_on": "2026-11-08",
+        "valid_from": "2026-01-01T00:00:00Z",
+        "valid_until": "2030-01-01T00:00:00Z"
+      },
+      "cutoff_hours": 2,
+      "max_piece_tonnes": 0.1,
+      "max_piece_dimensions_m": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "cargo_profiles": [
+        "dry_food"
+      ]
+    },
+    {
+      "id": "direct-pipeline",
+      "from_hub": "origin",
+      "to_hub": "destination",
+      "mode": "pipeline",
+      "available": true,
+      "cargo_types": [
+        "test_liquid"
+      ],
+      "packagings": [
+        "bulk_liquid"
+      ],
+      "hazardous_allowed": false,
+      "windows": [
+        {
+          "start": "2026-01-01T00:00:00Z",
+          "end": "2030-01-01T00:00:00Z"
+        }
+      ],
+      "timetable": {
+        "kind": "on_demand"
+      },
+      "travel_hours": 10,
+      "distance_km": 100,
+      "min_batch_tonnes": 0,
+      "unit_tonnes": null,
+      "unit_m3": null,
+      "available_units": 10,
+      "booking": "flow",
+      "capacity_scope": "fleet",
+      "resource_id": "direct-pipeline-resource",
+      "turnaround_hours": 10,
+      "quote": {
+        "basis": "per_tonne_km",
+        "rate_rub": 2,
+        "tax_basis": "including_vat",
+        "evidence": {
+          "source_ids": [
+            "synthetic-network-fixture"
+          ],
+          "status": "synthetic",
+          "observed_on": "2026-11-08",
+          "valid_from": "2026-01-01T00:00:00Z",
+          "valid_until": "2030-01-01T00:00:00Z"
+        },
+        "component": "transport"
+      },
+      "evidence": {
+        "source_ids": [
+          "synthetic-network-fixture"
+        ],
+        "status": "synthetic",
+        "observed_on": "2026-11-08",
+        "valid_from": "2026-01-01T00:00:00Z",
+        "valid_until": "2030-01-01T00:00:00Z"
+      },
+      "commodity_ids": [
+        "test_liquid"
+      ],
+      "flow_tonnes_per_hour": 5
+    },
+    {
+      "id": "road-to-rail",
+      "from_hub": "origin",
+      "to_hub": "rail_hub",
+      "mode": "road",
+      "available": true,
+      "cargo_types": [
+        "flour",
+        "sugar"
+      ],
+      "packagings": [
+        "bags"
+      ],
+      "hazardous_allowed": false,
+      "windows": [
+        {
+          "start": "2026-01-01T00:00:00Z",
+          "end": "2030-01-01T00:00:00Z"
+        }
+      ],
+      "timetable": {
+        "kind": "on_demand"
+      },
+      "travel_hours": 4,
+      "distance_km": 100,
+      "min_batch_tonnes": 0,
+      "unit_tonnes": 20,
+      "unit_m3": 80,
+      "available_units": 10,
+      "booking": "dedicated",
+      "capacity_scope": "fleet",
+      "resource_id": "road-to-rail-resource",
+      "turnaround_hours": 4,
+      "quote": {
+        "basis": "per_unit",
+        "rate_rub": 5000,
+        "tax_basis": "including_vat",
+        "evidence": {
+          "source_ids": [
+            "synthetic-network-fixture"
+          ],
+          "status": "synthetic",
+          "observed_on": "2026-11-08",
+          "valid_from": "2026-01-01T00:00:00Z",
+          "valid_until": "2030-01-01T00:00:00Z"
+        },
+        "component": "transport"
+      },
+      "evidence": {
+        "source_ids": [
+          "synthetic-network-fixture"
+        ],
+        "status": "synthetic",
+        "observed_on": "2026-11-08",
+        "valid_from": "2026-01-01T00:00:00Z",
+        "valid_until": "2030-01-01T00:00:00Z"
+      },
+      "cargo_profiles": [
+        "dry_food"
+      ]
+    },
+    {
+      "id": "rail-to-air",
+      "from_hub": "rail_hub",
+      "to_hub": "air_hub",
+      "mode": "rail",
+      "available": true,
+      "cargo_types": [
+        "flour",
+        "sugar"
+      ],
+      "packagings": [
+        "bags"
+      ],
+      "hazardous_allowed": false,
+      "windows": [
+        {
+          "start": "2026-01-01T00:00:00Z",
+          "end": "2030-01-01T00:00:00Z"
+        }
+      ],
+      "timetable": {
+        "kind": "interval",
+        "anchor": "2026-11-09T00:00:00+03:00",
+        "every_hours": 24
+      },
+      "travel_hours": 12,
+      "distance_km": 100,
+      "min_batch_tonnes": 0,
+      "unit_tonnes": 20,
+      "unit_m3": 80,
+      "available_units": 10,
+      "booking": "dedicated",
+      "capacity_scope": "departure",
+      "resource_id": "rail-to-air-resource",
+      "turnaround_hours": null,
+      "quote": {
+        "basis": "per_unit",
+        "rate_rub": 12000,
+        "tax_basis": "including_vat",
+        "evidence": {
+          "source_ids": [
+            "synthetic-network-fixture"
+          ],
+          "status": "synthetic",
+          "observed_on": "2026-11-08",
+          "valid_from": "2026-01-01T00:00:00Z",
+          "valid_until": "2030-01-01T00:00:00Z"
+        },
+        "component": "transport"
+      },
+      "evidence": {
+        "source_ids": [
+          "synthetic-network-fixture"
+        ],
+        "status": "synthetic",
+        "observed_on": "2026-11-08",
+        "valid_from": "2026-01-01T00:00:00Z",
+        "valid_until": "2030-01-01T00:00:00Z"
+      },
+      "rail_gauge_mm": 1520,
+      "cargo_profiles": [
+        "dry_food"
+      ]
+    },
+    {
+      "id": "air-to-sea",
+      "from_hub": "air_hub",
+      "to_hub": "sea_hub",
+      "mode": "air",
+      "available": true,
+      "cargo_types": [
+        "flour",
+        "sugar"
+      ],
+      "packagings": [
+        "bags"
+      ],
+      "hazardous_allowed": false,
+      "windows": [
+        {
+          "start": "2026-01-01T00:00:00Z",
+          "end": "2030-01-01T00:00:00Z"
+        }
+      ],
+      "timetable": {
+        "kind": "interval",
+        "anchor": "2026-11-09T00:00:00+03:00",
+        "every_hours": 12
+      },
+      "travel_hours": 3,
+      "distance_km": 100,
+      "min_batch_tonnes": 0,
+      "unit_tonnes": 10,
+      "unit_m3": 60,
+      "available_units": 10,
+      "booking": "shared",
+      "capacity_scope": "departure",
+      "resource_id": "air-to-sea-resource",
+      "turnaround_hours": null,
+      "quote": {
+        "basis": "per_kg",
+        "rate_rub": 8,
+        "tax_basis": "including_vat",
+        "evidence": {
+          "source_ids": [
+            "synthetic-network-fixture"
+          ],
+          "status": "synthetic",
+          "observed_on": "2026-11-08",
+          "valid_from": "2026-01-01T00:00:00Z",
+          "valid_until": "2030-01-01T00:00:00Z"
+        },
+        "volumetric_kg_per_m3": 200,
+        "component": "transport"
+      },
+      "evidence": {
+        "source_ids": [
+          "synthetic-network-fixture"
+        ],
+        "status": "synthetic",
+        "observed_on": "2026-11-08",
+        "valid_from": "2026-01-01T00:00:00Z",
+        "valid_until": "2030-01-01T00:00:00Z"
+      },
+      "cutoff_hours": 2,
+      "max_piece_tonnes": 0.1,
+      "max_piece_dimensions_m": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "cargo_profiles": [
+        "dry_food"
+      ]
+    },
+    {
+      "id": "sea-to-destination",
+      "from_hub": "sea_hub",
+      "to_hub": "destination",
+      "mode": "sea",
+      "available": true,
+      "cargo_types": [
+        "flour",
+        "sugar"
+      ],
+      "packagings": [
+        "bags"
+      ],
+      "hazardous_allowed": false,
+      "windows": [
+        {
+          "start": "2026-01-01T00:00:00Z",
+          "end": "2030-01-01T00:00:00Z"
+        }
+      ],
+      "timetable": {
+        "kind": "interval",
+        "anchor": "2026-11-09T00:00:00+03:00",
+        "every_hours": 24
+      },
+      "travel_hours": 24,
+      "distance_km": 100,
+      "min_batch_tonnes": 0,
+      "unit_tonnes": 20,
+      "unit_m3": 80,
+      "available_units": 10,
+      "booking": "dedicated",
+      "capacity_scope": "departure",
+      "resource_id": "sea-to-destination-resource",
+      "turnaround_hours": null,
+      "quote": {
+        "basis": "per_unit",
+        "rate_rub": 12000,
+        "tax_basis": "including_vat",
+        "evidence": {
+          "source_ids": [
+            "synthetic-network-fixture"
+          ],
+          "status": "synthetic",
+          "observed_on": "2026-11-08",
+          "valid_from": "2026-01-01T00:00:00Z",
+          "valid_until": "2030-01-01T00:00:00Z"
+        },
+        "component": "transport"
+      },
+      "evidence": {
+        "source_ids": [
+          "synthetic-network-fixture"
+        ],
+        "status": "synthetic",
+        "observed_on": "2026-11-08",
+        "valid_from": "2026-01-01T00:00:00Z",
+        "valid_until": "2030-01-01T00:00:00Z"
+      },
+      "vessel_draft_m": 2,
+      "max_draft_m": 4,
+      "ice_class_required": false,
+      "cargo_profiles": [
+        "dry_food"
+      ]
+    },
+    {
+      "id": "road-to-sea",
+      "from_hub": "origin",
+      "to_hub": "sea_hub",
+      "mode": "road",
+      "available": true,
+      "cargo_types": [
+        "flour",
+        "sugar"
+      ],
+      "packagings": [
+        "bags"
+      ],
+      "hazardous_allowed": false,
+      "windows": [
+        {
+          "start": "2026-01-01T00:00:00Z",
+          "end": "2030-01-01T00:00:00Z"
+        }
+      ],
+      "timetable": {
+        "kind": "on_demand"
+      },
+      "travel_hours": 6,
+      "distance_km": 100,
+      "min_batch_tonnes": 0,
+      "unit_tonnes": 20,
+      "unit_m3": 80,
+      "available_units": 10,
+      "booking": "dedicated",
+      "capacity_scope": "fleet",
+      "resource_id": "road-to-sea-resource",
+      "turnaround_hours": 6,
+      "quote": {
+        "basis": "per_unit",
+        "rate_rub": 7000,
+        "tax_basis": "including_vat",
+        "evidence": {
+          "source_ids": [
+            "synthetic-network-fixture"
+          ],
+          "status": "synthetic",
+          "observed_on": "2026-11-08",
+          "valid_from": "2026-01-01T00:00:00Z",
+          "valid_until": "2030-01-01T00:00:00Z"
+        },
+        "component": "transport"
+      },
+      "evidence": {
+        "source_ids": [
+          "synthetic-network-fixture"
+        ],
+        "status": "synthetic",
+        "observed_on": "2026-11-08",
+        "valid_from": "2026-01-01T00:00:00Z",
+        "valid_until": "2030-01-01T00:00:00Z"
+      },
+      "cargo_profiles": [
+        "dry_food"
+      ]
+    },
+    {
+      "id": "sea-to-air",
+      "from_hub": "sea_hub",
+      "to_hub": "air_hub",
+      "mode": "sea",
+      "available": true,
+      "cargo_types": [
+        "flour",
+        "sugar"
+      ],
+      "packagings": [
+        "bags"
+      ],
+      "hazardous_allowed": false,
+      "windows": [
+        {
+          "start": "2026-01-01T00:00:00Z",
+          "end": "2030-01-01T00:00:00Z"
+        }
+      ],
+      "timetable": {
+        "kind": "interval",
+        "anchor": "2026-11-09T00:00:00+03:00",
+        "every_hours": 24
+      },
+      "travel_hours": 20,
+      "distance_km": 100,
+      "min_batch_tonnes": 0,
+      "unit_tonnes": 20,
+      "unit_m3": 80,
+      "available_units": 10,
+      "booking": "dedicated",
+      "capacity_scope": "departure",
+      "resource_id": "sea-to-air-resource",
+      "turnaround_hours": null,
+      "quote": {
+        "basis": "per_unit",
+        "rate_rub": 9000,
+        "tax_basis": "including_vat",
+        "evidence": {
+          "source_ids": [
+            "synthetic-network-fixture"
+          ],
+          "status": "synthetic",
+          "observed_on": "2026-11-08",
+          "valid_from": "2026-01-01T00:00:00Z",
+          "valid_until": "2030-01-01T00:00:00Z"
+        },
+        "component": "transport"
+      },
+      "evidence": {
+        "source_ids": [
+          "synthetic-network-fixture"
+        ],
+        "status": "synthetic",
+        "observed_on": "2026-11-08",
+        "valid_from": "2026-01-01T00:00:00Z",
+        "valid_until": "2030-01-01T00:00:00Z"
+      },
+      "vessel_draft_m": 2,
+      "max_draft_m": 4,
+      "ice_class_required": false,
+      "cargo_profiles": [
+        "dry_food"
+      ]
+    },
+    {
+      "id": "air-to-destination",
+      "from_hub": "air_hub",
+      "to_hub": "destination",
+      "mode": "air",
+      "available": true,
+      "cargo_types": [
+        "flour",
+        "sugar"
+      ],
+      "packagings": [
+        "bags"
+      ],
+      "hazardous_allowed": false,
+      "windows": [
+        {
+          "start": "2026-01-01T00:00:00Z",
+          "end": "2030-01-01T00:00:00Z"
+        }
+      ],
+      "timetable": {
+        "kind": "interval",
+        "anchor": "2026-11-09T00:00:00+03:00",
+        "every_hours": 12
+      },
+      "travel_hours": 4,
+      "distance_km": 100,
+      "min_batch_tonnes": 0,
+      "unit_tonnes": 10,
+      "unit_m3": 60,
+      "available_units": 10,
+      "booking": "shared",
+      "capacity_scope": "departure",
+      "resource_id": "air-to-destination-resource",
+      "turnaround_hours": null,
+      "quote": {
+        "basis": "per_kg",
+        "rate_rub": 8,
+        "tax_basis": "including_vat",
+        "evidence": {
+          "source_ids": [
+            "synthetic-network-fixture"
+          ],
+          "status": "synthetic",
+          "observed_on": "2026-11-08",
+          "valid_from": "2026-01-01T00:00:00Z",
+          "valid_until": "2030-01-01T00:00:00Z"
+        },
+        "volumetric_kg_per_m3": 200,
+        "component": "transport"
+      },
+      "evidence": {
+        "source_ids": [
+          "synthetic-network-fixture"
+        ],
+        "status": "synthetic",
+        "observed_on": "2026-11-08",
+        "valid_from": "2026-01-01T00:00:00Z",
+        "valid_until": "2030-01-01T00:00:00Z"
+      },
+      "cutoff_hours": 2,
+      "max_piece_tonnes": 0.1,
+      "max_piece_dimensions_m": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "cargo_profiles": [
+        "dry_food"
+      ]
+    },
+    {
+      "id": "road-to-river",
+      "from_hub": "origin",
+      "to_hub": "river_hub",
+      "mode": "road",
+      "available": true,
+      "cargo_types": [
+        "flour",
+        "sugar"
+      ],
+      "packagings": [
+        "bags"
+      ],
+      "hazardous_allowed": false,
+      "windows": [
+        {
+          "start": "2026-01-01T00:00:00Z",
+          "end": "2030-01-01T00:00:00Z"
+        }
+      ],
+      "timetable": {
+        "kind": "on_demand"
+      },
+      "travel_hours": 4,
+      "distance_km": 100,
+      "min_batch_tonnes": 0,
+      "unit_tonnes": 20,
+      "unit_m3": 80,
+      "available_units": 10,
+      "booking": "dedicated",
+      "capacity_scope": "fleet",
+      "resource_id": "road-to-river-resource",
+      "turnaround_hours": 4,
+      "quote": {
+        "basis": "per_unit",
+        "rate_rub": 5000,
+        "tax_basis": "including_vat",
+        "evidence": {
+          "source_ids": [
+            "synthetic-network-fixture"
+          ],
+          "status": "synthetic",
+          "observed_on": "2026-11-08",
+          "valid_from": "2026-01-01T00:00:00Z",
+          "valid_until": "2030-01-01T00:00:00Z"
+        },
+        "component": "transport"
+      },
+      "evidence": {
+        "source_ids": [
+          "synthetic-network-fixture"
+        ],
+        "status": "synthetic",
+        "observed_on": "2026-11-08",
+        "valid_from": "2026-01-01T00:00:00Z",
+        "valid_until": "2030-01-01T00:00:00Z"
+      },
+      "cargo_profiles": [
+        "dry_food"
+      ]
+    },
+    {
+      "id": "river-to-destination",
+      "from_hub": "river_hub",
+      "to_hub": "destination",
+      "mode": "river",
+      "available": true,
+      "cargo_types": [
+        "flour",
+        "sugar"
+      ],
+      "packagings": [
+        "bags"
+      ],
+      "hazardous_allowed": false,
+      "windows": [
+        {
+          "start": "2026-01-01T00:00:00Z",
+          "end": "2030-01-01T00:00:00Z"
+        }
+      ],
+      "timetable": {
+        "kind": "interval",
+        "anchor": "2026-11-09T00:00:00+03:00",
+        "every_hours": 24
+      },
+      "travel_hours": 36,
+      "distance_km": 100,
+      "min_batch_tonnes": 0,
+      "unit_tonnes": 20,
+      "unit_m3": 80,
+      "available_units": 10,
+      "booking": "dedicated",
+      "capacity_scope": "departure",
+      "resource_id": "river-to-destination-resource",
+      "turnaround_hours": null,
+      "quote": {
+        "basis": "per_unit",
+        "rate_rub": 10000,
+        "tax_basis": "including_vat",
+        "evidence": {
+          "source_ids": [
+            "synthetic-network-fixture"
+          ],
+          "status": "synthetic",
+          "observed_on": "2026-11-08",
+          "valid_from": "2026-01-01T00:00:00Z",
+          "valid_until": "2030-01-01T00:00:00Z"
+        },
+        "component": "transport"
+      },
+      "evidence": {
+        "source_ids": [
+          "synthetic-network-fixture"
+        ],
+        "status": "synthetic",
+        "observed_on": "2026-11-08",
+        "valid_from": "2026-01-01T00:00:00Z",
+        "valid_until": "2030-01-01T00:00:00Z"
+      },
+      "vessel_draft_m": 2,
+      "max_draft_m": 4,
+      "ice_class_required": false,
+      "cargo_profiles": [
+        "dry_food"
+      ]
+    }
+  ],
+  "transfers": [
+    {
+      "id": "rail_hub-road-rail",
+      "hub_id": "rail_hub",
+      "from_mode": "road",
+      "to_mode": "rail",
+      "cargo_types": [
+        "flour",
+        "sugar"
+      ],
+      "packagings": [
+        "bags"
+      ],
+      "hazardous_allowed": false,
+      "operation": {
+        "fixed_hours": 0.25,
+        "tonnes_per_hour": 100,
+        "resource_id": "rail_hub-handling",
+        "lanes": 2,
+        "quote": {
+          "basis": "per_tonne",
+          "rate_rub": 100,
+          "tax_basis": "including_vat",
+          "evidence": {
+            "source_ids": [
+              "synthetic-network-fixture"
+            ],
+            "status": "synthetic",
+            "observed_on": "2026-11-08",
+            "valid_from": "2026-01-01T00:00:00Z",
+            "valid_until": "2030-01-01T00:00:00Z"
+          },
+          "component": "handling"
+        },
+        "evidence": {
+          "source_ids": [
+            "synthetic-network-fixture"
+          ],
+          "status": "synthetic",
+          "observed_on": "2026-11-08",
+          "valid_from": "2026-01-01T00:00:00Z",
+          "valid_until": "2030-01-01T00:00:00Z"
+        }
+      },
+      "evidence": {
+        "source_ids": [
+          "synthetic-network-fixture"
+        ],
+        "status": "synthetic",
+        "observed_on": "2026-11-08",
+        "valid_from": "2026-01-01T00:00:00Z",
+        "valid_until": "2030-01-01T00:00:00Z"
+      },
+      "cargo_profiles": [
+        "dry_food"
+      ]
+    },
+    {
+      "id": "sea_hub-air-sea",
+      "hub_id": "sea_hub",
+      "from_mode": "air",
+      "to_mode": "sea",
+      "cargo_types": [
+        "flour",
+        "sugar"
+      ],
+      "packagings": [
+        "bags"
+      ],
+      "hazardous_allowed": false,
+      "operation": {
+        "fixed_hours": 0.25,
+        "tonnes_per_hour": 100,
+        "resource_id": "sea_hub-handling",
+        "lanes": 2,
+        "quote": {
+          "basis": "per_tonne",
+          "rate_rub": 100,
+          "tax_basis": "including_vat",
+          "evidence": {
+            "source_ids": [
+              "synthetic-network-fixture"
+            ],
+            "status": "synthetic",
+            "observed_on": "2026-11-08",
+            "valid_from": "2026-01-01T00:00:00Z",
+            "valid_until": "2030-01-01T00:00:00Z"
+          },
+          "component": "handling"
+        },
+        "evidence": {
+          "source_ids": [
+            "synthetic-network-fixture"
+          ],
+          "status": "synthetic",
+          "observed_on": "2026-11-08",
+          "valid_from": "2026-01-01T00:00:00Z",
+          "valid_until": "2030-01-01T00:00:00Z"
+        }
+      },
+      "evidence": {
+        "source_ids": [
+          "synthetic-network-fixture"
+        ],
+        "status": "synthetic",
+        "observed_on": "2026-11-08",
+        "valid_from": "2026-01-01T00:00:00Z",
+        "valid_until": "2030-01-01T00:00:00Z"
+      },
+      "cargo_profiles": [
+        "dry_food"
+      ]
+    },
+    {
+      "id": "sea_hub-road-sea",
+      "hub_id": "sea_hub",
+      "from_mode": "road",
+      "to_mode": "sea",
+      "cargo_types": [
+        "flour",
+        "sugar"
+      ],
+      "packagings": [
+        "bags"
+      ],
+      "hazardous_allowed": false,
+      "operation": {
+        "fixed_hours": 0.25,
+        "tonnes_per_hour": 100,
+        "resource_id": "sea_hub-handling",
+        "lanes": 2,
+        "quote": {
+          "basis": "per_tonne",
+          "rate_rub": 100,
+          "tax_basis": "including_vat",
+          "evidence": {
+            "source_ids": [
+              "synthetic-network-fixture"
+            ],
+            "status": "synthetic",
+            "observed_on": "2026-11-08",
+            "valid_from": "2026-01-01T00:00:00Z",
+            "valid_until": "2030-01-01T00:00:00Z"
+          },
+          "component": "handling"
+        },
+        "evidence": {
+          "source_ids": [
+            "synthetic-network-fixture"
+          ],
+          "status": "synthetic",
+          "observed_on": "2026-11-08",
+          "valid_from": "2026-01-01T00:00:00Z",
+          "valid_until": "2030-01-01T00:00:00Z"
+        }
+      },
+      "evidence": {
+        "source_ids": [
+          "synthetic-network-fixture"
+        ],
+        "status": "synthetic",
+        "observed_on": "2026-11-08",
+        "valid_from": "2026-01-01T00:00:00Z",
+        "valid_until": "2030-01-01T00:00:00Z"
+      },
+      "cargo_profiles": [
+        "dry_food"
+      ]
+    },
+    {
+      "id": "air_hub-rail-air",
+      "hub_id": "air_hub",
+      "from_mode": "rail",
+      "to_mode": "air",
+      "cargo_types": [
+        "flour",
+        "sugar"
+      ],
+      "packagings": [
+        "bags"
+      ],
+      "hazardous_allowed": false,
+      "operation": {
+        "fixed_hours": 0.25,
+        "tonnes_per_hour": 100,
+        "resource_id": "air_hub-handling",
+        "lanes": 2,
+        "quote": {
+          "basis": "per_tonne",
+          "rate_rub": 100,
+          "tax_basis": "including_vat",
+          "evidence": {
+            "source_ids": [
+              "synthetic-network-fixture"
+            ],
+            "status": "synthetic",
+            "observed_on": "2026-11-08",
+            "valid_from": "2026-01-01T00:00:00Z",
+            "valid_until": "2030-01-01T00:00:00Z"
+          },
+          "component": "handling"
+        },
+        "evidence": {
+          "source_ids": [
+            "synthetic-network-fixture"
+          ],
+          "status": "synthetic",
+          "observed_on": "2026-11-08",
+          "valid_from": "2026-01-01T00:00:00Z",
+          "valid_until": "2030-01-01T00:00:00Z"
+        }
+      },
+      "evidence": {
+        "source_ids": [
+          "synthetic-network-fixture"
+        ],
+        "status": "synthetic",
+        "observed_on": "2026-11-08",
+        "valid_from": "2026-01-01T00:00:00Z",
+        "valid_until": "2030-01-01T00:00:00Z"
+      },
+      "cargo_profiles": [
+        "dry_food"
+      ]
+    },
+    {
+      "id": "air_hub-sea-air",
+      "hub_id": "air_hub",
+      "from_mode": "sea",
+      "to_mode": "air",
+      "cargo_types": [
+        "flour",
+        "sugar"
+      ],
+      "packagings": [
+        "bags"
+      ],
+      "hazardous_allowed": false,
+      "operation": {
+        "fixed_hours": 0.25,
+        "tonnes_per_hour": 100,
+        "resource_id": "air_hub-handling",
+        "lanes": 2,
+        "quote": {
+          "basis": "per_tonne",
+          "rate_rub": 100,
+          "tax_basis": "including_vat",
+          "evidence": {
+            "source_ids": [
+              "synthetic-network-fixture"
+            ],
+            "status": "synthetic",
+            "observed_on": "2026-11-08",
+            "valid_from": "2026-01-01T00:00:00Z",
+            "valid_until": "2030-01-01T00:00:00Z"
+          },
+          "component": "handling"
+        },
+        "evidence": {
+          "source_ids": [
+            "synthetic-network-fixture"
+          ],
+          "status": "synthetic",
+          "observed_on": "2026-11-08",
+          "valid_from": "2026-01-01T00:00:00Z",
+          "valid_until": "2030-01-01T00:00:00Z"
+        }
+      },
+      "evidence": {
+        "source_ids": [
+          "synthetic-network-fixture"
+        ],
+        "status": "synthetic",
+        "observed_on": "2026-11-08",
+        "valid_from": "2026-01-01T00:00:00Z",
+        "valid_until": "2030-01-01T00:00:00Z"
+      },
+      "cargo_profiles": [
+        "dry_food"
+      ]
+    },
+    {
+      "id": "river_hub-road-river",
+      "hub_id": "river_hub",
+      "from_mode": "road",
+      "to_mode": "river",
+      "cargo_types": [
+        "flour",
+        "sugar"
+      ],
+      "packagings": [
+        "bags"
+      ],
+      "hazardous_allowed": false,
+      "operation": {
+        "fixed_hours": 0.25,
+        "tonnes_per_hour": 100,
+        "resource_id": "river_hub-handling",
+        "lanes": 2,
+        "quote": {
+          "basis": "per_tonne",
+          "rate_rub": 100,
+          "tax_basis": "including_vat",
+          "evidence": {
+            "source_ids": [
+              "synthetic-network-fixture"
+            ],
+            "status": "synthetic",
+            "observed_on": "2026-11-08",
+            "valid_from": "2026-01-01T00:00:00Z",
+            "valid_until": "2030-01-01T00:00:00Z"
+          },
+          "component": "handling"
+        },
+        "evidence": {
+          "source_ids": [
+            "synthetic-network-fixture"
+          ],
+          "status": "synthetic",
+          "observed_on": "2026-11-08",
+          "valid_from": "2026-01-01T00:00:00Z",
+          "valid_until": "2030-01-01T00:00:00Z"
+        }
+      },
+      "evidence": {
+        "source_ids": [
+          "synthetic-network-fixture"
+        ],
+        "status": "synthetic",
+        "observed_on": "2026-11-08",
+        "valid_from": "2026-01-01T00:00:00Z",
+        "valid_until": "2030-01-01T00:00:00Z"
+      },
+      "cargo_profiles": [
+        "dry_food"
+      ]
+    }
+  ]
+}

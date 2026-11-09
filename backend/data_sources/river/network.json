@@ -1,0 +1,1183 @@
+{
+  "id": "river-krasnoyarsk-dudinka-scenario-v1",
+  "coverage": "Сценарий Красноярск ↔ Дудинка, условная навигация 2026. Публичные компонентные цены; расписание, приём груза и ресурсы синтетические. Не предложение перевозчика.",
+  "sources": [
+    {
+      "id": "trassa-express-river-2026",
+      "name": "Трасса-Экспресс: прайс-лист 2026",
+      "url": "https://trassa-express.com/PRAIS-LIST/",
+      "roles": [
+        "tariff"
+      ],
+      "status": "fact",
+      "observed_on": "2026-11-08",
+      "sha256": "0d9efc1a3bb59a3124cd148c9eed5037aeeb85e0ed05d1cf9b97c603fa1618f2",
+      "scope": "Факт публикации компонентных ставок, не подтверждение рейсов/бронирования.",
+      "published_rates_including_vat": {
+        "river_20": 133000,
+        "river_40": 247000,
+        "krasnoyarsk_loaded_handling_20": 12000,
+        "krasnoyarsk_loaded_handling_40": 20000,
+        "dudinka_loaded_handling_20": 20000,
+        "dudinka_loaded_handling_40": 30000,
+        "krasnoyarsk_storage_20_per_day": 300,
+        "krasnoyarsk_storage_40_per_day": 500,
+        "dudinka_storage_20_per_day": 400,
+        "dudinka_storage_40_per_day": 600
+      },
+      "vat_rate": 0.05
+    },
+    {
+      "id": "river-gap-scenario-v1",
+      "name": "Синтетическое заполнение пробелов речной схемы, версия 1",
+      "roles": [
+        "hub",
+        "handling",
+        "cargo_properties",
+        "freight_service",
+        "tariff"
+      ],
+      "status": "synthetic",
+      "parameters": [
+        {
+          "field": "navigation",
+          "value": [
+            "2026-06-01T00:00:00+07:00",
+            "2026-10-01T00:00:00+07:00"
+          ],
+          "status": "synthetic",
+          "reason": "Условный сезон для проверки; фактические даты навигации не опубликованы в прайсе."
+        },
+        {
+          "field": "departures",
+          "value": "Каждый четверг в 10:00 Красноярск, в 14:00 Дудинка, только в условный сезон",
+          "status": "synthetic"
+        },
+        {
+          "field": "travel_hours",
+          "value": {
+            "downstream": 144,
+            "upstream": 192
+          },
+          "status": "synthetic",
+          "reason": "6 суток вниз, 8 суток вверх, не расписание перевозчика."
+        },
+        {
+          "field": "cutoff_hours",
+          "value": 24,
+          "status": "synthetic"
+        },
+        {
+          "field": "container_20",
+          "value": {
+            "payload_tonnes": 18,
+            "usable_m3": 28,
+            "tare_tonnes": 2.3,
+            "gross_limit_tonnes": 24
+          },
+          "status": "synthetic"
+        },
+        {
+          "field": "container_40",
+          "value": {
+            "payload_tonnes": 24,
+            "usable_m3": 58,
+            "tare_tonnes": 3.8,
+            "gross_limit_tonnes": 30.48
+          },
+          "status": "synthetic"
+        },
+        {
+          "field": "max_piece",
+          "value": {
+            "tonnes": 2,
+            "dimensions_m": [
+              2,
+              2,
+              2
+            ],
+            "rotation": true
+          },
+          "status": "synthetic"
+        },
+        {
+          "field": "available_containers_per_departure",
+          "value": 8,
+          "status": "synthetic",
+          "reason": "Отдельный сценарный лимит каждой размерной альтернативы, не остаток мест реального судна."
+        },
+        {
+          "field": "handling",
+          "value": {
+            "fixed_hours": 2,
+            "tonnes_per_hour": 10,
+            "lanes": 2
+          },
+          "status": "synthetic"
+        },
+        {
+          "field": "terminal_storage",
+          "value": {
+            "tonnes": 500,
+            "m3": 1500,
+            "max_hours": 240
+          },
+          "status": "synthetic"
+        },
+        {
+          "field": "water",
+          "value": {
+            "vessel_draft_m": 2.0,
+            "max_draft_m": 2.5,
+            "ice_class_required": false
+          },
+          "status": "synthetic",
+          "reason": "Условный летний водный путь; не гидрологические измерения и не допуск судна."
+        },
+        {
+          "field": "cargo_admission",
+          "value": "Условно сухие неопасные грузы в bags/boxes, без температурного режима",
+          "status": "synthetic"
+        },
+        {
+          "field": "terminal_identity",
+          "value": "Условная площадка в Красноярске и сценарный узел на причале совхоза Полярный в Дудинке",
+          "status": "assumption",
+          "reason": "Название причала взято из прайса; реальная доступность/технология не подтверждены."
+        },
+        {
+          "field": "storage_rule",
+          "value": "Каждые начатые 24 часа: ceil(max(0,hours-free_hours)/24); Красноярск free=0, Дудинка free=72",
+          "status": "assumption",
+          "reason": "Ставки за контейнеро-сутки опубликованы. Способ округления и точный отсчёт требуют уточнения; 3 суток Дудинки взяты из строки о хранении более 3 суток."
+        },
+        {
+          "field": "tariff_year",
+          "value": "2026-01-01 <= date < 2027-01-01",
+          "status": "assumption",
+          "reason": "Страница подписана 2026 годом, точные даты ввода/отмены не опубликованы."
+        },
+        {
+          "field": "price_scope",
+          "value": "Контейнер клиента, без аренды, затарки, упаковки, авто подвоза и вывоза",
+          "status": "assumption",
+          "reason": "Эти расходы не включены в сценарий; нулевой платы за них перевозчик не подтверждал."
+        }
+      ]
+    }
+  ],
+  "cargo_types": {
+    "dry_general": {
+      "name": "Условный сухой неопасный груз",
+      "aliases": [
+        "сухой груз"
+      ],
+      "phase": "solid",
+      "hazardous": false,
+      "handling_profile": "dry_general",
+      "packagings": [
+        "boxes",
+        "bags"
+      ],
+      "evidence": {
+        "source_ids": [
+          "river-gap-scenario-v1"
+        ],
+        "status": "assumption",
+        "observed_on": "2026-11-08",
+        "valid_from": "2026-01-01T00:00:00+07:00",
+        "valid_until": "2027-01-01T00:00:00+07:00"
+      }
+    }
+  },
+  "compatibility": {},
+  "hubs": [
+    {
+      "id": "krasnoyarsk-river-scenario",
+      "name": "Условная речная площадка Красноярска",
+      "city": "Красноярск",
+      "kind": "river_port",
+      "available": true,
+      "modes": [
+        "river"
+      ],
+      "cargo_types": [
+        "dry_general"
+      ],
+      "cargo_profiles": [
+        "dry_general"
+      ],
+      "packagings": [
+        "boxes",
+        "bags"
+      ],
+      "hazardous_allowed": false,
+      "windows": [
+        {
+          "start": "2026-06-01T00:00:00+07:00",
+          "end": "2026-10-01T00:00:00+07:00"
+        }
+      ],
+      "storage_tonnes": 500,
+      "storage_m3": 1500,
+      "max_storage_hours": 240,
+      "storage_free_hours": 0,
+      "storage_quote": {
+        "component": "storage",
+        "basis": "per_tonne_hour",
+        "rate_rub": 0,
+        "minimum_rub": 0,
+        "fixed_rub": 0,
+        "tax_basis": "including_vat",
+        "tax_rate": 0.05,
+        "evidence": {
+          "source_ids": [
+            "river-gap-scenario-v1"
+          ],
+          "status": "assumption",
+          "observed_on": "2026-11-08",
+          "valid_from": "2026-01-01T00:00:00+07:00",
+          "valid_until": "2027-01-01T00:00:00+07:00"
+        }
+      },
+      "entry": {
+        "fixed_hours": 2,
+        "tonnes_per_hour": 10,
+        "resource_id": "krasnoyarsk-river-scenario-entry",
+        "lanes": 2,
+        "quote": {
+          "component": "handling",
+          "basis": "per_unit",
+          "rate_rub": 0,
+          "minimum_rub": 0,
+          "fixed_rub": 0,
+          "tax_basis": "including_vat",
+          "tax_rate": 0.05,
+          "evidence": {
+            "source_ids": [
+              "river-gap-scenario-v1"
+            ],
+            "status": "assumption",
+            "observed_on": "2026-11-08",
+            "valid_from": "2026-01-01T00:00:00+07:00",
+            "valid_until": "2027-01-01T00:00:00+07:00"
+          }
+        },
+        "evidence": {
+          "source_ids": [
+            "river-gap-scenario-v1"
+          ],
+          "status": "assumption",
+          "observed_on": "2026-11-08",
+          "valid_from": "2026-01-01T00:00:00+07:00",
+          "valid_until": "2027-01-01T00:00:00+07:00"
+        }
+      },
+      "exit": {
+        "fixed_hours": 2,
+        "tonnes_per_hour": 10,
+        "resource_id": "krasnoyarsk-river-scenario-exit",
+        "lanes": 2,
+        "quote": {
+          "component": "handling",
+          "basis": "per_unit",
+          "rate_rub": 0,
+          "minimum_rub": 0,
+          "fixed_rub": 0,
+          "tax_basis": "including_vat",
+          "tax_rate": 0.05,
+          "evidence": {
+            "source_ids": [
+              "river-gap-scenario-v1"
+            ],
+            "status": "assumption",
+            "observed_on": "2026-11-08",
+            "valid_from": "2026-01-01T00:00:00+07:00",
+            "valid_until": "2027-01-01T00:00:00+07:00"
+          }
+        },
+        "evidence": {
+          "source_ids": [
+            "river-gap-scenario-v1"
+          ],
+          "status": "assumption",
+          "observed_on": "2026-11-08",
+          "valid_from": "2026-01-01T00:00:00+07:00",
+          "valid_until": "2027-01-01T00:00:00+07:00"
+        }
+      },
+      "evidence": {
+        "source_ids": [
+          "river-gap-scenario-v1"
+        ],
+        "status": "assumption",
+        "observed_on": "2026-11-08",
+        "valid_from": "2026-01-01T00:00:00+07:00",
+        "valid_until": "2027-01-01T00:00:00+07:00"
+      }
+    },
+    {
+      "id": "dudinka-polyarny-scenario",
+      "name": "Причал совхоза «Полярный»: сценарный узел",
+      "city": "Дудинка",
+      "kind": "river_port",
+      "available": true,
+      "modes": [
+        "river"
+      ],
+      "cargo_types": [
+        "dry_general"
+      ],
+      "cargo_profiles": [
+        "dry_general"
+      ],
+      "packagings": [
+        "boxes",
+        "bags"
+      ],
+      "hazardous_allowed": false,
+      "windows": [
+        {
+          "start": "2026-06-01T00:00:00+07:00",
+          "end": "2026-10-01T00:00:00+07:00"
+        }
+      ],
+      "storage_tonnes": 500,
+      "storage_m3": 1500,
+      "max_storage_hours": 240,
+      "storage_free_hours": 72,
+      "storage_quote": {
+        "component": "storage",
+        "basis": "per_tonne_hour",
+        "rate_rub": 0,
+        "minimum_rub": 0,
+        "fixed_rub": 0,
+        "tax_basis": "including_vat",
+        "tax_rate": 0.05,
+        "evidence": {
+          "source_ids": [
+            "river-gap-scenario-v1"
+          ],
+          "status": "assumption",
+          "observed_on": "2026-11-08",
+          "valid_from": "2026-01-01T00:00:00+07:00",
+          "valid_until": "2027-01-01T00:00:00+07:00"
+        }
+      },
+      "entry": {
+        "fixed_hours": 2,
+        "tonnes_per_hour": 10,
+        "resource_id": "dudinka-polyarny-scenario-entry",
+        "lanes": 2,
+        "quote": {
+          "component": "handling",
+          "basis": "per_unit",
+          "rate_rub": 0,
+          "minimum_rub": 0,
+          "fixed_rub": 0,
+          "tax_basis": "including_vat",
+          "tax_rate": 0.05,
+          "evidence": {
+            "source_ids": [
+              "river-gap-scenario-v1"
+            ],
+            "status": "assumption",
+            "observed_on": "2026-11-08",
+            "valid_from": "2026-01-01T00:00:00+07:00",
+            "valid_until": "2027-01-01T00:00:00+07:00"
+          }
+        },
+        "evidence": {
+          "source_ids": [
+            "river-gap-scenario-v1"
+          ],
+          "status": "assumption",
+          "observed_on": "2026-11-08",
+          "valid_from": "2026-01-01T00:00:00+07:00",
+          "valid_until": "2027-01-01T00:00:00+07:00"
+        }
+      },
+      "exit": {
+        "fixed_hours": 2,
+        "tonnes_per_hour": 10,
+        "resource_id": "dudinka-polyarny-scenario-exit",
+        "lanes": 2,
+        "quote": {
+          "component": "handling",
+          "basis": "per_unit",
+          "rate_rub": 0,
+          "minimum_rub": 0,
+          "fixed_rub": 0,
+          "tax_basis": "including_vat",
+          "tax_rate": 0.05,
+          "evidence": {
+            "source_ids": [
+              "river-gap-scenario-v1"
+            ],
+            "status": "assumption",
+            "observed_on": "2026-11-08",
+            "valid_from": "2026-01-01T00:00:00+07:00",
+            "valid_until": "2027-01-01T00:00:00+07:00"
+          }
+        },
+        "evidence": {
+          "source_ids": [
+            "river-gap-scenario-v1"
+          ],
+          "status": "assumption",
+          "observed_on": "2026-11-08",
+          "valid_from": "2026-01-01T00:00:00+07:00",
+          "valid_until": "2027-01-01T00:00:00+07:00"
+        }
+      },
+      "evidence": {
+        "source_ids": [
+          "river-gap-scenario-v1"
+        ],
+        "status": "assumption",
+        "observed_on": "2026-11-08",
+        "valid_from": "2026-01-01T00:00:00+07:00",
+        "valid_until": "2027-01-01T00:00:00+07:00"
+      }
+    }
+  ],
+  "services": [
+    {
+      "id": "river-20-down",
+      "from_hub": "krasnoyarsk-river-scenario",
+      "to_hub": "dudinka-polyarny-scenario",
+      "mode": "river",
+      "available": true,
+      "cargo_types": [
+        "dry_general"
+      ],
+      "cargo_profiles": [
+        "dry_general"
+      ],
+      "packagings": [
+        "boxes",
+        "bags"
+      ],
+      "hazardous_allowed": false,
+      "windows": [
+        {
+          "start": "2026-06-01T00:00:00+07:00",
+          "end": "2026-10-01T00:00:00+07:00"
+        }
+      ],
+      "timetable": {
+        "kind": "explicit",
+        "departures": [
+          "2026-06-04T10:00:00+07:00",
+          "2026-06-11T10:00:00+07:00",
+          "2026-06-18T10:00:00+07:00",
+          "2026-06-25T10:00:00+07:00",
+          "2026-07-02T10:00:00+07:00",
+          "2026-07-09T10:00:00+07:00",
+          "2026-07-16T10:00:00+07:00",
+          "2026-07-23T10:00:00+07:00",
+          "2026-07-30T10:00:00+07:00",
+          "2026-08-06T10:00:00+07:00",
+          "2026-08-13T10:00:00+07:00",
+          "2026-08-20T10:00:00+07:00",
+          "2026-08-27T10:00:00+07:00",
+          "2026-09-03T10:00:00+07:00",
+          "2026-09-10T10:00:00+07:00",
+          "2026-09-17T10:00:00+07:00",
+          "2026-09-24T10:00:00+07:00"
+        ]
+      },
+      "cutoff_hours": 24,
+      "travel_hours": 144,
+      "min_batch_tonnes": 0,
+      "require_volume": true,
+      "allowed_phases": [
+        "solid"
+      ],
+      "unit_tonnes": 18,
+      "unit_m3": 28,
+      "gross_limit_tonnes": 24,
+      "tare_tonnes": 2.3,
+      "available_units": 8,
+      "booking": "dedicated",
+      "capacity_scope": "departure",
+      "resource_id": "river-20-down",
+      "quote": {
+        "component": "transport",
+        "basis": "per_unit",
+        "rate_rub": 133000,
+        "minimum_rub": 0,
+        "fixed_rub": 0,
+        "tax_basis": "including_vat",
+        "tax_rate": 0.05,
+        "evidence": {
+          "source_ids": [
+            "trassa-express-river-2026"
+          ],
+          "status": "fact",
+          "observed_on": "2026-11-08",
+          "valid_from": "2026-01-01T00:00:00+07:00",
+          "valid_until": "2027-01-01T00:00:00+07:00"
+        }
+      },
+      "additional_charges": [
+        {
+          "id": "origin_container_handling",
+          "at": "departure",
+          "quote": {
+            "component": "handling",
+            "basis": "per_unit",
+            "rate_rub": 12000,
+            "minimum_rub": 0,
+            "fixed_rub": 0,
+            "tax_basis": "including_vat",
+            "tax_rate": 0.05,
+            "evidence": {
+              "source_ids": [
+                "trassa-express-river-2026"
+              ],
+              "status": "fact",
+              "observed_on": "2026-11-08",
+              "valid_from": "2026-01-01T00:00:00+07:00",
+              "valid_until": "2027-01-01T00:00:00+07:00"
+            }
+          }
+        },
+        {
+          "id": "destination_container_handling",
+          "at": "arrival",
+          "quote": {
+            "component": "handling",
+            "basis": "per_unit",
+            "rate_rub": 20000,
+            "minimum_rub": 0,
+            "fixed_rub": 0,
+            "tax_basis": "including_vat",
+            "tax_rate": 0.05,
+            "evidence": {
+              "source_ids": [
+                "trassa-express-river-2026"
+              ],
+              "status": "fact",
+              "observed_on": "2026-11-08",
+              "valid_from": "2026-01-01T00:00:00+07:00",
+              "valid_until": "2027-01-01T00:00:00+07:00"
+            }
+          }
+        }
+      ],
+      "storage_quotes": {
+        "krasnoyarsk-river-scenario": {
+          "component": "storage",
+          "basis": "per_unit_day",
+          "rate_rub": 300,
+          "minimum_rub": 0,
+          "fixed_rub": 0,
+          "tax_basis": "including_vat",
+          "tax_rate": 0.05,
+          "evidence": {
+            "source_ids": [
+              "trassa-express-river-2026",
+              "river-gap-scenario-v1"
+            ],
+            "status": "assumption",
+            "observed_on": "2026-11-08",
+            "valid_from": "2026-01-01T00:00:00+07:00",
+            "valid_until": "2027-01-01T00:00:00+07:00"
+          }
+        },
+        "dudinka-polyarny-scenario": {
+          "component": "storage",
+          "basis": "per_unit_day",
+          "rate_rub": 400,
+          "minimum_rub": 0,
+          "fixed_rub": 0,
+          "tax_basis": "including_vat",
+          "tax_rate": 0.05,
+          "evidence": {
+            "source_ids": [
+              "trassa-express-river-2026",
+              "river-gap-scenario-v1"
+            ],
+            "status": "assumption",
+            "observed_on": "2026-11-08",
+            "valid_from": "2026-01-01T00:00:00+07:00",
+            "valid_until": "2027-01-01T00:00:00+07:00"
+          }
+        }
+      },
+      "max_piece_tonnes": 2,
+      "max_piece_dimensions_m": [
+        2.0,
+        2.0,
+        2.0
+      ],
+      "allow_rotation": true,
+      "vessel_draft_m": 2.0,
+      "max_draft_m": 2.5,
+      "ice_class_required": false,
+      "evidence": {
+        "source_ids": [
+          "river-gap-scenario-v1"
+        ],
+        "status": "assumption",
+        "observed_on": "2026-11-08",
+        "valid_from": "2026-01-01T00:00:00+07:00",
+        "valid_until": "2027-01-01T00:00:00+07:00"
+      }
+    },
+    {
+      "id": "river-40-down",
+      "from_hub": "krasnoyarsk-river-scenario",
+      "to_hub": "dudinka-polyarny-scenario",
+      "mode": "river",
+      "available": true,
+      "cargo_types": [
+        "dry_general"
+      ],
+      "cargo_profiles": [
+        "dry_general"
+      ],
+      "packagings": [
+        "boxes",
+        "bags"
+      ],
+      "hazardous_allowed": false,
+      "windows": [
+        {
+          "start": "2026-06-01T00:00:00+07:00",
+          "end": "2026-10-01T00:00:00+07:00"
+        }
+      ],
+      "timetable": {
+        "kind": "explicit",
+        "departures": [
+          "2026-06-04T10:00:00+07:00",
+          "2026-06-11T10:00:00+07:00",
+          "2026-06-18T10:00:00+07:00",
+          "2026-06-25T10:00:00+07:00",
+          "2026-07-02T10:00:00+07:00",
+          "2026-07-09T10:00:00+07:00",
+          "2026-07-16T10:00:00+07:00",
+          "2026-07-23T10:00:00+07:00",
+          "2026-07-30T10:00:00+07:00",
+          "2026-08-06T10:00:00+07:00",
+          "2026-08-13T10:00:00+07:00",
+          "2026-08-20T10:00:00+07:00",
+          "2026-08-27T10:00:00+07:00",
+          "2026-09-03T10:00:00+07:00",
+          "2026-09-10T10:00:00+07:00",
+          "2026-09-17T10:00:00+07:00",
+          "2026-09-24T10:00:00+07:00"
+        ]
+      },
+      "cutoff_hours": 24,
+      "travel_hours": 144,
+      "min_batch_tonnes": 0,
+      "require_volume": true,
+      "allowed_phases": [
+        "solid"
+      ],
+      "unit_tonnes": 24,
+      "unit_m3": 58,
+      "gross_limit_tonnes": 30.48,
+      "tare_tonnes": 3.8,
+      "available_units": 8,
+      "booking": "dedicated",
+      "capacity_scope": "departure",
+      "resource_id": "river-40-down",
+      "quote": {
+        "component": "transport",
+        "basis": "per_unit",
+        "rate_rub": 247000,
+        "minimum_rub": 0,
+        "fixed_rub": 0,
+        "tax_basis": "including_vat",
+        "tax_rate": 0.05,
+        "evidence": {
+          "source_ids": [
+            "trassa-express-river-2026"
+          ],
+          "status": "fact",
+          "observed_on": "2026-11-08",
+          "valid_from": "2026-01-01T00:00:00+07:00",
+          "valid_until": "2027-01-01T00:00:00+07:00"
+        }
+      },
+      "additional_charges": [
+        {
+          "id": "origin_container_handling",
+          "at": "departure",
+          "quote": {
+            "component": "handling",
+            "basis": "per_unit",
+            "rate_rub": 20000,
+            "minimum_rub": 0,
+            "fixed_rub": 0,
+            "tax_basis": "including_vat",
+            "tax_rate": 0.05,
+            "evidence": {
+              "source_ids": [
+                "trassa-express-river-2026"
+              ],
+              "status": "fact",
+              "observed_on": "2026-11-08",
+              "valid_from": "2026-01-01T00:00:00+07:00",
+              "valid_until": "2027-01-01T00:00:00+07:00"
+            }
+          }
+        },
+        {
+          "id": "destination_container_handling",
+          "at": "arrival",
+          "quote": {
+            "component": "handling",
+            "basis": "per_unit",
+            "rate_rub": 30000,
+            "minimum_rub": 0,
+            "fixed_rub": 0,
+            "tax_basis": "including_vat",
+            "tax_rate": 0.05,
+            "evidence": {
+              "source_ids": [
+                "trassa-express-river-2026"
+              ],
+              "status": "fact",
+              "observed_on": "2026-11-08",
+              "valid_from": "2026-01-01T00:00:00+07:00",
+              "valid_until": "2027-01-01T00:00:00+07:00"
+            }
+          }
+        }
+      ],
+      "storage_quotes": {
+        "krasnoyarsk-river-scenario": {
+          "component": "storage",
+          "basis": "per_unit_day",
+          "rate_rub": 500,
+          "minimum_rub": 0,
+          "fixed_rub": 0,
+          "tax_basis": "including_vat",
+          "tax_rate": 0.05,
+          "evidence": {
+            "source_ids": [
+              "trassa-express-river-2026",
+              "river-gap-scenario-v1"
+            ],
+            "status": "assumption",
+            "observed_on": "2026-11-08",
+            "valid_from": "2026-01-01T00:00:00+07:00",
+            "valid_until": "2027-01-01T00:00:00+07:00"
+          }
+        },
+        "dudinka-polyarny-scenario": {
+          "component": "storage",
+          "basis": "per_unit_day",
+          "rate_rub": 600,
+          "minimum_rub": 0,
+          "fixed_rub": 0,
+          "tax_basis": "including_vat",
+          "tax_rate": 0.05,
+          "evidence": {
+            "source_ids": [
+              "trassa-express-river-2026",
+              "river-gap-scenario-v1"
+            ],
+            "status": "assumption",
+            "observed_on": "2026-11-08",
+            "valid_from": "2026-01-01T00:00:00+07:00",
+            "valid_until": "2027-01-01T00:00:00+07:00"
+          }
+        }
+      },
+      "max_piece_tonnes": 2,
+      "max_piece_dimensions_m": [
+        2.0,
+        2.0,
+        2.0
+      ],
+      "allow_rotation": true,
+      "vessel_draft_m": 2.0,
+      "max_draft_m": 2.5,
+      "ice_class_required": false,
+      "evidence": {
+        "source_ids": [
+          "river-gap-scenario-v1"
+        ],
+        "status": "assumption",
+        "observed_on": "2026-11-08",
+        "valid_from": "2026-01-01T00:00:00+07:00",
+        "valid_until": "2027-01-01T00:00:00+07:00"
+      }
+    },
+    {
+      "id": "river-20-up",
+      "from_hub": "dudinka-polyarny-scenario",
+      "to_hub": "krasnoyarsk-river-scenario",
+      "mode": "river",
+      "available": true,
+      "cargo_types": [
+        "dry_general"
+      ],
+      "cargo_profiles": [
+        "dry_general"
+      ],
+      "packagings": [
+        "boxes",
+        "bags"
+      ],
+      "hazardous_allowed": false,
+      "windows": [
+        {
+          "start": "2026-06-01T00:00:00+07:00",
+          "end": "2026-10-01T00:00:00+07:00"
+        }
+      ],
+      "timetable": {
+        "kind": "explicit",
+        "departures": [
+          "2026-06-04T14:00:00+07:00",
+          "2026-06-11T14:00:00+07:00",
+          "2026-06-18T14:00:00+07:00",
+          "2026-06-25T14:00:00+07:00",
+          "2026-07-02T14:00:00+07:00",
+          "2026-07-09T14:00:00+07:00",
+          "2026-07-16T14:00:00+07:00",
+          "2026-07-23T14:00:00+07:00",
+          "2026-07-30T14:00:00+07:00",
+          "2026-08-06T14:00:00+07:00",
+          "2026-08-13T14:00:00+07:00",
+          "2026-08-20T14:00:00+07:00",
+          "2026-08-27T14:00:00+07:00",
+          "2026-09-03T14:00:00+07:00",
+          "2026-09-10T14:00:00+07:00",
+          "2026-09-17T14:00:00+07:00",
+          "2026-09-24T14:00:00+07:00"
+        ]
+      },
+      "cutoff_hours": 24,
+      "travel_hours": 192,
+      "min_batch_tonnes": 0,
+      "require_volume": true,
+      "allowed_phases": [
+        "solid"
+      ],
+      "unit_tonnes": 18,
+      "unit_m3": 28,
+      "gross_limit_tonnes": 24,
+      "tare_tonnes": 2.3,
+      "available_units": 8,
+      "booking": "dedicated",
+      "capacity_scope": "departure",
+      "resource_id": "river-20-up",
+      "quote": {
+        "component": "transport",
+        "basis": "per_unit",
+        "rate_rub": 133000,
+        "minimum_rub": 0,
+        "fixed_rub": 0,
+        "tax_basis": "including_vat",
+        "tax_rate": 0.05,
+        "evidence": {
+          "source_ids": [
+            "trassa-express-river-2026"
+          ],
+          "status": "fact",
+          "observed_on": "2026-11-08",
+          "valid_from": "2026-01-01T00:00:00+07:00",
+          "valid_until": "2027-01-01T00:00:00+07:00"
+        }
+      },
+      "additional_charges": [
+        {
+          "id": "origin_container_handling",
+          "at": "departure",
+          "quote": {
+            "component": "handling",
+            "basis": "per_unit",
+            "rate_rub": 20000,
+            "minimum_rub": 0,
+            "fixed_rub": 0,
+            "tax_basis": "including_vat",
+            "tax_rate": 0.05,
+            "evidence": {
+              "source_ids": [
+                "trassa-express-river-2026"
+              ],
+              "status": "fact",
+              "observed_on": "2026-11-08",
+              "valid_from": "2026-01-01T00:00:00+07:00",
+              "valid_until": "2027-01-01T00:00:00+07:00"
+            }
+          }
+        },
+        {
+          "id": "destination_container_handling",
+          "at": "arrival",
+          "quote": {
+            "component": "handling",
+            "basis": "per_unit",
+            "rate_rub": 12000,
+            "minimum_rub": 0,
+            "fixed_rub": 0,
+            "tax_basis": "including_vat",
+            "tax_rate": 0.05,
+            "evidence": {
+              "source_ids": [
+                "trassa-express-river-2026"
+              ],
+              "status": "fact",
+              "observed_on": "2026-11-08",
+              "valid_from": "2026-01-01T00:00:00+07:00",
+              "valid_until": "2027-01-01T00:00:00+07:00"
+            }
+          }
+        }
+      ],
+      "storage_quotes": {
+        "krasnoyarsk-river-scenario": {
+          "component": "storage",
+          "basis": "per_unit_day",
+          "rate_rub": 300,
+          "minimum_rub": 0,
+          "fixed_rub": 0,
+          "tax_basis": "including_vat",
+          "tax_rate": 0.05,
+          "evidence": {
+            "source_ids": [
+              "trassa-express-river-2026",
+              "river-gap-scenario-v1"
+            ],
+            "status": "assumption",
+            "observed_on": "2026-11-08",
+            "valid_from": "2026-01-01T00:00:00+07:00",
+            "valid_until": "2027-01-01T00:00:00+07:00"
+          }
+        },
+        "dudinka-polyarny-scenario": {
+          "component": "storage",
+          "basis": "per_unit_day",
+          "rate_rub": 400,
+          "minimum_rub": 0,
+          "fixed_rub": 0,
+          "tax_basis": "including_vat",
+          "tax_rate": 0.05,
+          "evidence": {
+            "source_ids": [
+              "trassa-express-river-2026",
+              "river-gap-scenario-v1"
+            ],
+            "status": "assumption",
+            "observed_on": "2026-11-08",
+            "valid_from": "2026-01-01T00:00:00+07:00",
+            "valid_until": "2027-01-01T00:00:00+07:00"
+          }
+        }
+      },
+      "max_piece_tonnes": 2,
+      "max_piece_dimensions_m": [
+        2.0,
+        2.0,
+        2.0
+      ],
+      "allow_rotation": true,
+      "vessel_draft_m": 2.0,
+      "max_draft_m": 2.5,
+      "ice_class_required": false,
+      "evidence": {
+        "source_ids": [
+          "river-gap-scenario-v1"
+        ],
+        "status": "assumption",
+        "observed_on": "2026-11-08",
+        "valid_from": "2026-01-01T00:00:00+07:00",
+        "valid_until": "2027-01-01T00:00:00+07:00"
+      }
+    },
+    {
+      "id": "river-40-up",
+      "from_hub": "dudinka-polyarny-scenario",
+      "to_hub": "krasnoyarsk-river-scenario",
+      "mode": "river",
+      "available": true,
+      "cargo_types": [
+        "dry_general"
+      ],
+      "cargo_profiles": [
+        "dry_general"
+      ],
+      "packagings": [
+        "boxes",
+        "bags"
+      ],
+      "hazardous_allowed": false,
+      "windows": [
+        {
+          "start": "2026-06-01T00:00:00+07:00",
+          "end": "2026-10-01T00:00:00+07:00"
+        }
+      ],
+      "timetable": {
+        "kind": "explicit",
+        "departures": [
+          "2026-06-04T14:00:00+07:00",
+          "2026-06-11T14:00:00+07:00",
+          "2026-06-18T14:00:00+07:00",
+          "2026-06-25T14:00:00+07:00",
+          "2026-07-02T14:00:00+07:00",
+          "2026-07-09T14:00:00+07:00",
+          "2026-07-16T14:00:00+07:00",
+          "2026-07-23T14:00:00+07:00",
+          "2026-07-30T14:00:00+07:00",
+          "2026-08-06T14:00:00+07:00",
+          "2026-08-13T14:00:00+07:00",
+          "2026-08-20T14:00:00+07:00",
+          "2026-08-27T14:00:00+07:00",
+          "2026-09-03T14:00:00+07:00",
+          "2026-09-10T14:00:00+07:00",
+          "2026-09-17T14:00:00+07:00",
+          "2026-09-24T14:00:00+07:00"
+        ]
+      },
+      "cutoff_hours": 24,
+      "travel_hours": 192,
+      "min_batch_tonnes": 0,
+      "require_volume": true,
+      "allowed_phases": [
+        "solid"
+      ],
+      "unit_tonnes": 24,
+      "unit_m3": 58,
+      "gross_limit_tonnes": 30.48,
+      "tare_tonnes": 3.8,
+      "available_units": 8,
+      "booking": "dedicated",
+      "capacity_scope": "departure",
+      "resource_id": "river-40-up",
+      "quote": {
+        "component": "transport",
+        "basis": "per_unit",
+        "rate_rub": 247000,
+        "minimum_rub": 0,
+        "fixed_rub": 0,
+        "tax_basis": "including_vat",
+        "tax_rate": 0.05,
+        "evidence": {
+          "source_ids": [
+            "trassa-express-river-2026"
+          ],
+          "status": "fact",
+          "observed_on": "2026-11-08",
+          "valid_from": "2026-01-01T00:00:00+07:00",
+          "valid_until": "2027-01-01T00:00:00+07:00"
+        }
+      },
+      "additional_charges": [
+        {
+          "id": "origin_container_handling",
+          "at": "departure",
+          "quote": {
+            "component": "handling",
+            "basis": "per_unit",
+            "rate_rub": 30000,
+            "minimum_rub": 0,
+            "fixed_rub": 0,
+            "tax_basis": "including_vat",
+            "tax_rate": 0.05,
+            "evidence": {
+              "source_ids": [
+                "trassa-express-river-2026"
+              ],
+              "status": "fact",
+              "observed_on": "2026-11-08",
+              "valid_from": "2026-01-01T00:00:00+07:00",
+              "valid_until": "2027-01-01T00:00:00+07:00"
+            }
+          }
+        },
+        {
+          "id": "destination_container_handling",
+          "at": "arrival",
+          "quote": {
+            "component": "handling",
+            "basis": "per_unit",
+            "rate_rub": 20000,
+            "minimum_rub": 0,
+            "fixed_rub": 0,
+            "tax_basis": "including_vat",
+            "tax_rate": 0.05,
+            "evidence": {
+              "source_ids": [
+                "trassa-express-river-2026"
+              ],
+              "status": "fact",
+              "observed_on": "2026-11-08",
+              "valid_from": "2026-01-01T00:00:00+07:00",
+              "valid_until": "2027-01-01T00:00:00+07:00"
+            }
+          }
+        }
+      ],
+      "storage_quotes": {
+        "krasnoyarsk-river-scenario": {
+          "component": "storage",
+          "basis": "per_unit_day",
+          "rate_rub": 500,
+          "minimum_rub": 0,
+          "fixed_rub": 0,
+          "tax_basis": "including_vat",
+          "tax_rate": 0.05,
+          "evidence": {
+            "source_ids": [
+              "trassa-express-river-2026",
+              "river-gap-scenario-v1"
+            ],
+            "status": "assumption",
+            "observed_on": "2026-11-08",
+            "valid_from": "2026-01-01T00:00:00+07:00",
+            "valid_until": "2027-01-01T00:00:00+07:00"
+          }
+        },
+        "dudinka-polyarny-scenario": {
+          "component": "storage",
+          "basis": "per_unit_day",
+          "rate_rub": 600,
+          "minimum_rub": 0,
+          "fixed_rub": 0,
+          "tax_basis": "including_vat",
+          "tax_rate": 0.05,
+          "evidence": {
+            "source_ids": [
+              "trassa-express-river-2026",
+              "river-gap-scenario-v1"
+            ],
+            "status": "assumption",
+            "observed_on": "2026-11-08",
+            "valid_from": "2026-01-01T00:00:00+07:00",
+            "valid_until": "2027-01-01T00:00:00+07:00"
+          }
+        }
+      },
+      "max_piece_tonnes": 2,
+      "max_piece_dimensions_m": [
+        2.0,
+        2.0,
+        2.0
+      ],
+      "allow_rotation": true,
+      "vessel_draft_m": 2.0,
+      "max_draft_m": 2.5,
+      "ice_class_required": false,
+      "evidence": {
+        "source_ids": [
+          "river-gap-scenario-v1"
+        ],
+        "status": "assumption",
+        "observed_on": "2026-11-08",
+        "valid_from": "2026-01-01T00:00:00+07:00",
+        "valid_until": "2027-01-01T00:00:00+07:00"
+      }
+    }
+  ],
+  "transfers": []
+}

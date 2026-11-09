@@ -1,0 +1,40 @@
+{
+  "engine": "network",
+  "network_id": "synthetic-network-v1",
+  "origin_hub_id": "origin",
+  "destination_hub_id": "destination",
+  "cargoes": [
+    {
+      "id": "flour-1",
+      "cargo_type": "flour",
+      "weight_tonnes": 10,
+      "volume_m3": 20,
+      "packaging": "bags",
+      "splittable": true,
+      "max_piece_tonnes": 0.025,
+      "max_piece_dimensions_m": [
+        0.5,
+        0.4,
+        0.2
+      ]
+    }
+  ],
+  "schedule": {
+    "mode": "once",
+    "ready_at": "2026-11-09T08:00:00+03:00"
+  },
+  "max_delivery_hours": 240,
+  "capacity_basis": "mass_and_volume",
+  "cost_basis": "including_vat",
+  "data_policy": "allow_assumptions",
+  "required_modes": [
+    "road",
+    "sea",
+    "air"
+  ],
+  "group_sizes": [
+    1
+  ],
+  "max_legs": 6,
+  "max_paths": 16
+}

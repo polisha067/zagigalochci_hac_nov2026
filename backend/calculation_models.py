@@ -40,7 +40,7 @@ class OnceSchedule(InputModel):
 class Frequency(InputModel):
     count: Annotated[StrictInt, Field(ge=1, le=168)]
     every: Annotated[StrictInt, Field(ge=1, le=3650)] = 1
-    unit: Literal["day", "week", "month"]
+    unit: Literal["minute", "hour", "day", "week", "month"]
 
 
 class RegularSchedule(InputModel):
@@ -83,12 +83,20 @@ class RoutePoint(InputModel):
 
 class CargoItem(InputModel):
     id: Text
-    cargo_type: Text
+    name: Optional[Text] = None
+    cargo_type: Optional[Text] = None
     weight_tonnes: Positive
     volume_m3: Optional[Positive] = None
     load_at: Annotated[StrictInt, Field(ge=0, le=11)] = 0
     unload_at: Annotated[Optional[StrictInt], Field(ge=1, le=11)] = None
     splittable: StrictBool
+
+
+    @model_validator(mode="after")
+    def identity_present(self):
+        if self.name is None and self.cargo_type is None:
+            raise ValueError("Укажите название груза")
+        return self
 
 
 class CalculationRequest(InputModel):
@@ -164,3 +172,5 @@ class CalculationResponse(BaseModel):
     assumptions: List[str]
     warnings: List[str]
     sources: List[dict]
+    input_status: Literal["ready", "needs_clarification"] = "ready"
+    clarifications: List[dict] = Field(default_factory=list)

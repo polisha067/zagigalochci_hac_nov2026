@@ -1,0 +1,592 @@
+{
+  "schema_version": "0.3",
+  "engine": "network",
+  "calculation_mode": "scenario",
+  "network_id": "river-krasnoyarsk-dudinka-scenario-v1",
+  "network_fingerprint": "098c8ab3cdae7fa19a0ff45ab0a7136622c4fe03c4e8dd3eacf0de2a03f2afcb",
+  "coverage": "Сценарий Красноярск ↔ Дудинка, условная навигация 2026. Публичные компонентные цены; расписание, приём груза и ресурсы синтетические. Не предложение перевозчика.",
+  "request": {
+    "engine": "network",
+    "network_id": "river-krasnoyarsk-dudinka-scenario-v1",
+    "origin_hub_id": "krasnoyarsk-river-scenario",
+    "destination_hub_id": "dudinka-polyarny-scenario",
+    "cargoes": [
+      {
+        "id": "goods",
+        "name": "Книги в коробках",
+        "cargo_type": null,
+        "properties": {
+          "phase": "solid",
+          "hazardous": false,
+          "handling_profile": "dry_general",
+          "temperature_control_required": false,
+          "required_temperature_c": null
+        },
+        "weight_tonnes": 10.0,
+        "volume_m3": 20.0,
+        "packaging": "boxes",
+        "splittable": true,
+        "pickup_hub_id": null,
+        "delivery_hub_id": null,
+        "ready_offset_hours": 0.0,
+        "max_delivery_hours": null,
+        "shelf_life_hours": null,
+        "temperature_c": null,
+        "max_piece_tonnes": 0.02,
+        "max_piece_dimensions_m": [
+          0.5,
+          0.4,
+          0.3
+        ]
+      }
+    ],
+    "schedule": {
+      "mode": "once",
+      "ready_at": "2026-06-08T08:00:00+07:00"
+    },
+    "max_delivery_hours": 480.0,
+    "capacity_basis": "mass_and_volume",
+    "cost_basis": "including_vat",
+    "data_policy": "allow_assumptions",
+    "service_ids": null,
+    "required_modes": [
+      "river"
+    ],
+    "via_hub_ids": [],
+    "stop_dwell_hours": {},
+    "group_sizes": [
+      1
+    ],
+    "max_legs": 6,
+    "max_paths": 16
+  },
+  "shipments": 1,
+  "total_volume_tonnes": 10.0,
+  "categories": [
+    {
+      "id": "road",
+      "name": "Автомобильный",
+      "implemented": true,
+      "candidate_count": 0,
+      "best_candidate_id": null,
+      "status": "not_confirmed_in_loaded_network"
+    },
+    {
+      "id": "rail",
+      "name": "Железнодорожный",
+      "implemented": true,
+      "candidate_count": 0,
+      "best_candidate_id": null,
+      "status": "not_confirmed_in_loaded_network"
+    },
+    {
+      "id": "sea",
+      "name": "Морской",
+      "implemented": true,
+      "candidate_count": 0,
+      "best_candidate_id": null,
+      "status": "not_confirmed_in_loaded_network"
+    },
+    {
+      "id": "river",
+      "name": "Речной",
+      "implemented": true,
+      "candidate_count": 2,
+      "best_candidate_id": "7a01fce7d61278e9",
+      "status": "feasible"
+    },
+    {
+      "id": "air",
+      "name": "Воздушный",
+      "implemented": true,
+      "candidate_count": 0,
+      "best_candidate_id": null,
+      "status": "not_confirmed_in_loaded_network"
+    },
+    {
+      "id": "pipeline",
+      "name": "Трубопроводный",
+      "implemented": true,
+      "candidate_count": 0,
+      "best_candidate_id": null,
+      "status": "not_confirmed_in_loaded_network"
+    },
+    {
+      "id": "multimodal",
+      "name": "Мультимодальный",
+      "implemented": true,
+      "candidate_count": 0,
+      "best_candidate_id": null,
+      "status": "not_confirmed_in_loaded_network"
+    }
+  ],
+  "candidates": [
+    {
+      "id": "7a01fce7d61278e9",
+      "service_ids": [
+        "river-20-down"
+      ],
+      "modes": [
+        "river"
+      ],
+      "group_size": 1,
+      "multimodal": false,
+      "status": "feasible",
+      "total_cost_rub": 166200.0,
+      "cost_rub_per_tonne": 16620.0,
+      "max_delivery_hours": 221.0,
+      "issues": [],
+      "complete": true,
+      "steps": [
+        {
+          "kind": "pickup_handling",
+          "hub_id": "krasnoyarsk-river-scenario",
+          "cargo_ids": [
+            "0:goods"
+          ],
+          "start_at": "2026-06-08T01:00:00+00:00",
+          "end_at": "2026-06-08T04:00:00+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "transport",
+          "service_id": "river-20-down",
+          "mode": "river",
+          "from_hub": "krasnoyarsk-river-scenario",
+          "to_hub": "dudinka-polyarny-scenario",
+          "cargo_ids": [
+            "0:goods"
+          ],
+          "weight_tonnes": 10.0,
+          "volume_m3": 20.0,
+          "units": 1,
+          "flow_hours": 0.0,
+          "ready_at": "2026-06-08T04:00:00+00:00",
+          "departure_at": "2026-06-11T10:00:00+07:00",
+          "arrival_at": "2026-06-17T10:00:00+07:00",
+          "wait_hours": 71.0,
+          "batch": 0
+        },
+        {
+          "kind": "delivery_handling",
+          "hub_id": "dudinka-polyarny-scenario",
+          "cargo_ids": [
+            "0:goods"
+          ],
+          "start_at": "2026-06-17T10:00:00+07:00",
+          "end_at": "2026-06-17T13:00:00+07:00",
+          "batch": 0
+        }
+      ],
+      "deliveries": [
+        {
+          "cargo_instance_id": "0:goods",
+          "cargo_id": "goods",
+          "shipment": 0,
+          "weight_tonnes": 10.0,
+          "ready_at": "2026-06-08T01:00:00+00:00",
+          "delivered_at": "2026-06-17T13:00:00+07:00",
+          "delivery_hours": 221.0,
+          "hub_id": "dudinka-polyarny-scenario"
+        }
+      ],
+      "cost_items": [
+        {
+          "kind": "pickup_handling",
+          "object_id": "krasnoyarsk-river-scenario",
+          "amount_rub": 0.0,
+          "at": "2026-06-08T01:00:00+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "transport",
+          "object_id": "river-20-down",
+          "amount_rub": 133000.0,
+          "at": "2026-06-11T10:00:00+07:00",
+          "batch": 0
+        },
+        {
+          "kind": "origin_container_handling",
+          "object_id": "river-20-down",
+          "amount_rub": 12000.0,
+          "at": "2026-06-11T10:00:00+07:00",
+          "batch": 0
+        },
+        {
+          "kind": "destination_container_handling",
+          "object_id": "river-20-down",
+          "amount_rub": 20000.0,
+          "at": "2026-06-17T10:00:00+07:00",
+          "batch": 0
+        },
+        {
+          "kind": "storage",
+          "object_id": "krasnoyarsk-river-scenario",
+          "amount_rub": 1200.0,
+          "at": "2026-06-11T10:00:00+07:00",
+          "batch": 0
+        },
+        {
+          "kind": "delivery_handling",
+          "object_id": "dudinka-polyarny-scenario",
+          "amount_rub": 0.0,
+          "at": "2026-06-17T10:00:00+07:00",
+          "batch": 0
+        },
+        {
+          "kind": "storage",
+          "object_id": "dudinka-polyarny-scenario",
+          "amount_rub": 0.0,
+          "at": "2026-06-17T13:00:00+07:00",
+          "batch": 0
+        }
+      ],
+      "source_ids": [
+        "request-cargo-declaration",
+        "river-gap-scenario-v1",
+        "trassa-express-river-2026"
+      ],
+      "evidence_levels": [
+        "assumption",
+        "fact"
+      ]
+    },
+    {
+      "id": "12a658e4f443572e",
+      "service_ids": [
+        "river-40-down"
+      ],
+      "modes": [
+        "river"
+      ],
+      "group_size": 1,
+      "multimodal": false,
+      "status": "feasible",
+      "total_cost_rub": 299000.0,
+      "cost_rub_per_tonne": 29900.0,
+      "max_delivery_hours": 221.0,
+      "issues": [],
+      "complete": true,
+      "steps": [
+        {
+          "kind": "pickup_handling",
+          "hub_id": "krasnoyarsk-river-scenario",
+          "cargo_ids": [
+            "0:goods"
+          ],
+          "start_at": "2026-06-08T01:00:00+00:00",
+          "end_at": "2026-06-08T04:00:00+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "transport",
+          "service_id": "river-40-down",
+          "mode": "river",
+          "from_hub": "krasnoyarsk-river-scenario",
+          "to_hub": "dudinka-polyarny-scenario",
+          "cargo_ids": [
+            "0:goods"
+          ],
+          "weight_tonnes": 10.0,
+          "volume_m3": 20.0,
+          "units": 1,
+          "flow_hours": 0.0,
+          "ready_at": "2026-06-08T04:00:00+00:00",
+          "departure_at": "2026-06-11T10:00:00+07:00",
+          "arrival_at": "2026-06-17T10:00:00+07:00",
+          "wait_hours": 71.0,
+          "batch": 0
+        },
+        {
+          "kind": "delivery_handling",
+          "hub_id": "dudinka-polyarny-scenario",
+          "cargo_ids": [
+            "0:goods"
+          ],
+          "start_at": "2026-06-17T10:00:00+07:00",
+          "end_at": "2026-06-17T13:00:00+07:00",
+          "batch": 0
+        }
+      ],
+      "deliveries": [
+        {
+          "cargo_instance_id": "0:goods",
+          "cargo_id": "goods",
+          "shipment": 0,
+          "weight_tonnes": 10.0,
+          "ready_at": "2026-06-08T01:00:00+00:00",
+          "delivered_at": "2026-06-17T13:00:00+07:00",
+          "delivery_hours": 221.0,
+          "hub_id": "dudinka-polyarny-scenario"
+        }
+      ],
+      "cost_items": [
+        {
+          "kind": "pickup_handling",
+          "object_id": "krasnoyarsk-river-scenario",
+          "amount_rub": 0.0,
+          "at": "2026-06-08T01:00:00+00:00",
+          "batch": 0
+        },
+        {
+          "kind": "transport",
+          "object_id": "river-40-down",
+          "amount_rub": 247000.0,
+          "at": "2026-06-11T10:00:00+07:00",
+          "batch": 0
+        },
+        {
+          "kind": "origin_container_handling",
+          "object_id": "river-40-down",
+          "amount_rub": 20000.0,
+          "at": "2026-06-11T10:00:00+07:00",
+          "batch": 0
+        },
+        {
+          "kind": "destination_container_handling",
+          "object_id": "river-40-down",
+          "amount_rub": 30000.0,
+          "at": "2026-06-17T10:00:00+07:00",
+          "batch": 0
+        },
+        {
+          "kind": "storage",
+          "object_id": "krasnoyarsk-river-scenario",
+          "amount_rub": 2000.0,
+          "at": "2026-06-11T10:00:00+07:00",
+          "batch": 0
+        },
+        {
+          "kind": "delivery_handling",
+          "object_id": "dudinka-polyarny-scenario",
+          "amount_rub": 0.0,
+          "at": "2026-06-17T10:00:00+07:00",
+          "batch": 0
+        },
+        {
+          "kind": "storage",
+          "object_id": "dudinka-polyarny-scenario",
+          "amount_rub": 0.0,
+          "at": "2026-06-17T13:00:00+07:00",
+          "batch": 0
+        }
+      ],
+      "source_ids": [
+        "request-cargo-declaration",
+        "river-gap-scenario-v1",
+        "trassa-express-river-2026"
+      ],
+      "evidence_levels": [
+        "assumption",
+        "fact"
+      ]
+    }
+  ],
+  "recommendation": "7a01fce7d61278e9",
+  "search": {
+    "explicit": false,
+    "truncated": false,
+    "expansions": 3,
+    "scope": "bounded_simple_paths; not_global_optimum"
+  },
+  "assumptions": [
+    "Это сценарная оценка, не статистический прогноз и не бронирование мест у перевозчика",
+    "Остаток консолидации не отбрасывается; все исходные позиции должны быть доставлены",
+    "Обработка в одном посещении хаба последовательна: выгрузка, переход, приём нового груза",
+    "Ресурсы общие для всех отправок внутри кандидата, но независимы между альтернативами и запросами",
+    "Переупаковка и смена физического состояния не выполняются автоматически",
+    "Рабочие окна, сезонность, ледовые ограничения и время возврата ресурса берутся из данных, а не выводятся из общей статистики",
+    "Погодные и пассажирские показатели не используются как доказательство грузовой услуги"
+  ],
+  "warnings": [
+    "Отсутствие кандидата не доказывает отсутствие перевозки в России: проверена только загруженная сеть и заданные пределы поиска.",
+    "В использованных записях есть оценочные/синтетические условия. Это не подтверждённая коммерческая услуга."
+  ],
+  "sources": [
+    {
+      "id": "trassa-express-river-2026",
+      "name": "Трасса-Экспресс: прайс-лист 2026",
+      "url": "https://trassa-express.com/PRAIS-LIST/",
+      "roles": [
+        "tariff"
+      ],
+      "status": "fact",
+      "observed_on": "2026-11-08",
+      "sha256": "0d9efc1a3bb59a3124cd148c9eed5037aeeb85e0ed05d1cf9b97c603fa1618f2",
+      "scope": "Факт публикации компонентных ставок, не подтверждение рейсов/бронирования.",
+      "published_rates_including_vat": {
+        "river_20": 133000,
+        "river_40": 247000,
+        "krasnoyarsk_loaded_handling_20": 12000,
+        "krasnoyarsk_loaded_handling_40": 20000,
+        "dudinka_loaded_handling_20": 20000,
+        "dudinka_loaded_handling_40": 30000,
+        "krasnoyarsk_storage_20_per_day": 300,
+        "krasnoyarsk_storage_40_per_day": 500,
+        "dudinka_storage_20_per_day": 400,
+        "dudinka_storage_40_per_day": 600
+      },
+      "vat_rate": 0.05
+    },
+    {
+      "id": "river-gap-scenario-v1",
+      "name": "Синтетическое заполнение пробелов речной схемы, версия 1",
+      "roles": [
+        "hub",
+        "handling",
+        "cargo_properties",
+        "freight_service",
+        "tariff"
+      ],
+      "status": "synthetic",
+      "parameters": [
+        {
+          "field": "navigation",
+          "value": [
+            "2026-06-01T00:00:00+07:00",
+            "2026-10-01T00:00:00+07:00"
+          ],
+          "status": "synthetic",
+          "reason": "Условный сезон для проверки; фактические даты навигации не опубликованы в прайсе."
+        },
+        {
+          "field": "departures",
+          "value": "Каждый четверг в 10:00 Красноярск, в 14:00 Дудинка, только в условный сезон",
+          "status": "synthetic"
+        },
+        {
+          "field": "travel_hours",
+          "value": {
+            "downstream": 144,
+            "upstream": 192
+          },
+          "status": "synthetic",
+          "reason": "6 суток вниз, 8 суток вверх, не расписание перевозчика."
+        },
+        {
+          "field": "cutoff_hours",
+          "value": 24,
+          "status": "synthetic"
+        },
+        {
+          "field": "container_20",
+          "value": {
+            "payload_tonnes": 18,
+            "usable_m3": 28,
+            "tare_tonnes": 2.3,
+            "gross_limit_tonnes": 24
+          },
+          "status": "synthetic"
+        },
+        {
+          "field": "container_40",
+          "value": {
+            "payload_tonnes": 24,
+            "usable_m3": 58,
+            "tare_tonnes": 3.8,
+            "gross_limit_tonnes": 30.48
+          },
+          "status": "synthetic"
+        },
+        {
+          "field": "max_piece",
+          "value": {
+            "tonnes": 2,
+            "dimensions_m": [
+              2,
+              2,
+              2
+            ],
+            "rotation": true
+          },
+          "status": "synthetic"
+        },
+        {
+          "field": "available_containers_per_departure",
+          "value": 8,
+          "status": "synthetic",
+          "reason": "Отдельный сценарный лимит каждой размерной альтернативы, не остаток мест реального судна."
+        },
+        {
+          "field": "handling",
+          "value": {
+            "fixed_hours": 2,
+            "tonnes_per_hour": 10,
+            "lanes": 2
+          },
+          "status": "synthetic"
+        },
+        {
+          "field": "terminal_storage",
+          "value": {
+            "tonnes": 500,
+            "m3": 1500,
+            "max_hours": 240
+          },
+          "status": "synthetic"
+        },
+        {
+          "field": "water",
+          "value": {
+            "vessel_draft_m": 2.0,
+            "max_draft_m": 2.5,
+            "ice_class_required": false
+          },
+          "status": "synthetic",
+          "reason": "Условный летний водный путь; не гидрологические измерения и не допуск судна."
+        },
+        {
+          "field": "cargo_admission",
+          "value": "Условно сухие неопасные грузы в bags/boxes, без температурного режима",
+          "status": "synthetic"
+        },
+        {
+          "field": "terminal_identity",
+          "value": "Условная площадка в Красноярске и сценарный узел на причале совхоза Полярный в Дудинке",
+          "status": "assumption",
+          "reason": "Название причала взято из прайса; реальная доступность/технология не подтверждены."
+        },
+        {
+          "field": "storage_rule",
+          "value": "Каждые начатые 24 часа: ceil(max(0,hours-free_hours)/24); Красноярск free=0, Дудинка free=72",
+          "status": "assumption",
+          "reason": "Ставки за контейнеро-сутки опубликованы. Способ округления и точный отсчёт требуют уточнения; 3 суток Дудинки взяты из строки о хранении более 3 суток."
+        },
+        {
+          "field": "tariff_year",
+          "value": "2026-01-01 <= date < 2027-01-01",
+          "status": "assumption",
+          "reason": "Страница подписана 2026 годом, точные даты ввода/отмены не опубликованы."
+        },
+        {
+          "field": "price_scope",
+          "value": "Контейнер клиента, без аренды, затарки, упаковки, авто подвоза и вывоза",
+          "status": "assumption",
+          "reason": "Эти расходы не включены в сценарий; нулевой платы за них перевозчик не подтверждал."
+        }
+      ]
+    },
+    {
+      "id": "request-cargo-declaration",
+      "name": "Свойства, указанные пользователем для этого запроса",
+      "roles": [
+        "cargo_properties"
+      ],
+      "status": "assumption"
+    }
+  ],
+  "input_status": "ready",
+  "cargo_resolution": [
+    {
+      "cargo_id": "goods",
+      "name": "Книги в коробках",
+      "resolution": "declared",
+      "resolved_type_id": "declared-b16ce6a286aa9021c9bd",
+      "properties_status": "assumption",
+      "source_ids": [
+        "request-cargo-declaration"
+      ]
+    }
+  ],
+  "clarifications": []
+}

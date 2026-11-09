@@ -32,6 +32,9 @@ def build_schedule(schedule):
             if frequency.unit == "month":
                 left = add_months(start, index * frequency.every)
                 right = add_months(start, (index + 1) * frequency.every)
+            elif frequency.unit in ("hour", "minute"):
+                step = timedelta(minutes=frequency.every) if frequency.unit == "minute" else timedelta(hours=frequency.every)
+                left, right = start + index * step, start + (index + 1) * step
             else:
                 days = frequency.every * (7 if frequency.unit == "week" else 1)
                 left = start + timedelta(days=index * days)

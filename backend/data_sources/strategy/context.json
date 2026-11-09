@@ -1,0 +1,391 @@
+{
+  "schema_version": "1.0",
+  "dataset_id": "transport-strategy-2021-v1",
+  "source_filename": "7enYF2uL5kFZlOOpQhLl0nUT91RjCbeR.pdf",
+  "source_file_sha256": "909c861d2197a5e5b5fba5b55eb8faae72e386c52d8453e619227ac07676070d",
+  "document_title": "Транспортная стратегия Российской Федерации до 2030 года с прогнозом на период до 2035 года",
+  "document_date": "2021-11-27",
+  "document_number": "3363-р",
+  "pages": 285,
+  "reviewed_on": "2026-11-08",
+  "current_revision_verified": false,
+  "source_url": null,
+  "scenario_values": [
+    {
+      "scenario": "conservative",
+      "mode": "overall_excluding_pipeline",
+      "year": 2019,
+      "value_million_tonnes": 7122,
+      "unit": "million_tonnes",
+      "page": 258,
+      "status": "historical_baseline_in_strategy",
+      "is_observed_actual": false,
+      "scope": "Russian_Federation_aggregate_not_city_corridor"
+    },
+    {
+      "scenario": "conservative",
+      "mode": "overall_excluding_pipeline",
+      "year": 2024,
+      "value_million_tonnes": 7516,
+      "unit": "million_tonnes",
+      "page": 258,
+      "status": "scenario_projection_in_2021_document",
+      "is_observed_actual": false,
+      "scope": "Russian_Federation_aggregate_not_city_corridor"
+    },
+    {
+      "scenario": "conservative",
+      "mode": "overall_excluding_pipeline",
+      "year": 2030,
+      "value_million_tonnes": 7898,
+      "unit": "million_tonnes",
+      "page": 258,
+      "status": "scenario_projection_in_2021_document",
+      "is_observed_actual": false,
+      "scope": "Russian_Federation_aggregate_not_city_corridor"
+    },
+    {
+      "scenario": "conservative",
+      "mode": "overall_excluding_pipeline",
+      "year": 2035,
+      "value_million_tonnes": 8218,
+      "unit": "million_tonnes",
+      "page": 258,
+      "status": "scenario_projection_in_2021_document",
+      "is_observed_actual": false,
+      "scope": "Russian_Federation_aggregate_not_city_corridor"
+    },
+    {
+      "scenario": "conservative",
+      "mode": "road",
+      "year": 2019,
+      "value_million_tonnes": 5735,
+      "unit": "million_tonnes",
+      "page": 258,
+      "status": "historical_baseline_in_strategy",
+      "is_observed_actual": false,
+      "scope": "Russian_Federation_aggregate_not_city_corridor"
+    },
+    {
+      "scenario": "conservative",
+      "mode": "road",
+      "year": 2024,
+      "value_million_tonnes": 5847,
+      "unit": "million_tonnes",
+      "page": 258,
+      "status": "scenario_projection_in_2021_document",
+      "is_observed_actual": false,
+      "scope": "Russian_Federation_aggregate_not_city_corridor"
+    },
+    {
+      "scenario": "conservative",
+      "mode": "road",
+      "year": 2030,
+      "value_million_tonnes": 5984,
+      "unit": "million_tonnes",
+      "page": 258,
+      "status": "scenario_projection_in_2021_document",
+      "is_observed_actual": false,
+      "scope": "Russian_Federation_aggregate_not_city_corridor"
+    },
+    {
+      "scenario": "conservative",
+      "mode": "road",
+      "year": 2035,
+      "value_million_tonnes": 6101,
+      "unit": "million_tonnes",
+      "page": 258,
+      "status": "scenario_projection_in_2021_document",
+      "is_observed_actual": false,
+      "scope": "Russian_Federation_aggregate_not_city_corridor"
+    },
+    {
+      "scenario": "conservative",
+      "mode": "rail",
+      "year": 2019,
+      "value_million_tonnes": 1279,
+      "unit": "million_tonnes",
+      "page": 258,
+      "status": "historical_baseline_in_strategy",
+      "is_observed_actual": false,
+      "scope": "Russian_Federation_aggregate_not_city_corridor"
+    },
+    {
+      "scenario": "conservative",
+      "mode": "rail",
+      "year": 2024,
+      "value_million_tonnes": 1488,
+      "unit": "million_tonnes",
+      "page": 258,
+      "status": "scenario_projection_in_2021_document",
+      "is_observed_actual": false,
+      "scope": "Russian_Federation_aggregate_not_city_corridor"
+    },
+    {
+      "scenario": "conservative",
+      "mode": "rail",
+      "year": 2030,
+      "value_million_tonnes": 1601,
+      "unit": "million_tonnes",
+      "page": 258,
+      "status": "scenario_projection_in_2021_document",
+      "is_observed_actual": false,
+      "scope": "Russian_Federation_aggregate_not_city_corridor"
+    },
+    {
+      "scenario": "conservative",
+      "mode": "rail",
+      "year": 2035,
+      "value_million_tonnes": 1703,
+      "unit": "million_tonnes",
+      "page": 258,
+      "status": "scenario_projection_in_2021_document",
+      "is_observed_actual": false,
+      "scope": "Russian_Federation_aggregate_not_city_corridor"
+    },
+    {
+      "scenario": "conservative",
+      "mode": "river",
+      "year": 2019,
+      "value_million_tonnes": 108,
+      "unit": "million_tonnes",
+      "page": 258,
+      "status": "historical_baseline_in_strategy",
+      "is_observed_actual": false,
+      "scope": "Russian_Federation_aggregate_not_city_corridor"
+    },
+    {
+      "scenario": "conservative",
+      "mode": "river",
+      "year": 2024,
+      "value_million_tonnes": 122,
+      "unit": "million_tonnes",
+      "page": 258,
+      "status": "scenario_projection_in_2021_document",
+      "is_observed_actual": false,
+      "scope": "Russian_Federation_aggregate_not_city_corridor"
+    },
+    {
+      "scenario": "conservative",
+      "mode": "river",
+      "year": 2030,
+      "value_million_tonnes": 180,
+      "unit": "million_tonnes",
+      "page": 258,
+      "status": "scenario_projection_in_2021_document",
+      "is_observed_actual": false,
+      "scope": "Russian_Federation_aggregate_not_city_corridor"
+    },
+    {
+      "scenario": "conservative",
+      "mode": "river",
+      "year": 2035,
+      "value_million_tonnes": 215,
+      "unit": "million_tonnes",
+      "page": 258,
+      "status": "scenario_projection_in_2021_document",
+      "is_observed_actual": false,
+      "scope": "Russian_Federation_aggregate_not_city_corridor"
+    },
+    {
+      "scenario": "baseline",
+      "mode": "overall_excluding_pipeline",
+      "year": 2019,
+      "value_million_tonnes": 7122,
+      "unit": "million_tonnes",
+      "page": 259,
+      "status": "historical_baseline_in_strategy",
+      "is_observed_actual": false,
+      "scope": "Russian_Federation_aggregate_not_city_corridor"
+    },
+    {
+      "scenario": "baseline",
+      "mode": "overall_excluding_pipeline",
+      "year": 2024,
+      "value_million_tonnes": 7633,
+      "unit": "million_tonnes",
+      "page": 259,
+      "status": "scenario_projection_in_2021_document",
+      "is_observed_actual": false,
+      "scope": "Russian_Federation_aggregate_not_city_corridor"
+    },
+    {
+      "scenario": "baseline",
+      "mode": "overall_excluding_pipeline",
+      "year": 2030,
+      "value_million_tonnes": 7971,
+      "unit": "million_tonnes",
+      "page": 259,
+      "status": "scenario_projection_in_2021_document",
+      "is_observed_actual": false,
+      "scope": "Russian_Federation_aggregate_not_city_corridor"
+    },
+    {
+      "scenario": "baseline",
+      "mode": "overall_excluding_pipeline",
+      "year": 2035,
+      "value_million_tonnes": 8342,
+      "unit": "million_tonnes",
+      "page": 259,
+      "status": "scenario_projection_in_2021_document",
+      "is_observed_actual": false,
+      "scope": "Russian_Federation_aggregate_not_city_corridor"
+    },
+    {
+      "scenario": "baseline",
+      "mode": "road",
+      "year": 2019,
+      "value_million_tonnes": 5735,
+      "unit": "million_tonnes",
+      "page": 259,
+      "status": "historical_baseline_in_strategy",
+      "is_observed_actual": false,
+      "scope": "Russian_Federation_aggregate_not_city_corridor"
+    },
+    {
+      "scenario": "baseline",
+      "mode": "road",
+      "year": 2024,
+      "value_million_tonnes": 5906,
+      "unit": "million_tonnes",
+      "page": 259,
+      "status": "scenario_projection_in_2021_document",
+      "is_observed_actual": false,
+      "scope": "Russian_Federation_aggregate_not_city_corridor"
+    },
+    {
+      "scenario": "baseline",
+      "mode": "road",
+      "year": 2030,
+      "value_million_tonnes": 6117,
+      "unit": "million_tonnes",
+      "page": 259,
+      "status": "scenario_projection_in_2021_document",
+      "is_observed_actual": false,
+      "scope": "Russian_Federation_aggregate_not_city_corridor"
+    },
+    {
+      "scenario": "baseline",
+      "mode": "road",
+      "year": 2035,
+      "value_million_tonnes": 6300,
+      "unit": "million_tonnes",
+      "page": 259,
+      "status": "scenario_projection_in_2021_document",
+      "is_observed_actual": false,
+      "scope": "Russian_Federation_aggregate_not_city_corridor"
+    },
+    {
+      "scenario": "baseline",
+      "mode": "rail",
+      "year": 2019,
+      "value_million_tonnes": 1279,
+      "unit": "million_tonnes",
+      "page": 259,
+      "status": "historical_baseline_in_strategy",
+      "is_observed_actual": false,
+      "scope": "Russian_Federation_aggregate_not_city_corridor"
+    },
+    {
+      "scenario": "baseline",
+      "mode": "rail",
+      "year": 2024,
+      "value_million_tonnes": 1604,
+      "unit": "million_tonnes",
+      "page": 259,
+      "status": "scenario_projection_in_2021_document",
+      "is_observed_actual": false,
+      "scope": "Russian_Federation_aggregate_not_city_corridor"
+    },
+    {
+      "scenario": "baseline",
+      "mode": "rail",
+      "year": 2030,
+      "value_million_tonnes": 1670,
+      "unit": "million_tonnes",
+      "page": 259,
+      "status": "scenario_projection_in_2021_document",
+      "is_observed_actual": false,
+      "scope": "Russian_Federation_aggregate_not_city_corridor"
+    },
+    {
+      "scenario": "baseline",
+      "mode": "rail",
+      "year": 2035,
+      "value_million_tonnes": 1820,
+      "unit": "million_tonnes",
+      "page": 259,
+      "status": "scenario_projection_in_2021_document",
+      "is_observed_actual": false,
+      "scope": "Russian_Federation_aggregate_not_city_corridor"
+    },
+    {
+      "scenario": "baseline",
+      "mode": "river",
+      "year": 2019,
+      "value_million_tonnes": 108,
+      "unit": "million_tonnes",
+      "page": 259,
+      "status": "historical_baseline_in_strategy",
+      "is_observed_actual": false,
+      "scope": "Russian_Federation_aggregate_not_city_corridor"
+    },
+    {
+      "scenario": "baseline",
+      "mode": "river",
+      "year": 2024,
+      "value_million_tonnes": 123,
+      "unit": "million_tonnes",
+      "page": 259,
+      "status": "scenario_projection_in_2021_document",
+      "is_observed_actual": false,
+      "scope": "Russian_Federation_aggregate_not_city_corridor"
+    },
+    {
+      "scenario": "baseline",
+      "mode": "river",
+      "year": 2030,
+      "value_million_tonnes": 184,
+      "unit": "million_tonnes",
+      "page": 259,
+      "status": "scenario_projection_in_2021_document",
+      "is_observed_actual": false,
+      "scope": "Russian_Federation_aggregate_not_city_corridor"
+    },
+    {
+      "scenario": "baseline",
+      "mode": "river",
+      "year": 2035,
+      "value_million_tonnes": 222,
+      "unit": "million_tonnes",
+      "page": 259,
+      "status": "scenario_projection_in_2021_document",
+      "is_observed_actual": false,
+      "scope": "Russian_Federation_aggregate_not_city_corridor"
+    }
+  ],
+  "architecture_context": [
+    {
+      "page": 130,
+      "topic": "Мультимодальные логистические центры, регулярные маршруты и консолидация",
+      "application": "Сохраняем явные хабы, переходы, обработку, накопление и расписания; это не доказательство действующих связей."
+    },
+    {
+      "page": 148,
+      "topic": "Цифровое планирование и качество логистики",
+      "application": "Сравниваем стоимость и сквозной срок; заявленное ускорение не используется как готовый множитель времени."
+    },
+    {
+      "page": 156,
+      "topic": "Сервисная модель и обмен данными о грузах и перевозках",
+      "application": "Единый формат ответа для формы и ассистента; никаких заявлений об уже выполненной интеграции с государственными системами."
+    }
+  ],
+  "notes": [
+    "Извлечены только 32 значения двух таблиц приложения 4; остальные таблицы не объявляются импортированными.",
+    "Значения 2024/2030/2035 — сценарии документа 2021 года, не наблюдавшиеся факты и не прогноз конкретного маршрута.",
+    "Общий объём не восстанавливается сложением выбранных трёх видов: таблица озаглавлена как изменение отдельных видов.",
+    "Актуальная редакция стратегии и выполнение планов не проверялись.",
+    "Ни тарифы, ни свободные мощности, ни транспортные услуги из стратегических целей не создаются."
+  ]
+}

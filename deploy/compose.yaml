@@ -1,0 +1,51 @@
+name: transport-service
+services:
+  backend:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: transport-backend:${RELEASE_TAG:-local}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_PATH: /var/lib/transport/auth.sqlite3
+    volumes:
+      - backend-data:/var/lib/transport
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+  proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      DOMAIN: ${DOMAIN:?Set DOMAIN in deploy/.env}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./frontend-dist:/srv/frontend:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+volumes:
+  backend-data:
+  caddy-data:
+  caddy-config:

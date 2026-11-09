@@ -1,0 +1,32 @@
+{
+  "engine": "russia",
+  "origin": "Москва",
+  "destination": "Брянск",
+  "stops": [],
+  "cargoes": [
+    {
+      "id": "flour",
+      "name": "Мука",
+      "weight_tonnes": 10,
+      "volume_m3": 20,
+      "packaging": "bags",
+      "splittable": true,
+      "max_piece_tonnes": 0.025,
+      "max_piece_dimensions_m": [
+        0.5,
+        0.4,
+        0.2
+      ]
+    }
+  ],
+  "schedule": {
+    "mode": "once",
+    "ready_at": "2026-11-09T08:00:00+03:00"
+  },
+  "max_delivery_hours": 120,
+  "allowed_modes": [
+    "road",
+    "rail"
+  ],
+  "data_policy": "allow_assumptions"
+}

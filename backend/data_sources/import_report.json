@@ -1,0 +1,86 @@
+{
+  "sources": [
+    {
+      "id": "asop-reviewed-pdfs-v1",
+      "kind": "asop_reviewed_charts",
+      "file_sha256": "35c5cb1517dcab0a36601ebe5123042d2badeddc0c25eaf964f6f955cf232e11",
+      "reviewed_on": "2026-11-08",
+      "files": 27,
+      "rows": 620,
+      "issues": 43,
+      "flagged_rows": 152,
+      "periods": [
+        "Q1",
+        "year"
+      ],
+      "annual_years": [
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "quarterly_years": [
+        2025,
+        2026
+      ],
+      "freight_services_created": 0,
+      "price_data_created": 0
+    },
+    {
+      "id": "rosmorport-user-scrape-v1",
+      "kind": "reference_context",
+      "rows": 54,
+      "file_sha256": "c1f9513e9cf033d1aeafbfb61a07640a2ef03919bad12fe7448c7810c8f7f3f7",
+      "source_file_sha256": "396350727e1c68bd758e71179bb42c5803089eb133e2db6b902df9e14ced51de",
+      "freight_services_created": 0,
+      "price_data_created": 0,
+      "detailed": 18,
+      "directory_only": 36,
+      "coordinates": 18
+    },
+    {
+      "id": "source-01",
+      "file_sha256": "4728d93b8d29925b433a84a7c91fedbe4665bc78e672a23dc185d01c1e41dbea",
+      "kind": "connectivity",
+      "imported_date": "2026-11-08",
+      "freight_services_created": 0,
+      "price_data_created": 0,
+      "rows": 96660,
+      "modes": {
+        "road": 32220,
+        "rail": 32220,
+        "air": 32220
+      },
+      "indicators": 0,
+      "cities": 180,
+      "missing_routes": 32230
+    },
+    {
+      "id": "source-02",
+      "file_sha256": "85283d639cd8a25edbda0481dfa6379a9142699de1eddbdeb7a377e4c069aa8a",
+      "kind": "regional",
+      "imported_date": "2026-11-08",
+      "freight_services_created": 0,
+      "price_data_created": 0,
+      "rows": 24439,
+      "modes": {},
+      "indicators": 10,
+      "missing_units": 2400
+    },
+    {
+      "id": "transport-strategy-2021-v1",
+      "kind": "reference_context",
+      "rows": 32,
+      "file_sha256": "0209ff760535fee8ed7bc241e592a057e68388073113ad80339f7176888e6afe",
+      "source_file_sha256": "909c861d2197a5e5b5fba5b55eb8faae72e386c52d8453e619227ac07676070d",
+      "freight_services_created": 0,
+      "price_data_created": 0
+    }
+  ],
+  "note": "Наблюдения о городах и статистика отделены от подтверждённых грузовых услуг и хабов"
+}

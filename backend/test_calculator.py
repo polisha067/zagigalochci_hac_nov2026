@@ -3,12 +3,12 @@ import json
 from pathlib import Path
 import unittest
 
-from calculator import compare_delivery
+from backend.legacy.v01.calculator import compare_delivery
 
 
 class CalculatorTests(unittest.TestCase):
     def setUp(self):
-        root = Path(__file__).resolve().parent / "examples"
+        root = Path(__file__).resolve().parent / "legacy/v01/examples"
         self.request = json.loads((root / "request.json").read_text(encoding="utf-8"))
         self.dataset = json.loads((root / "dataset.json").read_text(encoding="utf-8"))
 

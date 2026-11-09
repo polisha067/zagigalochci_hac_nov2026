@@ -6,3 +6,6 @@ __pycache__/
 !.env.example
 backend/data/
 .DS_Store
+
+deploy/frontend-dist/
+deploy/backups/

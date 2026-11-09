@@ -1,0 +1,490 @@
+{
+  "id": "transneft-crude-2026-v1",
+  "reviewed_on": "2026-11-08",
+  "valid_from": "2026-01-01",
+  "valid_until_exclusive": "2027-01-01",
+  "validity_note": "Ставки приказа 857/25 в редакции 27.02.2026; конец 2026 — граница снимка, не утверждённая дата отмены.",
+  "sources": [
+    {
+      "id": "pipeline-fas-857-25",
+      "url": "https://www.consultant.ru/document/cons_doc_LAW_520601/2ff7a8c72de3994f30496a0ccbb1ddafdaddf518/",
+      "roles": [
+        "tariff"
+      ]
+    },
+    {
+      "id": "pipeline-fas-operations",
+      "url": "https://www.consultant.ru/document/cons_doc_LAW_520601/def06aaf49031753b14c7fd3066ba01246b8883d/",
+      "roles": [
+        "tariff"
+      ]
+    },
+    {
+      "id": "pipeline-contract-2026",
+      "url": "https://ptport.ru/customers/uslugi-po-transportirovke/tipovye-formy-dogovorov/dogovornaya-rabota-2026/",
+      "roles": [
+        "reference_points"
+      ]
+    },
+    {
+      "id": "pipeline-physical-lengths",
+      "url": "https://sst.ru/upload/presentations/reference-list.pdf",
+      "roles": [
+        "physical_distance_reference"
+      ]
+    }
+  ],
+  "points": [
+    {
+      "id": "taishet",
+      "name": "Тайшет",
+      "settlement_name": "Тайшет",
+      "sikn": [],
+      "mapping_status": "locality_reference_not_exact_terminal_location"
+    },
+    {
+      "id": "meget",
+      "name": "ПН «Мегет»",
+      "settlement_name": "Мегет",
+      "sikn": [],
+      "mapping_status": "locality_reference_not_exact_terminal_location"
+    },
+    {
+      "id": "ankhk",
+      "name": "АО «АНХК»",
+      "settlement_name": "Ангарск",
+      "sikn": [
+        "450"
+      ],
+      "mapping_status": "locality_reference_not_exact_terminal_location"
+    },
+    {
+      "id": "yaroslavl-3",
+      "name": "Ярославль 3",
+      "settlement_name": "Ярославль",
+      "sikn": [],
+      "mapping_status": "locality_reference_not_exact_terminal_location"
+    },
+    {
+      "id": "primorsk",
+      "name": "НБ «Приморск»",
+      "settlement_name": "Приморск",
+      "sikn": [],
+      "mapping_status": "locality_reference_not_exact_terminal_location"
+    },
+    {
+      "id": "klin",
+      "name": "Клин",
+      "settlement_name": "Клин",
+      "sikn": [],
+      "mapping_status": "locality_reference_not_exact_terminal_location"
+    },
+    {
+      "id": "ust-luga",
+      "name": "НБ «Усть-Луга»",
+      "settlement_name": "Усть-Луга",
+      "sikn": [],
+      "mapping_status": "locality_reference_not_exact_terminal_location"
+    },
+    {
+      "id": "makhachkala",
+      "name": "Махачкала",
+      "settlement_name": "Махачкала",
+      "sikn": [],
+      "mapping_status": "locality_reference_not_exact_terminal_location"
+    },
+    {
+      "id": "sheskharis",
+      "name": "ПК «Шесхарис»",
+      "settlement_name": "Новороссийск",
+      "sikn": [],
+      "mapping_status": "locality_reference_not_exact_terminal_location"
+    },
+    {
+      "id": "zapolyarye",
+      "name": "ГНПС «Заполярье»",
+      "settlement_name": null,
+      "sikn": [],
+      "mapping_status": "unresolved"
+    },
+    {
+      "id": "purpe",
+      "name": "Пурпе",
+      "settlement_name": null,
+      "sikn": [],
+      "mapping_status": "unresolved"
+    },
+    {
+      "id": "kuyumba",
+      "name": "Куюмба",
+      "settlement_name": "Куюмба",
+      "sikn": [],
+      "mapping_status": "locality_reference_not_exact_terminal_location"
+    },
+    {
+      "id": "kozmino",
+      "name": "НБ «Козьмино»",
+      "settlement_name": "Находка",
+      "sikn": [],
+      "mapping_status": "locality_reference_not_exact_terminal_location"
+    }
+  ],
+  "routes": [
+    {
+      "id": "pipeline-taishet-meget",
+      "origin": "taishet",
+      "destination": "meget",
+      "rate_rub": "507.28",
+      "basis": "per_tonne",
+      "tariff_type": "route",
+      "tax_basis": "excluding_vat",
+      "source_id": "pipeline-fas-857-25",
+      "cost_scope": "published_route_component",
+      "missing_components": [
+        "composition_of_route_tariff",
+        "applicable_terminal_operations",
+        "vat_for_specific_operation"
+      ],
+      "reverse_confirmed": false
+    },
+    {
+      "id": "pipeline-taishet-ankhk",
+      "origin": "taishet",
+      "destination": "ankhk",
+      "rate_rub": "507.28",
+      "basis": "per_tonne",
+      "tariff_type": "route",
+      "tax_basis": "excluding_vat",
+      "source_id": "pipeline-fas-857-25",
+      "cost_scope": "published_route_component",
+      "missing_components": [
+        "composition_of_route_tariff",
+        "applicable_terminal_operations",
+        "vat_for_specific_operation"
+      ],
+      "reverse_confirmed": false
+    },
+    {
+      "id": "pipeline-yaroslavl-3-primorsk",
+      "origin": "yaroslavl-3",
+      "destination": "primorsk",
+      "rate_rub": "1024.22",
+      "basis": "per_tonne",
+      "tariff_type": "route",
+      "tax_basis": "excluding_vat",
+      "source_id": "pipeline-fas-857-25",
+      "cost_scope": "published_route_component",
+      "missing_components": [
+        "composition_of_route_tariff",
+        "applicable_terminal_operations",
+        "vat_for_specific_operation"
+      ],
+      "reverse_confirmed": false
+    },
+    {
+      "id": "pipeline-klin-ust-luga",
+      "origin": "klin",
+      "destination": "ust-luga",
+      "rate_rub": "1188.69",
+      "basis": "per_tonne",
+      "tariff_type": "route",
+      "tax_basis": "excluding_vat",
+      "source_id": "pipeline-fas-857-25",
+      "cost_scope": "published_route_component",
+      "missing_components": [
+        "composition_of_route_tariff",
+        "applicable_terminal_operations",
+        "vat_for_specific_operation"
+      ],
+      "reverse_confirmed": false
+    },
+    {
+      "id": "pipeline-makhachkala-sheskharis",
+      "origin": "makhachkala",
+      "destination": "sheskharis",
+      "rate_rub": "562.16",
+      "basis": "per_tonne",
+      "tariff_type": "route",
+      "tax_basis": "excluding_vat",
+      "source_id": "pipeline-fas-857-25",
+      "cost_scope": "published_route_component",
+      "missing_components": [
+        "composition_of_route_tariff",
+        "applicable_terminal_operations",
+        "vat_for_specific_operation"
+      ],
+      "reverse_confirmed": false
+    },
+    {
+      "id": "pipeline-zapolyarye-purpe",
+      "origin": "zapolyarye",
+      "destination": "purpe",
+      "rate_rub": "632.00",
+      "basis": "per_tonne",
+      "tariff_type": "network",
+      "tax_basis": "excluding_vat",
+      "source_id": "pipeline-fas-857-25",
+      "cost_scope": "published_route_component",
+      "missing_components": [
+        "composition_of_route_tariff",
+        "applicable_terminal_operations",
+        "vat_for_specific_operation"
+      ],
+      "reverse_confirmed": false
+    },
+    {
+      "id": "pipeline-kuyumba-taishet",
+      "origin": "kuyumba",
+      "destination": "taishet",
+      "rate_rub": "1004.71",
+      "basis": "per_tonne",
+      "tariff_type": "network",
+      "tax_basis": "excluding_vat",
+      "source_id": "pipeline-fas-857-25",
+      "cost_scope": "published_route_component",
+      "missing_components": [
+        "composition_of_route_tariff",
+        "applicable_terminal_operations",
+        "vat_for_specific_operation"
+      ],
+      "reverse_confirmed": false
+    },
+    {
+      "id": "pipeline-purpe-primorsk",
+      "origin": "purpe",
+      "destination": "primorsk",
+      "rate_rub": "2942.40",
+      "basis": "per_tonne",
+      "tariff_type": "network",
+      "tax_basis": "excluding_vat",
+      "source_id": "pipeline-fas-857-25",
+      "cost_scope": "published_route_component",
+      "missing_components": [
+        "composition_of_route_tariff",
+        "applicable_terminal_operations",
+        "vat_for_specific_operation"
+      ],
+      "reverse_confirmed": false
+    },
+    {
+      "id": "pipeline-purpe-ust-luga",
+      "origin": "purpe",
+      "destination": "ust-luga",
+      "rate_rub": "2942.40",
+      "basis": "per_tonne",
+      "tariff_type": "network",
+      "tax_basis": "excluding_vat",
+      "source_id": "pipeline-fas-857-25",
+      "cost_scope": "published_route_component",
+      "missing_components": [
+        "composition_of_route_tariff",
+        "applicable_terminal_operations",
+        "vat_for_specific_operation"
+      ],
+      "reverse_confirmed": false
+    }
+  ],
+  "operations": [
+    {
+      "point_id": "meget",
+      "operation": "loading",
+      "rate_rub": "13457.22",
+      "basis": "per_100_tonnes",
+      "tax_basis": "excluding_vat",
+      "source_id": "pipeline-fas-operations",
+      "automatic_addition": false
+    },
+    {
+      "point_id": "ankhk",
+      "operation": "delivery",
+      "rate_rub": "2646.52",
+      "basis": "per_100_tonnes",
+      "tax_basis": "excluding_vat",
+      "source_id": "pipeline-fas-operations",
+      "automatic_addition": false
+    },
+    {
+      "point_id": "primorsk",
+      "operation": "transshipment",
+      "rate_rub": "12622.03",
+      "basis": "per_100_tonnes",
+      "tax_basis": "excluding_vat",
+      "source_id": "pipeline-fas-operations",
+      "automatic_addition": false
+    },
+    {
+      "point_id": "ust-luga",
+      "operation": "transshipment",
+      "rate_rub": "19654.91",
+      "basis": "per_100_tonnes",
+      "tax_basis": "excluding_vat",
+      "source_id": "pipeline-fas-operations",
+      "automatic_addition": false
+    },
+    {
+      "point_id": "kozmino",
+      "operation": "transshipment",
+      "rate_rub": "25166.68",
+      "basis": "per_100_tonnes",
+      "tax_basis": "excluding_vat",
+      "source_id": "pipeline-fas-operations",
+      "automatic_addition": false
+    },
+    {
+      "point_id": "kozmino",
+      "operation": "rail_unloading",
+      "rate_rub": "38675.21",
+      "basis": "per_100_tonnes",
+      "tax_basis": "excluding_vat",
+      "source_id": "pipeline-fas-operations",
+      "automatic_addition": false
+    },
+    {
+      "point_id": "sheskharis",
+      "operation": "transshipment_sheskharis",
+      "rate_rub": "5592.56",
+      "basis": "per_100_tonnes",
+      "tax_basis": "excluding_vat",
+      "source_id": "pipeline-fas-operations",
+      "automatic_addition": false
+    },
+    {
+      "point_id": "sheskharis",
+      "operation": "transshipment_grushovaya",
+      "rate_rub": "4294.98",
+      "basis": "per_100_tonnes",
+      "tax_basis": "excluding_vat",
+      "source_id": "pipeline-fas-operations",
+      "automatic_addition": false
+    },
+    {
+      "point_id": "sheskharis",
+      "operation": "loading_grushovaya",
+      "rate_rub": "24887.82",
+      "basis": "per_100_tonnes",
+      "tax_basis": "excluding_vat",
+      "source_id": "pipeline-fas-operations",
+      "automatic_addition": false
+    }
+  ],
+  "pumping_by_operator": [
+    {
+      "operator": "Транснефть-Сибирь",
+      "rate_rub": "16.0070",
+      "basis": "per_100_tonne_km",
+      "tax_basis": "excluding_vat",
+      "source_url": "https://www.consultant.ru/document/cons_doc_LAW_520601/992ed8600433c6edb1ebfac4570b10f232cb6aa1/"
+    },
+    {
+      "operator": "Транснефть-Западная Сибирь",
+      "rate_rub": "19.9894",
+      "basis": "per_100_tonne_km",
+      "tax_basis": "excluding_vat",
+      "source_url": "https://www.consultant.ru/document/cons_doc_LAW_520601/992ed8600433c6edb1ebfac4570b10f232cb6aa1/"
+    },
+    {
+      "operator": "Транснефть-Восток",
+      "rate_rub": "28.7696",
+      "basis": "per_100_tonne_km",
+      "tax_basis": "excluding_vat",
+      "source_url": "https://www.consultant.ru/document/cons_doc_LAW_520601/992ed8600433c6edb1ebfac4570b10f232cb6aa1/"
+    },
+    {
+      "operator": "Транснефть-Дальний Восток",
+      "rate_rub": "28.7696",
+      "basis": "per_100_tonne_km",
+      "tax_basis": "excluding_vat",
+      "source_url": "https://www.consultant.ru/document/cons_doc_LAW_520601/992ed8600433c6edb1ebfac4570b10f232cb6aa1/"
+    },
+    {
+      "operator": "Транснефть-Урал",
+      "rate_rub": "25.0049",
+      "basis": "per_100_tonne_km",
+      "tax_basis": "excluding_vat",
+      "source_url": "https://www.consultant.ru/document/cons_doc_LAW_520601/992ed8600433c6edb1ebfac4570b10f232cb6aa1/"
+    },
+    {
+      "operator": "Транснефть-Прикамье",
+      "rate_rub": "27.7879",
+      "basis": "per_100_tonne_km",
+      "tax_basis": "excluding_vat",
+      "source_url": "https://www.consultant.ru/document/cons_doc_LAW_520601/992ed8600433c6edb1ebfac4570b10f232cb6aa1/"
+    },
+    {
+      "operator": "Транснефть-Верхняя Волга",
+      "rate_rub": "33.1572",
+      "basis": "per_100_tonne_km",
+      "tax_basis": "excluding_vat",
+      "source_url": "https://www.consultant.ru/document/cons_doc_LAW_520601/992ed8600433c6edb1ebfac4570b10f232cb6aa1/"
+    },
+    {
+      "operator": "Транснефть-Приволга",
+      "rate_rub": "26.0948",
+      "basis": "per_100_tonne_km",
+      "tax_basis": "excluding_vat",
+      "source_url": "https://www.consultant.ru/document/cons_doc_LAW_520601/992ed8600433c6edb1ebfac4570b10f232cb6aa1/"
+    },
+    {
+      "operator": "Транснефть-Дружба",
+      "rate_rub": "30.2367",
+      "basis": "per_100_tonne_km",
+      "tax_basis": "excluding_vat",
+      "source_url": "https://www.consultant.ru/document/cons_doc_LAW_520601/992ed8600433c6edb1ebfac4570b10f232cb6aa1/"
+    },
+    {
+      "operator": "Черномортранснефть",
+      "rate_rub": "41.6330",
+      "basis": "per_100_tonne_km",
+      "tax_basis": "excluding_vat",
+      "source_url": "https://www.consultant.ru/document/cons_doc_LAW_520601/992ed8600433c6edb1ebfac4570b10f232cb6aa1/"
+    },
+    {
+      "operator": "Транснефть-Север",
+      "rate_rub": "51.8228",
+      "basis": "per_100_tonne_km",
+      "tax_basis": "excluding_vat",
+      "source_url": "https://www.consultant.ru/document/cons_doc_LAW_520601/992ed8600433c6edb1ebfac4570b10f232cb6aa1/"
+    },
+    {
+      "operator": "Транснефть-Балтика",
+      "rate_rub": "30.2821",
+      "basis": "per_100_tonne_km",
+      "tax_basis": "excluding_vat",
+      "source_url": "https://www.consultant.ru/document/cons_doc_LAW_520601/992ed8600433c6edb1ebfac4570b10f232cb6aa1/"
+    }
+  ],
+  "dispatch": {
+    "rate_rub": "50.7193",
+    "basis": "per_100_tonne_km",
+    "tax_basis": "excluding_vat",
+    "source_id": "pipeline-fas-857-25",
+    "automatic_addition": false
+  },
+  "physical_sections": [
+    {
+      "origin": "zapolyarye",
+      "destination": "purpe",
+      "distance_km": 488,
+      "tariff_distance_confirmed": false
+    },
+    {
+      "origin": "taishet",
+      "destination_name": "Сковородино",
+      "distance_km": 2694,
+      "tariff_distance_confirmed": false
+    },
+    {
+      "origin_name": "Сковородино",
+      "destination": "kozmino",
+      "distance_km": 2046,
+      "tariff_distance_confirmed": false
+    }
+  ],
+  "rules": [
+    "Только товарная нефть; нефтепродукты и газ требуют других каталогов.",
+    "Масса для оплаты — нетто в начале маршрута; потери не заданы фактическим нормативом.",
+    "Нет автоматического добавления диспетчеризации/операций к сетевому или маршрутному тарифу.",
+    "Скорость потока, сроки, свободные мощности, допуски продукта и включённые услуги не подтверждены.",
+    "Сетевой тариф ВСТО 3896.51 ₽/т применяется при условиях пп.1.11–1.12, а не к любой паре точек ВСТО; автоматически не создаётся."
+  ]
+}
