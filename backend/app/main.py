@@ -19,6 +19,7 @@ from .database import Database
 from .mailer import MailDeliveryError, Mailer
 from .schemas import Credentials, ErrorResponse, RegisterRequest, ResendRequest, UserResponse, VerificationRequired, VerifyEmailRequest
 from .verification import VerificationProblem, VerificationService
+from backend.a1_forecast import Granularity, MAX_FORECAST_YEAR, MIN_FORECAST_YEAR, forecast_options, forecast_route
 from backend.calculation_models import CalculationRequest, CalculationResponse, MAX_SHIPMENTS
 from backend.transport_calculator import compare_transport, load_catalog
 from backend.network.models import NetworkRequest, NetworkResponse
@@ -318,6 +319,29 @@ def create_app(settings=None):
             return calculate_pipeline(payload)
         except ValueError as exc:
             raise error(422,"calculation_error",str(exc))
+
+    @app.get("/network/forecast/options", tags=["Прогноз"])
+    def get_forecast_options(user=Depends(require_user)):
+        return forecast_options()
+
+    @app.get("/network/forecast", tags=["Прогноз"])
+    def get_forecast(
+        route_id: str = Query(min_length=1, max_length=100),
+        start_year: int = Query(ge=MIN_FORECAST_YEAR, le=MAX_FORECAST_YEAR),
+        end_year: int = Query(ge=MIN_FORECAST_YEAR, le=MAX_FORECAST_YEAR),
+        granularity: Granularity = "year",
+        user=Depends(require_user),
+    ):
+        try:
+            return forecast_route(route_id, start_year, end_year, granularity)
+        except ValueError as exc:
+            if start_year <= end_year:
+                raise
+            raise error(422, "invalid_forecast_period", str(exc)) from exc
+        except KeyError as exc:
+            if exc.args != (route_id,):
+                raise
+            raise error(404, "forecast_route_not_found", "Для этого направления нет ряда объёмов") from exc
 
     @app.get("/network/russia/reference-ports", tags=["Общая сеть России"])
     def reference_ports(user=Depends(require_user)):

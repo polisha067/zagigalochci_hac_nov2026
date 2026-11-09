@@ -1,0 +1,347 @@
+{
+  "route": {
+    "origin": "Москва",
+    "destination": "Кемерово"
+  },
+  "volume_status": "synthetic",
+  "method": "linear_trend_with_monthly_effects",
+  "holdout": {
+    "train_through": "2024-12",
+    "model": {
+      "mae_tonnes": 2.94,
+      "wape_percent": 2.52,
+      "actual_total_tonnes": 1403.1,
+      "predicted_total_tonnes": 1405.4
+    },
+    "baseline_same_month_previous_year": {
+      "mae_tonnes": 9.23,
+      "wape_percent": 7.9,
+      "actual_total_tonnes": 1403.1,
+      "predicted_total_tonnes": 1292.3
+    },
+    "months": [
+      {
+        "month": "2025-01",
+        "synthetic_actual_tonnes": 98.1,
+        "forecast_tonnes": 101.1,
+        "baseline_tonnes": 93.0
+      },
+      {
+        "month": "2025-02",
+        "synthetic_actual_tonnes": 101.2,
+        "forecast_tonnes": 103.3,
+        "baseline_tonnes": 96.7
+      },
+      {
+        "month": "2025-03",
+        "synthetic_actual_tonnes": 110.9,
+        "forecast_tonnes": 113.1,
+        "baseline_tonnes": 109.0
+      },
+      {
+        "month": "2025-04",
+        "synthetic_actual_tonnes": 111.7,
+        "forecast_tonnes": 114.3,
+        "baseline_tonnes": 108.3
+      },
+      {
+        "month": "2025-05",
+        "synthetic_actual_tonnes": 116.5,
+        "forecast_tonnes": 121.0,
+        "baseline_tonnes": 114.0
+      },
+      {
+        "month": "2025-06",
+        "synthetic_actual_tonnes": 129.4,
+        "forecast_tonnes": 121.5,
+        "baseline_tonnes": 107.9
+      },
+      {
+        "month": "2025-07",
+        "synthetic_actual_tonnes": 113.9,
+        "forecast_tonnes": 114.9,
+        "baseline_tonnes": 100.5
+      },
+      {
+        "month": "2025-08",
+        "synthetic_actual_tonnes": 116.5,
+        "forecast_tonnes": 113.4,
+        "baseline_tonnes": 104.1
+      },
+      {
+        "month": "2025-09",
+        "synthetic_actual_tonnes": 121.4,
+        "forecast_tonnes": 124.6,
+        "baseline_tonnes": 111.5
+      },
+      {
+        "month": "2025-10",
+        "synthetic_actual_tonnes": 133.1,
+        "forecast_tonnes": 127.9,
+        "baseline_tonnes": 116.6
+      },
+      {
+        "month": "2025-11",
+        "synthetic_actual_tonnes": 127.3,
+        "forecast_tonnes": 127.5,
+        "baseline_tonnes": 117.5
+      },
+      {
+        "month": "2025-12",
+        "synthetic_actual_tonnes": 123.1,
+        "forecast_tonnes": 122.8,
+        "baseline_tonnes": 113.2
+      }
+    ]
+  },
+  "refit_through": "2025-12",
+  "forecast_months": [
+    {
+      "month": "2026-01",
+      "forecast_tonnes": 108.8
+    },
+    {
+      "month": "2026-02",
+      "forecast_tonnes": 111.2
+    },
+    {
+      "month": "2026-03",
+      "forecast_tonnes": 121.0
+    },
+    {
+      "month": "2026-04",
+      "forecast_tonnes": 122.2
+    },
+    {
+      "month": "2026-05",
+      "forecast_tonnes": 128.4
+    },
+    {
+      "month": "2026-06",
+      "forecast_tonnes": 131.4
+    },
+    {
+      "month": "2026-07",
+      "forecast_tonnes": 123.0
+    },
+    {
+      "month": "2026-08",
+      "forecast_tonnes": 122.3
+    },
+    {
+      "month": "2026-09",
+      "forecast_tonnes": 132.3
+    },
+    {
+      "month": "2026-10",
+      "forecast_tonnes": 137.3
+    },
+    {
+      "month": "2026-11",
+      "forecast_tonnes": 135.8
+    },
+    {
+      "month": "2026-12",
+      "forecast_tonnes": 131.2
+    },
+    {
+      "month": "2027-01",
+      "forecast_tonnes": 117.2
+    },
+    {
+      "month": "2027-02",
+      "forecast_tonnes": 119.6
+    },
+    {
+      "month": "2027-03",
+      "forecast_tonnes": 129.4
+    },
+    {
+      "month": "2027-04",
+      "forecast_tonnes": 130.6
+    },
+    {
+      "month": "2027-05",
+      "forecast_tonnes": 136.9
+    },
+    {
+      "month": "2027-06",
+      "forecast_tonnes": 139.9
+    },
+    {
+      "month": "2027-07",
+      "forecast_tonnes": 131.4
+    },
+    {
+      "month": "2027-08",
+      "forecast_tonnes": 130.8
+    },
+    {
+      "month": "2027-09",
+      "forecast_tonnes": 140.7
+    },
+    {
+      "month": "2027-10",
+      "forecast_tonnes": 145.7
+    },
+    {
+      "month": "2027-11",
+      "forecast_tonnes": 144.2
+    },
+    {
+      "month": "2027-12",
+      "forecast_tonnes": 139.7
+    },
+    {
+      "month": "2028-01",
+      "forecast_tonnes": 125.7
+    },
+    {
+      "month": "2028-02",
+      "forecast_tonnes": 128.0
+    },
+    {
+      "month": "2028-03",
+      "forecast_tonnes": 137.8
+    },
+    {
+      "month": "2028-04",
+      "forecast_tonnes": 139.0
+    },
+    {
+      "month": "2028-05",
+      "forecast_tonnes": 145.3
+    },
+    {
+      "month": "2028-06",
+      "forecast_tonnes": 148.3
+    },
+    {
+      "month": "2028-07",
+      "forecast_tonnes": 139.9
+    },
+    {
+      "month": "2028-08",
+      "forecast_tonnes": 139.2
+    },
+    {
+      "month": "2028-09",
+      "forecast_tonnes": 149.1
+    },
+    {
+      "month": "2028-10",
+      "forecast_tonnes": 154.1
+    },
+    {
+      "month": "2028-11",
+      "forecast_tonnes": 152.6
+    },
+    {
+      "month": "2028-12",
+      "forecast_tonnes": 148.1
+    },
+    {
+      "month": "2029-01",
+      "forecast_tonnes": 134.1
+    },
+    {
+      "month": "2029-02",
+      "forecast_tonnes": 136.4
+    },
+    {
+      "month": "2029-03",
+      "forecast_tonnes": 146.2
+    },
+    {
+      "month": "2029-04",
+      "forecast_tonnes": 147.4
+    },
+    {
+      "month": "2029-05",
+      "forecast_tonnes": 153.7
+    },
+    {
+      "month": "2029-06",
+      "forecast_tonnes": 156.7
+    },
+    {
+      "month": "2029-07",
+      "forecast_tonnes": 148.3
+    },
+    {
+      "month": "2029-08",
+      "forecast_tonnes": 147.6
+    },
+    {
+      "month": "2029-09",
+      "forecast_tonnes": 157.5
+    },
+    {
+      "month": "2029-10",
+      "forecast_tonnes": 162.5
+    },
+    {
+      "month": "2029-11",
+      "forecast_tonnes": 161.0
+    },
+    {
+      "month": "2029-12",
+      "forecast_tonnes": 156.5
+    },
+    {
+      "month": "2030-01",
+      "forecast_tonnes": 142.5
+    },
+    {
+      "month": "2030-02",
+      "forecast_tonnes": 144.9
+    },
+    {
+      "month": "2030-03",
+      "forecast_tonnes": 154.6
+    },
+    {
+      "month": "2030-04",
+      "forecast_tonnes": 155.8
+    },
+    {
+      "month": "2030-05",
+      "forecast_tonnes": 162.1
+    },
+    {
+      "month": "2030-06",
+      "forecast_tonnes": 165.1
+    },
+    {
+      "month": "2030-07",
+      "forecast_tonnes": 156.7
+    },
+    {
+      "month": "2030-08",
+      "forecast_tonnes": 156.0
+    },
+    {
+      "month": "2030-09",
+      "forecast_tonnes": 165.9
+    },
+    {
+      "month": "2030-10",
+      "forecast_tonnes": 170.9
+    },
+    {
+      "month": "2030-11",
+      "forecast_tonnes": 169.5
+    },
+    {
+      "month": "2030-12",
+      "forecast_tonnes": 164.9
+    }
+  ],
+  "forecast_yearly_tonnes": {
+    "2026": 1504.9,
+    "2027": 1606.1,
+    "2028": 1707.1,
+    "2029": 1807.9,
+    "2030": 1908.9
+  }
+}

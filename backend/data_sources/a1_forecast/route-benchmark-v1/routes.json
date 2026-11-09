@@ -1,0 +1,230 @@
+[
+  {
+    "route_id": "89701000001-61701000001",
+    "origin": "Саранск",
+    "destination": "Рязань",
+    "distance_band_km": [
+      200,
+      700
+    ],
+    "connectivity_reference": {
+      "rail": {
+        "km": 430.0,
+        "hours": 7.8
+      },
+      "road": {
+        "km": 521.0,
+        "hours": 7.4
+      }
+    }
+  },
+  {
+    "route_id": "46725000001-19701000001",
+    "origin": "Жуковский",
+    "destination": "Вологда",
+    "distance_band_km": [
+      200,
+      700
+    ],
+    "connectivity_reference": {
+      "rail": {
+        "km": 527.0,
+        "hours": 9.6
+      },
+      "road": {
+        "km": 602.0,
+        "hours": 8.5
+      }
+    }
+  },
+  {
+    "route_id": "46758000001-19701000001",
+    "origin": "Пушкино",
+    "destination": "Вологда",
+    "distance_band_km": [
+      200,
+      700
+    ],
+    "connectivity_reference": {
+      "rail": {
+        "km": 466.0,
+        "hours": 8.5
+      },
+      "road": {
+        "km": 509.0,
+        "hours": 7.3
+      }
+    }
+  },
+  {
+    "route_id": "45000000000-24701000001",
+    "origin": "Москва",
+    "destination": "Иваново",
+    "distance_band_km": [
+      200,
+      700
+    ],
+    "connectivity_reference": {
+      "rail": {
+        "km": 317.0,
+        "hours": 5.8
+      },
+      "road": {
+        "km": 311.0,
+        "hours": 4.6
+      }
+    }
+  },
+  {
+    "route_id": "61701000001-12701000001",
+    "origin": "Рязань",
+    "destination": "Астрахань",
+    "distance_band_km": [
+      700,
+      1500
+    ],
+    "connectivity_reference": {
+      "rail": {
+        "km": 1311.0,
+        "hours": 23.8
+      },
+      "road": {
+        "km": 1282.0,
+        "hours": 17.6
+      }
+    }
+  },
+  {
+    "route_id": "46758000001-18710000001",
+    "origin": "Пушкино",
+    "destination": "Волжский",
+    "distance_band_km": [
+      700,
+      1500
+    ],
+    "connectivity_reference": {
+      "rail": {
+        "km": 1112.0,
+        "hours": 20.2
+      },
+      "road": {
+        "km": 1132.0,
+        "hours": 15.6
+      }
+    }
+  },
+  {
+    "route_id": "22721000001-40000000000",
+    "origin": "Дзержинск",
+    "destination": "Санкт-Петербург",
+    "distance_band_km": [
+      700,
+      1500
+    ],
+    "connectivity_reference": {
+      "rail": {
+        "km": 1055.0,
+        "hours": 19.2
+      },
+      "road": {
+        "km": 1196.0,
+        "hours": 16.4
+      }
+    }
+  },
+  {
+    "route_id": "46744000001-80701000001",
+    "origin": "Красногорск",
+    "destination": "Уфа",
+    "distance_band_km": [
+      700,
+      1500
+    ],
+    "connectivity_reference": {
+      "rail": {
+        "km": 1531.0,
+        "hours": 27.8
+      },
+      "road": {
+        "km": 1446.0,
+        "hours": 19.8
+      }
+    }
+  },
+  {
+    "route_id": "26706000001-88701000001",
+    "origin": "Назрань",
+    "destination": "Йошкар-Ола",
+    "distance_band_km": [
+      1500,
+      4000
+    ],
+    "connectivity_reference": {
+      "rail": {
+        "km": 2012.0,
+        "hours": 36.6
+      },
+      "road": {
+        "km": 1935.0,
+        "hours": 26.3
+      }
+    }
+  },
+  {
+    "route_id": "46751000001-04703000001",
+    "origin": "Ногинск",
+    "destination": "Ачинск",
+    "distance_band_km": [
+      1500,
+      4000
+    ],
+    "connectivity_reference": {
+      "rail": {
+        "km": 3760.0,
+        "hours": 68.4
+      },
+      "road": {
+        "km": 3819.0,
+        "hours": 51.4
+      }
+    }
+  },
+  {
+    "route_id": "11701000001-80727000001",
+    "origin": "Архангельск",
+    "destination": "Нефтекамск",
+    "distance_band_km": [
+      1500,
+      4000
+    ],
+    "connectivity_reference": {
+      "rail": {
+        "km": 1727.0,
+        "hours": 31.4
+      },
+      "road": {
+        "km": 1585.0,
+        "hours": 21.6
+      }
+    }
+  },
+  {
+    "route_id": "80701000001-85701000001",
+    "origin": "Уфа",
+    "destination": "Элиста",
+    "distance_band_km": [
+      1500,
+      4000
+    ],
+    "connectivity_reference": {
+      "rail": {
+        "km": 2316.0,
+        "hours": 42.1
+      },
+      "road": {
+        "km": 1622.0,
+        "hours": 22.1
+      }
+    }
+  }
+]

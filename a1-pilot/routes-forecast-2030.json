@@ -1,0 +1,836 @@
+{
+  "volume_status": "synthetic",
+  "forecast_year": 2030,
+  "predictions_2025_sha256": "5478aca02597b597a5120a35a0f9514ef602f5d229b171168fe07aa01701faa3",
+  "pooled_holdout_model": {
+    "mae_tonnes": 9.25,
+    "wape_percent": 7.77,
+    "actual_total_tonnes": 17148.3,
+    "predicted_total_tonnes": 16750.0
+  },
+  "pooled_holdout_baseline": {
+    "mae_tonnes": 13.29,
+    "wape_percent": 11.16,
+    "actual_total_tonnes": 17148.3,
+    "predicted_total_tonnes": 16237.3
+  },
+  "forecast_total_tonnes": 19732.9,
+  "routes": [
+    {
+      "route_id": "89701000001-61701000001",
+      "origin": "Саранск",
+      "destination": "Рязань",
+      "holdout_model": {
+        "mae_tonnes": 5.54,
+        "wape_percent": 9.23,
+        "actual_total_tonnes": 720.8,
+        "predicted_total_tonnes": 760.5
+      },
+      "holdout_baseline": {
+        "mae_tonnes": 9.9,
+        "wape_percent": 16.48,
+        "actual_total_tonnes": 720.8,
+        "predicted_total_tonnes": 811.2
+      },
+      "forecast_tonnes": 547.2,
+      "forecast_months": [
+        {
+          "month": "2030-01",
+          "forecast_tonnes": 44.0
+        },
+        {
+          "month": "2030-02",
+          "forecast_tonnes": 44.3
+        },
+        {
+          "month": "2030-03",
+          "forecast_tonnes": 44.0
+        },
+        {
+          "month": "2030-04",
+          "forecast_tonnes": 45.3
+        },
+        {
+          "month": "2030-05",
+          "forecast_tonnes": 45.1
+        },
+        {
+          "month": "2030-06",
+          "forecast_tonnes": 51.9
+        },
+        {
+          "month": "2030-07",
+          "forecast_tonnes": 52.4
+        },
+        {
+          "month": "2030-08",
+          "forecast_tonnes": 47.6
+        },
+        {
+          "month": "2030-09",
+          "forecast_tonnes": 46.4
+        },
+        {
+          "month": "2030-10",
+          "forecast_tonnes": 46.3
+        },
+        {
+          "month": "2030-11",
+          "forecast_tonnes": 39.5
+        },
+        {
+          "month": "2030-12",
+          "forecast_tonnes": 40.4
+        }
+      ]
+    },
+    {
+      "route_id": "46725000001-19701000001",
+      "origin": "Жуковский",
+      "destination": "Вологда",
+      "holdout_model": {
+        "mae_tonnes": 2.17,
+        "wape_percent": 4.8,
+        "actual_total_tonnes": 541.8,
+        "predicted_total_tonnes": 549.4
+      },
+      "holdout_baseline": {
+        "mae_tonnes": 2.78,
+        "wape_percent": 6.15,
+        "actual_total_tonnes": 541.8,
+        "predicted_total_tonnes": 544.9
+      },
+      "forecast_tonnes": 587.8,
+      "forecast_months": [
+        {
+          "month": "2030-01",
+          "forecast_tonnes": 48.5
+        },
+        {
+          "month": "2030-02",
+          "forecast_tonnes": 50.3
+        },
+        {
+          "month": "2030-03",
+          "forecast_tonnes": 47.2
+        },
+        {
+          "month": "2030-04",
+          "forecast_tonnes": 46.1
+        },
+        {
+          "month": "2030-05",
+          "forecast_tonnes": 45.4
+        },
+        {
+          "month": "2030-06",
+          "forecast_tonnes": 47.5
+        },
+        {
+          "month": "2030-07",
+          "forecast_tonnes": 46.8
+        },
+        {
+          "month": "2030-08",
+          "forecast_tonnes": 49.5
+        },
+        {
+          "month": "2030-09",
+          "forecast_tonnes": 50.6
+        },
+        {
+          "month": "2030-10",
+          "forecast_tonnes": 53.5
+        },
+        {
+          "month": "2030-11",
+          "forecast_tonnes": 51.2
+        },
+        {
+          "month": "2030-12",
+          "forecast_tonnes": 51.2
+        }
+      ]
+    },
+    {
+      "route_id": "46758000001-19701000001",
+      "origin": "Пушкино",
+      "destination": "Вологда",
+      "holdout_model": {
+        "mae_tonnes": 7.73,
+        "wape_percent": 6.67,
+        "actual_total_tonnes": 1391.4,
+        "predicted_total_tonnes": 1320.0
+      },
+      "holdout_baseline": {
+        "mae_tonnes": 10.99,
+        "wape_percent": 9.48,
+        "actual_total_tonnes": 1391.4,
+        "predicted_total_tonnes": 1273.3
+      },
+      "forecast_tonnes": 1604.6,
+      "forecast_months": [
+        {
+          "month": "2030-01",
+          "forecast_tonnes": 129.9
+        },
+        {
+          "month": "2030-02",
+          "forecast_tonnes": 138.4
+        },
+        {
+          "month": "2030-03",
+          "forecast_tonnes": 142.1
+        },
+        {
+          "month": "2030-04",
+          "forecast_tonnes": 149.8
+        },
+        {
+          "month": "2030-05",
+          "forecast_tonnes": 147.6
+        },
+        {
+          "month": "2030-06",
+          "forecast_tonnes": 148.2
+        },
+        {
+          "month": "2030-07",
+          "forecast_tonnes": 135.8
+        },
+        {
+          "month": "2030-08",
+          "forecast_tonnes": 123.9
+        },
+        {
+          "month": "2030-09",
+          "forecast_tonnes": 121.8
+        },
+        {
+          "month": "2030-10",
+          "forecast_tonnes": 120.6
+        },
+        {
+          "month": "2030-11",
+          "forecast_tonnes": 121.5
+        },
+        {
+          "month": "2030-12",
+          "forecast_tonnes": 125.0
+        }
+      ]
+    },
+    {
+      "route_id": "45000000000-24701000001",
+      "origin": "Москва",
+      "destination": "Иваново",
+      "holdout_model": {
+        "mae_tonnes": 4.04,
+        "wape_percent": 7.86,
+        "actual_total_tonnes": 617.2,
+        "predicted_total_tonnes": 589.3
+      },
+      "holdout_baseline": {
+        "mae_tonnes": 4.52,
+        "wape_percent": 8.78,
+        "actual_total_tonnes": 617.2,
+        "predicted_total_tonnes": 614.6
+      },
+      "forecast_tonnes": 508.0,
+      "forecast_months": [
+        {
+          "month": "2030-01",
+          "forecast_tonnes": 48.1
+        },
+        {
+          "month": "2030-02",
+          "forecast_tonnes": 47.3
+        },
+        {
+          "month": "2030-03",
+          "forecast_tonnes": 42.2
+        },
+        {
+          "month": "2030-04",
+          "forecast_tonnes": 41.9
+        },
+        {
+          "month": "2030-05",
+          "forecast_tonnes": 38.4
+        },
+        {
+          "month": "2030-06",
+          "forecast_tonnes": 37.3
+        },
+        {
+          "month": "2030-07",
+          "forecast_tonnes": 38.1
+        },
+        {
+          "month": "2030-08",
+          "forecast_tonnes": 40.0
+        },
+        {
+          "month": "2030-09",
+          "forecast_tonnes": 41.5
+        },
+        {
+          "month": "2030-10",
+          "forecast_tonnes": 42.1
+        },
+        {
+          "month": "2030-11",
+          "forecast_tonnes": 43.7
+        },
+        {
+          "month": "2030-12",
+          "forecast_tonnes": 47.4
+        }
+      ]
+    },
+    {
+      "route_id": "61701000001-12701000001",
+      "origin": "Рязань",
+      "destination": "Астрахань",
+      "holdout_model": {
+        "mae_tonnes": 3.46,
+        "wape_percent": 5.08,
+        "actual_total_tonnes": 816.8,
+        "predicted_total_tonnes": 823.5
+      },
+      "holdout_baseline": {
+        "mae_tonnes": 4.0,
+        "wape_percent": 5.88,
+        "actual_total_tonnes": 816.8,
+        "predicted_total_tonnes": 783.8
+      },
+      "forecast_tonnes": 1154.6,
+      "forecast_months": [
+        {
+          "month": "2030-01",
+          "forecast_tonnes": 93.6
+        },
+        {
+          "month": "2030-02",
+          "forecast_tonnes": 92.9
+        },
+        {
+          "month": "2030-03",
+          "forecast_tonnes": 92.7
+        },
+        {
+          "month": "2030-04",
+          "forecast_tonnes": 92.2
+        },
+        {
+          "month": "2030-05",
+          "forecast_tonnes": 95.5
+        },
+        {
+          "month": "2030-06",
+          "forecast_tonnes": 96.3
+        },
+        {
+          "month": "2030-07",
+          "forecast_tonnes": 95.3
+        },
+        {
+          "month": "2030-08",
+          "forecast_tonnes": 98.2
+        },
+        {
+          "month": "2030-09",
+          "forecast_tonnes": 97.8
+        },
+        {
+          "month": "2030-10",
+          "forecast_tonnes": 99.4
+        },
+        {
+          "month": "2030-11",
+          "forecast_tonnes": 99.2
+        },
+        {
+          "month": "2030-12",
+          "forecast_tonnes": 101.5
+        }
+      ]
+    },
+    {
+      "route_id": "46758000001-18710000001",
+      "origin": "Пушкино",
+      "destination": "Волжский",
+      "holdout_model": {
+        "mae_tonnes": 11.98,
+        "wape_percent": 6.51,
+        "actual_total_tonnes": 2207.7,
+        "predicted_total_tonnes": 2349.5
+      },
+      "holdout_baseline": {
+        "mae_tonnes": 16.26,
+        "wape_percent": 8.84,
+        "actual_total_tonnes": 2207.7,
+        "predicted_total_tonnes": 2258.4
+      },
+      "forecast_tonnes": 2759.6,
+      "forecast_months": [
+        {
+          "month": "2030-01",
+          "forecast_tonnes": 222.5
+        },
+        {
+          "month": "2030-02",
+          "forecast_tonnes": 211.6
+        },
+        {
+          "month": "2030-03",
+          "forecast_tonnes": 218.0
+        },
+        {
+          "month": "2030-04",
+          "forecast_tonnes": 219.4
+        },
+        {
+          "month": "2030-05",
+          "forecast_tonnes": 213.9
+        },
+        {
+          "month": "2030-06",
+          "forecast_tonnes": 233.5
+        },
+        {
+          "month": "2030-07",
+          "forecast_tonnes": 239.7
+        },
+        {
+          "month": "2030-08",
+          "forecast_tonnes": 244.9
+        },
+        {
+          "month": "2030-09",
+          "forecast_tonnes": 250.6
+        },
+        {
+          "month": "2030-10",
+          "forecast_tonnes": 245.4
+        },
+        {
+          "month": "2030-11",
+          "forecast_tonnes": 232.2
+        },
+        {
+          "month": "2030-12",
+          "forecast_tonnes": 227.9
+        }
+      ]
+    },
+    {
+      "route_id": "22721000001-40000000000",
+      "origin": "Дзержинск",
+      "destination": "Санкт-Петербург",
+      "holdout_model": {
+        "mae_tonnes": 6.71,
+        "wape_percent": 9.66,
+        "actual_total_tonnes": 833.6,
+        "predicted_total_tonnes": 899.9
+      },
+      "holdout_baseline": {
+        "mae_tonnes": 7.21,
+        "wape_percent": 10.38,
+        "actual_total_tonnes": 833.6,
+        "predicted_total_tonnes": 911.3
+      },
+      "forecast_tonnes": 745.4,
+      "forecast_months": [
+        {
+          "month": "2030-01",
+          "forecast_tonnes": 63.0
+        },
+        {
+          "month": "2030-02",
+          "forecast_tonnes": 62.0
+        },
+        {
+          "month": "2030-03",
+          "forecast_tonnes": 60.6
+        },
+        {
+          "month": "2030-04",
+          "forecast_tonnes": 63.6
+        },
+        {
+          "month": "2030-05",
+          "forecast_tonnes": 61.1
+        },
+        {
+          "month": "2030-06",
+          "forecast_tonnes": 65.8
+        },
+        {
+          "month": "2030-07",
+          "forecast_tonnes": 65.9
+        },
+        {
+          "month": "2030-08",
+          "forecast_tonnes": 63.4
+        },
+        {
+          "month": "2030-09",
+          "forecast_tonnes": 62.8
+        },
+        {
+          "month": "2030-10",
+          "forecast_tonnes": 61.4
+        },
+        {
+          "month": "2030-11",
+          "forecast_tonnes": 58.0
+        },
+        {
+          "month": "2030-12",
+          "forecast_tonnes": 57.8
+        }
+      ]
+    },
+    {
+      "route_id": "46744000001-80701000001",
+      "origin": "Красногорск",
+      "destination": "Уфа",
+      "holdout_model": {
+        "mae_tonnes": 10.62,
+        "wape_percent": 7.46,
+        "actual_total_tonnes": 1708.5,
+        "predicted_total_tonnes": 1664.9
+      },
+      "holdout_baseline": {
+        "mae_tonnes": 11.12,
+        "wape_percent": 7.81,
+        "actual_total_tonnes": 1708.5,
+        "predicted_total_tonnes": 1626.6
+      },
+      "forecast_tonnes": 1940.8,
+      "forecast_months": [
+        {
+          "month": "2030-01",
+          "forecast_tonnes": 172.6
+        },
+        {
+          "month": "2030-02",
+          "forecast_tonnes": 168.8
+        },
+        {
+          "month": "2030-03",
+          "forecast_tonnes": 154.3
+        },
+        {
+          "month": "2030-04",
+          "forecast_tonnes": 157.4
+        },
+        {
+          "month": "2030-05",
+          "forecast_tonnes": 155.1
+        },
+        {
+          "month": "2030-06",
+          "forecast_tonnes": 144.4
+        },
+        {
+          "month": "2030-07",
+          "forecast_tonnes": 148.6
+        },
+        {
+          "month": "2030-08",
+          "forecast_tonnes": 162.3
+        },
+        {
+          "month": "2030-09",
+          "forecast_tonnes": 168.1
+        },
+        {
+          "month": "2030-10",
+          "forecast_tonnes": 167.5
+        },
+        {
+          "month": "2030-11",
+          "forecast_tonnes": 170.7
+        },
+        {
+          "month": "2030-12",
+          "forecast_tonnes": 171.0
+        }
+      ]
+    },
+    {
+      "route_id": "26706000001-88701000001",
+      "origin": "Назрань",
+      "destination": "Йошкар-Ола",
+      "holdout_model": {
+        "mae_tonnes": 21.42,
+        "wape_percent": 8.32,
+        "actual_total_tonnes": 3091.7,
+        "predicted_total_tonnes": 2844.6
+      },
+      "holdout_baseline": {
+        "mae_tonnes": 48.87,
+        "wape_percent": 18.97,
+        "actual_total_tonnes": 3091.7,
+        "predicted_total_tonnes": 2505.3
+      },
+      "forecast_tonnes": 4261.3,
+      "forecast_months": [
+        {
+          "month": "2030-01",
+          "forecast_tonnes": 351.6
+        },
+        {
+          "month": "2030-02",
+          "forecast_tonnes": 346.4
+        },
+        {
+          "month": "2030-03",
+          "forecast_tonnes": 347.2
+        },
+        {
+          "month": "2030-04",
+          "forecast_tonnes": 347.0
+        },
+        {
+          "month": "2030-05",
+          "forecast_tonnes": 353.8
+        },
+        {
+          "month": "2030-06",
+          "forecast_tonnes": 349.7
+        },
+        {
+          "month": "2030-07",
+          "forecast_tonnes": 346.7
+        },
+        {
+          "month": "2030-08",
+          "forecast_tonnes": 351.2
+        },
+        {
+          "month": "2030-09",
+          "forecast_tonnes": 359.4
+        },
+        {
+          "month": "2030-10",
+          "forecast_tonnes": 356.5
+        },
+        {
+          "month": "2030-11",
+          "forecast_tonnes": 368.8
+        },
+        {
+          "month": "2030-12",
+          "forecast_tonnes": 383.0
+        }
+      ]
+    },
+    {
+      "route_id": "46751000001-04703000001",
+      "origin": "Ногинск",
+      "destination": "Ачинск",
+      "holdout_model": {
+        "mae_tonnes": 14.48,
+        "wape_percent": 10.08,
+        "actual_total_tonnes": 1725.0,
+        "predicted_total_tonnes": 1551.2
+      },
+      "holdout_baseline": {
+        "mae_tonnes": 12.37,
+        "wape_percent": 8.61,
+        "actual_total_tonnes": 1725.0,
+        "predicted_total_tonnes": 1635.3
+      },
+      "forecast_tonnes": 1619.7,
+      "forecast_months": [
+        {
+          "month": "2030-01",
+          "forecast_tonnes": 141.6
+        },
+        {
+          "month": "2030-02",
+          "forecast_tonnes": 136.7
+        },
+        {
+          "month": "2030-03",
+          "forecast_tonnes": 142.0
+        },
+        {
+          "month": "2030-04",
+          "forecast_tonnes": 132.2
+        },
+        {
+          "month": "2030-05",
+          "forecast_tonnes": 128.3
+        },
+        {
+          "month": "2030-06",
+          "forecast_tonnes": 131.6
+        },
+        {
+          "month": "2030-07",
+          "forecast_tonnes": 134.0
+        },
+        {
+          "month": "2030-08",
+          "forecast_tonnes": 127.4
+        },
+        {
+          "month": "2030-09",
+          "forecast_tonnes": 130.0
+        },
+        {
+          "month": "2030-10",
+          "forecast_tonnes": 134.7
+        },
+        {
+          "month": "2030-11",
+          "forecast_tonnes": 136.2
+        },
+        {
+          "month": "2030-12",
+          "forecast_tonnes": 145.0
+        }
+      ]
+    },
+    {
+      "route_id": "11701000001-80727000001",
+      "origin": "Архангельск",
+      "destination": "Нефтекамск",
+      "holdout_model": {
+        "mae_tonnes": 10.13,
+        "wape_percent": 12.49,
+        "actual_total_tonnes": 973.9,
+        "predicted_total_tonnes": 854.1
+      },
+      "holdout_baseline": {
+        "mae_tonnes": 8.57,
+        "wape_percent": 10.56,
+        "actual_total_tonnes": 973.9,
+        "predicted_total_tonnes": 904.7
+      },
+      "forecast_tonnes": 654.5,
+      "forecast_months": [
+        {
+          "month": "2030-01",
+          "forecast_tonnes": 67.4
+        },
+        {
+          "month": "2030-02",
+          "forecast_tonnes": 65.0
+        },
+        {
+          "month": "2030-03",
+          "forecast_tonnes": 61.9
+        },
+        {
+          "month": "2030-04",
+          "forecast_tonnes": 61.0
+        },
+        {
+          "month": "2030-05",
+          "forecast_tonnes": 55.4
+        },
+        {
+          "month": "2030-06",
+          "forecast_tonnes": 47.8
+        },
+        {
+          "month": "2030-07",
+          "forecast_tonnes": 46.0
+        },
+        {
+          "month": "2030-08",
+          "forecast_tonnes": 40.9
+        },
+        {
+          "month": "2030-09",
+          "forecast_tonnes": 46.9
+        },
+        {
+          "month": "2030-10",
+          "forecast_tonnes": 51.1
+        },
+        {
+          "month": "2030-11",
+          "forecast_tonnes": 52.7
+        },
+        {
+          "month": "2030-12",
+          "forecast_tonnes": 58.4
+        }
+      ]
+    },
+    {
+      "route_id": "80701000001-85701000001",
+      "origin": "Уфа",
+      "destination": "Элиста",
+      "holdout_model": {
+        "mae_tonnes": 12.72,
+        "wape_percent": 6.06,
+        "actual_total_tonnes": 2519.9,
+        "predicted_total_tonnes": 2543.1
+      },
+      "holdout_baseline": {
+        "mae_tonnes": 22.85,
+        "wape_percent": 10.88,
+        "actual_total_tonnes": 2519.9,
+        "predicted_total_tonnes": 2367.9
+      },
+      "forecast_tonnes": 3349.4,
+      "forecast_months": [
+        {
+          "month": "2030-01",
+          "forecast_tonnes": 289.6
+        },
+        {
+          "month": "2030-02",
+          "forecast_tonnes": 290.8
+        },
+        {
+          "month": "2030-03",
+          "forecast_tonnes": 289.9
+        },
+        {
+          "month": "2030-04",
+          "forecast_tonnes": 289.3
+        },
+        {
+          "month": "2030-05",
+          "forecast_tonnes": 264.1
+        },
+        {
+          "month": "2030-06",
+          "forecast_tonnes": 259.4
+        },
+        {
+          "month": "2030-07",
+          "forecast_tonnes": 261.5
+        },
+        {
+          "month": "2030-08",
+          "forecast_tonnes": 260.8
+        },
+        {
+          "month": "2030-09",
+          "forecast_tonnes": 274.7
+        },
+        {
+          "month": "2030-10",
+          "forecast_tonnes": 279.9
+        },
+        {
+          "month": "2030-11",
+          "forecast_tonnes": 287.1
+        },
+        {
+          "month": "2030-12",
+          "forecast_tonnes": 302.3
+        }
+      ]
+    }
+  ]
+}
