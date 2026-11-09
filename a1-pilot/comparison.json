@@ -12,7 +12,7 @@
     "Договорный минимум считается один раз за каждую ISO-неделю всего года, включая крайние недели",
     "Авто и операции ж/д цепочки оценены сценарно на сопоставимой ценовой основе; фактические налоги и состав услуг требуют проверки",
     "Оплата ж/д за полную условную единицу 40 т по ориентиру 11,20 ₽/кг; это не условия оплаты перевозчика",
-    "Месячные ответы содержат помесячную симуляцию; договорная годовая стоимость пересчитана по единому календарю"
+    "Рейсы оплачиваются в месяце отправки; доплата до недельного минимума относится к месяцу первого дня этой недели в пределах расчётного года."
   ],
   "catalog": {
     "id": "kemerovo-forecast-2030",
@@ -316,7 +316,7 @@
               "scheme": "contract_road",
               "departures": 8,
               "physical_trips": 8,
-              "paid_trips": 10,
+              "paid_trips": 9,
               "source_ids": [
                 "synthetic-kemerovo-comparison"
               ],
@@ -360,23 +360,23 @@
                   {
                     "week_start": "2030-01-28",
                     "actual_trips": 1,
-                    "paid_trips": 2
+                    "paid_trips": 1
                   }
                 ]
               },
-              "total_cost_rub": 2300000.0,
-              "cost_rub_per_tonne": 16140.35,
+              "total_cost_rub": 2070000.0,
+              "cost_rub_per_tonne": 14526.32,
               "max_delivery_hours": 120.0,
               "status": "feasible",
               "reason": "Условия расчётной модели соблюдены",
               "breakdown_rub": {
-                "transport": 2300000.0,
+                "transport": 2070000.0,
                 "intermediate_stops": 0.0,
                 "cargo_handling": 0.0,
                 "fixed_contract": 0.0
               },
-              "savings_vs_base_rub": -220000.0,
-              "savings_vs_base_percent": -10.58
+              "savings_vs_base_rub": 10000.0,
+              "savings_vs_base_percent": 0.48
             },
             {
               "scheme": "road_rail_road",
@@ -452,7 +452,7 @@
               "savings_vs_base_percent": 3.18
             }
           ],
-          "recommendation": "spot_road",
+          "recommendation": "contract_road",
           "recommendation_scope": "Среди рассчитанных схем, при явно указанных допущениях и условиях набора данных",
           "assumptions": [
             "Это плановый сценарий, не статистический прогноз по истории",
@@ -630,7 +630,7 @@
               "scheme": "contract_road",
               "departures": 8,
               "physical_trips": 8,
-              "paid_trips": 10,
+              "paid_trips": 8,
               "source_ids": [
                 "synthetic-kemerovo-comparison"
               ],
@@ -654,7 +654,7 @@
                   {
                     "week_start": "2030-01-28",
                     "actual_trips": 1,
-                    "paid_trips": 2
+                    "paid_trips": 1
                   },
                   {
                     "week_start": "2030-02-04",
@@ -674,23 +674,23 @@
                   {
                     "week_start": "2030-02-25",
                     "actual_trips": 1,
-                    "paid_trips": 2
+                    "paid_trips": 1
                   }
                 ]
               },
-              "total_cost_rub": 2300000.0,
-              "cost_rub_per_tonne": 15873.02,
+              "total_cost_rub": 1840000.0,
+              "cost_rub_per_tonne": 12698.41,
               "max_delivery_hours": 120.0,
               "status": "feasible",
               "reason": "Условия расчётной модели соблюдены",
               "breakdown_rub": {
-                "transport": 2300000.0,
+                "transport": 1840000.0,
                 "intermediate_stops": 0.0,
                 "cargo_handling": 0.0,
                 "fixed_contract": 0.0
               },
-              "savings_vs_base_rub": -220000.0,
-              "savings_vs_base_percent": -10.58
+              "savings_vs_base_rub": 240000.0,
+              "savings_vs_base_percent": 11.54
             },
             {
               "scheme": "road_rail_road",
@@ -766,7 +766,7 @@
               "savings_vs_base_percent": 3.24
             }
           ],
-          "recommendation": "spot_road",
+          "recommendation": "contract_road",
           "recommendation_scope": "Среди рассчитанных схем, при явно указанных допущениях и условиях набора данных",
           "assumptions": [
             "Это плановый сценарий, не статистический прогноз по истории",
@@ -944,7 +944,7 @@
               "scheme": "contract_road",
               "departures": 8,
               "physical_trips": 8,
-              "paid_trips": 10,
+              "paid_trips": 9,
               "source_ids": [
                 "synthetic-kemerovo-comparison"
               ],
@@ -968,7 +968,7 @@
                   {
                     "week_start": "2030-02-25",
                     "actual_trips": 1,
-                    "paid_trips": 2
+                    "paid_trips": 1
                   },
                   {
                     "week_start": "2030-03-04",
@@ -992,19 +992,19 @@
                   }
                 ]
               },
-              "total_cost_rub": 2300000.0,
-              "cost_rub_per_tonne": 14877.1,
+              "total_cost_rub": 2070000.0,
+              "cost_rub_per_tonne": 13389.39,
               "max_delivery_hours": 120.0,
               "status": "feasible",
               "reason": "Условия расчётной модели соблюдены",
               "breakdown_rub": {
-                "transport": 2300000.0,
+                "transport": 2070000.0,
                 "intermediate_stops": 0.0,
                 "cargo_handling": 0.0,
                 "fixed_contract": 0.0
               },
-              "savings_vs_base_rub": -220000.0,
-              "savings_vs_base_percent": -10.58
+              "savings_vs_base_rub": 10000.0,
+              "savings_vs_base_percent": 0.48
             },
             {
               "scheme": "road_rail_road",
@@ -1080,7 +1080,7 @@
               "savings_vs_base_percent": 3.13
             }
           ],
-          "recommendation": "spot_road",
+          "recommendation": "contract_road",
           "recommendation_scope": "Среди рассчитанных схем, при явно указанных допущениях и условиях набора данных",
           "assumptions": [
             "Это плановый сценарий, не статистический прогноз по истории",
@@ -1258,7 +1258,7 @@
               "scheme": "contract_road",
               "departures": 8,
               "physical_trips": 8,
-              "paid_trips": 10,
+              "paid_trips": 9,
               "source_ids": [
                 "synthetic-kemerovo-comparison"
               ],
@@ -1302,23 +1302,23 @@
                   {
                     "week_start": "2030-04-29",
                     "actual_trips": 1,
-                    "paid_trips": 2
+                    "paid_trips": 1
                   }
                 ]
               },
-              "total_cost_rub": 2300000.0,
-              "cost_rub_per_tonne": 14762.52,
+              "total_cost_rub": 2070000.0,
+              "cost_rub_per_tonne": 13286.26,
               "max_delivery_hours": 120.0,
               "status": "feasible",
               "reason": "Условия расчётной модели соблюдены",
               "breakdown_rub": {
-                "transport": 2300000.0,
+                "transport": 2070000.0,
                 "intermediate_stops": 0.0,
                 "cargo_handling": 0.0,
                 "fixed_contract": 0.0
               },
-              "savings_vs_base_rub": -220000.0,
-              "savings_vs_base_percent": -10.58
+              "savings_vs_base_rub": 10000.0,
+              "savings_vs_base_percent": 0.48
             },
             {
               "scheme": "road_rail_road",
@@ -1394,7 +1394,7 @@
               "savings_vs_base_percent": 3.14
             }
           ],
-          "recommendation": "spot_road",
+          "recommendation": "contract_road",
           "recommendation_scope": "Среди рассчитанных схем, при явно указанных допущениях и условиях набора данных",
           "assumptions": [
             "Это плановый сценарий, не статистический прогноз по истории",
@@ -2200,7 +2200,7 @@
               "scheme": "contract_road",
               "departures": 8,
               "physical_trips": 8,
-              "paid_trips": 10,
+              "paid_trips": 9,
               "source_ids": [
                 "synthetic-kemerovo-comparison"
               ],
@@ -2244,23 +2244,23 @@
                   {
                     "week_start": "2030-07-29",
                     "actual_trips": 1,
-                    "paid_trips": 2
+                    "paid_trips": 1
                   }
                 ]
               },
-              "total_cost_rub": 2300000.0,
-              "cost_rub_per_tonne": 14677.73,
+              "total_cost_rub": 2070000.0,
+              "cost_rub_per_tonne": 13209.96,
               "max_delivery_hours": 120.0,
               "status": "feasible",
               "reason": "Условия расчётной модели соблюдены",
               "breakdown_rub": {
-                "transport": 2300000.0,
+                "transport": 2070000.0,
                 "intermediate_stops": 0.0,
                 "cargo_handling": 0.0,
                 "fixed_contract": 0.0
               },
-              "savings_vs_base_rub": -220000.0,
-              "savings_vs_base_percent": -10.58
+              "savings_vs_base_rub": 10000.0,
+              "savings_vs_base_percent": 0.48
             },
             {
               "scheme": "road_rail_road",
@@ -2336,7 +2336,7 @@
               "savings_vs_base_percent": 3.12
             }
           ],
-          "recommendation": "spot_road",
+          "recommendation": "contract_road",
           "recommendation_scope": "Среди рассчитанных схем, при явно указанных допущениях и условиях набора данных",
           "assumptions": [
             "Это плановый сценарий, не статистический прогноз по истории",
@@ -2514,7 +2514,7 @@
               "scheme": "contract_road",
               "departures": 8,
               "physical_trips": 8,
-              "paid_trips": 10,
+              "paid_trips": 9,
               "source_ids": [
                 "synthetic-kemerovo-comparison"
               ],
@@ -2538,7 +2538,7 @@
                   {
                     "week_start": "2030-07-29",
                     "actual_trips": 1,
-                    "paid_trips": 2
+                    "paid_trips": 1
                   },
                   {
                     "week_start": "2030-08-05",
@@ -2562,19 +2562,19 @@
                   }
                 ]
               },
-              "total_cost_rub": 2300000.0,
-              "cost_rub_per_tonne": 14743.59,
+              "total_cost_rub": 2070000.0,
+              "cost_rub_per_tonne": 13269.23,
               "max_delivery_hours": 120.0,
               "status": "feasible",
               "reason": "Условия расчётной модели соблюдены",
               "breakdown_rub": {
-                "transport": 2300000.0,
+                "transport": 2070000.0,
                 "intermediate_stops": 0.0,
                 "cargo_handling": 0.0,
                 "fixed_contract": 0.0
               },
-              "savings_vs_base_rub": -220000.0,
-              "savings_vs_base_percent": -10.58
+              "savings_vs_base_rub": 10000.0,
+              "savings_vs_base_percent": 0.48
             },
             {
               "scheme": "road_rail_road",
@@ -2650,7 +2650,7 @@
               "savings_vs_base_percent": 3.12
             }
           ],
-          "recommendation": "spot_road",
+          "recommendation": "contract_road",
           "recommendation_scope": "Среди рассчитанных схем, при явно указанных допущениях и условиях набора данных",
           "assumptions": [
             "Это плановый сценарий, не статистический прогноз по истории",
@@ -4115,7 +4115,7 @@
               "scheme": "contract_road",
               "departures": 8,
               "physical_trips": 8,
-              "paid_trips": 10,
+              "paid_trips": 9,
               "source_ids": [
                 "synthetic-kemerovo-comparison"
               ],
@@ -4159,23 +4159,23 @@
                   {
                     "week_start": "2030-01-28",
                     "actual_trips": 1,
-                    "paid_trips": 2
+                    "paid_trips": 1
                   }
                 ]
               },
-              "total_cost_rub": 2300000.0,
-              "cost_rub_per_tonne": 16140.35,
+              "total_cost_rub": 2070000.0,
+              "cost_rub_per_tonne": 14526.32,
               "max_delivery_hours": 120.0,
               "status": "feasible",
               "reason": "Условия расчётной модели соблюдены",
               "breakdown_rub": {
-                "transport": 2300000.0,
+                "transport": 2070000.0,
                 "intermediate_stops": 0.0,
                 "cargo_handling": 0.0,
                 "fixed_contract": 0.0
               },
-              "savings_vs_base_rub": -220000.0,
-              "savings_vs_base_percent": -10.58
+              "savings_vs_base_rub": 10000.0,
+              "savings_vs_base_percent": 0.48
             },
             {
               "scheme": "road_rail_road",
@@ -4429,7 +4429,7 @@
               "scheme": "contract_road",
               "departures": 8,
               "physical_trips": 8,
-              "paid_trips": 10,
+              "paid_trips": 8,
               "source_ids": [
                 "synthetic-kemerovo-comparison"
               ],
@@ -4453,7 +4453,7 @@
                   {
                     "week_start": "2030-01-28",
                     "actual_trips": 1,
-                    "paid_trips": 2
+                    "paid_trips": 1
                   },
                   {
                     "week_start": "2030-02-04",
@@ -4473,23 +4473,23 @@
                   {
                     "week_start": "2030-02-25",
                     "actual_trips": 1,
-                    "paid_trips": 2
+                    "paid_trips": 1
                   }
                 ]
               },
-              "total_cost_rub": 2300000.0,
-              "cost_rub_per_tonne": 15873.02,
+              "total_cost_rub": 1840000.0,
+              "cost_rub_per_tonne": 12698.41,
               "max_delivery_hours": 120.0,
               "status": "feasible",
               "reason": "Условия расчётной модели соблюдены",
               "breakdown_rub": {
-                "transport": 2300000.0,
+                "transport": 1840000.0,
                 "intermediate_stops": 0.0,
                 "cargo_handling": 0.0,
                 "fixed_contract": 0.0
               },
-              "savings_vs_base_rub": -220000.0,
-              "savings_vs_base_percent": -10.58
+              "savings_vs_base_rub": 240000.0,
+              "savings_vs_base_percent": 11.54
             },
             {
               "scheme": "road_rail_road",
@@ -4565,7 +4565,7 @@
               "savings_vs_base_percent": 3.24
             }
           ],
-          "recommendation": "road_rail_road",
+          "recommendation": "contract_road",
           "recommendation_scope": "Среди рассчитанных схем, при явно указанных допущениях и условиях набора данных",
           "assumptions": [
             "Это плановый сценарий, не статистический прогноз по истории",
@@ -4743,7 +4743,7 @@
               "scheme": "contract_road",
               "departures": 8,
               "physical_trips": 8,
-              "paid_trips": 10,
+              "paid_trips": 9,
               "source_ids": [
                 "synthetic-kemerovo-comparison"
               ],
@@ -4767,7 +4767,7 @@
                   {
                     "week_start": "2030-02-25",
                     "actual_trips": 1,
-                    "paid_trips": 2
+                    "paid_trips": 1
                   },
                   {
                     "week_start": "2030-03-04",
@@ -4791,19 +4791,19 @@
                   }
                 ]
               },
-              "total_cost_rub": 2300000.0,
-              "cost_rub_per_tonne": 14877.1,
+              "total_cost_rub": 2070000.0,
+              "cost_rub_per_tonne": 13389.39,
               "max_delivery_hours": 120.0,
               "status": "feasible",
               "reason": "Условия расчётной модели соблюдены",
               "breakdown_rub": {
-                "transport": 2300000.0,
+                "transport": 2070000.0,
                 "intermediate_stops": 0.0,
                 "cargo_handling": 0.0,
                 "fixed_contract": 0.0
               },
-              "savings_vs_base_rub": -220000.0,
-              "savings_vs_base_percent": -10.58
+              "savings_vs_base_rub": 10000.0,
+              "savings_vs_base_percent": 0.48
             },
             {
               "scheme": "road_rail_road",
@@ -5057,7 +5057,7 @@
               "scheme": "contract_road",
               "departures": 8,
               "physical_trips": 8,
-              "paid_trips": 10,
+              "paid_trips": 9,
               "source_ids": [
                 "synthetic-kemerovo-comparison"
               ],
@@ -5101,23 +5101,23 @@
                   {
                     "week_start": "2030-04-29",
                     "actual_trips": 1,
-                    "paid_trips": 2
+                    "paid_trips": 1
                   }
                 ]
               },
-              "total_cost_rub": 2300000.0,
-              "cost_rub_per_tonne": 14762.52,
+              "total_cost_rub": 2070000.0,
+              "cost_rub_per_tonne": 13286.26,
               "max_delivery_hours": 120.0,
               "status": "feasible",
               "reason": "Условия расчётной модели соблюдены",
               "breakdown_rub": {
-                "transport": 2300000.0,
+                "transport": 2070000.0,
                 "intermediate_stops": 0.0,
                 "cargo_handling": 0.0,
                 "fixed_contract": 0.0
               },
-              "savings_vs_base_rub": -220000.0,
-              "savings_vs_base_percent": -10.58
+              "savings_vs_base_rub": 10000.0,
+              "savings_vs_base_percent": 0.48
             },
             {
               "scheme": "road_rail_road",
@@ -5999,7 +5999,7 @@
               "scheme": "contract_road",
               "departures": 8,
               "physical_trips": 8,
-              "paid_trips": 10,
+              "paid_trips": 9,
               "source_ids": [
                 "synthetic-kemerovo-comparison"
               ],
@@ -6043,23 +6043,23 @@
                   {
                     "week_start": "2030-07-29",
                     "actual_trips": 1,
-                    "paid_trips": 2
+                    "paid_trips": 1
                   }
                 ]
               },
-              "total_cost_rub": 2300000.0,
-              "cost_rub_per_tonne": 14677.73,
+              "total_cost_rub": 2070000.0,
+              "cost_rub_per_tonne": 13209.96,
               "max_delivery_hours": 120.0,
               "status": "feasible",
               "reason": "Условия расчётной модели соблюдены",
               "breakdown_rub": {
-                "transport": 2300000.0,
+                "transport": 2070000.0,
                 "intermediate_stops": 0.0,
                 "cargo_handling": 0.0,
                 "fixed_contract": 0.0
               },
-              "savings_vs_base_rub": -220000.0,
-              "savings_vs_base_percent": -10.58
+              "savings_vs_base_rub": 10000.0,
+              "savings_vs_base_percent": 0.48
             },
             {
               "scheme": "road_rail_road",
@@ -6313,7 +6313,7 @@
               "scheme": "contract_road",
               "departures": 8,
               "physical_trips": 8,
-              "paid_trips": 10,
+              "paid_trips": 9,
               "source_ids": [
                 "synthetic-kemerovo-comparison"
               ],
@@ -6337,7 +6337,7 @@
                   {
                     "week_start": "2030-07-29",
                     "actual_trips": 1,
-                    "paid_trips": 2
+                    "paid_trips": 1
                   },
                   {
                     "week_start": "2030-08-05",
@@ -6361,19 +6361,19 @@
                   }
                 ]
               },
-              "total_cost_rub": 2300000.0,
-              "cost_rub_per_tonne": 14743.59,
+              "total_cost_rub": 2070000.0,
+              "cost_rub_per_tonne": 13269.23,
               "max_delivery_hours": 120.0,
               "status": "feasible",
               "reason": "Условия расчётной модели соблюдены",
               "breakdown_rub": {
-                "transport": 2300000.0,
+                "transport": 2070000.0,
                 "intermediate_stops": 0.0,
                 "cargo_handling": 0.0,
                 "fixed_contract": 0.0
               },
-              "savings_vs_base_rub": -220000.0,
-              "savings_vs_base_percent": -10.58
+              "savings_vs_base_rub": 10000.0,
+              "savings_vs_base_percent": 0.48
             },
             {
               "scheme": "road_rail_road",

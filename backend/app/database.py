@@ -34,6 +34,12 @@ class Database:
                     expires_at INTEGER NOT NULL
                 );
                 CREATE INDEX IF NOT EXISTS sessions_expiry ON sessions(expires_at);
+                CREATE TABLE IF NOT EXISTS calculation_history (
+                    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    snapshot_id TEXT NOT NULL,
+                    payload TEXT NOT NULL,
+                    PRIMARY KEY (user_id, snapshot_id)
+                );
                 CREATE TABLE IF NOT EXISTS auth_limits (
                     bucket TEXT PRIMARY KEY,
                     count INTEGER NOT NULL,

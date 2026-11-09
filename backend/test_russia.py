@@ -214,5 +214,5 @@ class RussiaApiTests(unittest.TestCase):
         self.assertEqual(results[0].headers['cache-control'],'no-store')
         self.client.cookies.clear()
         for url in ('/network/russia/options','/network/russia/hubs?settlement=Москва','/network/pipeline/options'):
-            self.assertEqual(self.client.get(url).status_code,401)
-        self.assertEqual(self.client.post('/network/russia/calculations',json=q).status_code,401)
+            self.assertEqual(self.client.get(url).status_code,200)
+        self.assertEqual(self.client.post('/network/russia/calculations',json=q).status_code,200)

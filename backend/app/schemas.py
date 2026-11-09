@@ -43,6 +43,10 @@ class UserResponse(BaseModel):
     user: User
 
 
+class VerificationResponse(UserResponse):
+    account_created: bool
+
+
 class VerificationRequired(BaseModel):
     status: str = "verification_required"
     verification_id: str

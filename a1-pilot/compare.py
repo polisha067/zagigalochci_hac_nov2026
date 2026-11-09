@@ -4,7 +4,7 @@ import json
 import sys
 from collections import Counter
 from datetime import date, datetime, timedelta, timezone
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
@@ -57,6 +57,68 @@ def monday(day):
     return day - timedelta(days=day.weekday())
 
 
+def reconcile_contract_months(results, catalog, year):
+    terms = catalog["contract_road"]
+    rate = Decimal(str(terms["legs"][0]["rate_rub_per_vehicle"]))
+    minimum = terms["minimum_paid_trips_per_week"]
+    yearly_trips = Counter()
+    monthly_trips = {}
+    for result in results:
+        contract = result["schemes"][1]
+        trips = Counter()
+        for dispatch in contract["details"]["dispatch_at"]:
+            week = monday(datetime.fromisoformat(dispatch).astimezone(MSK).date())
+            trips[week] += contract["details"]["vehicles_per_departure"]
+        monthly_trips[result["month"]] = trips
+        yearly_trips.update(trips)
+
+    first_day, last_day = date(year, 1, 1), date(year, 12, 31)
+    first_week = min(monday(first_day), min(yearly_trips))
+    last_week = max(monday(last_day), max(yearly_trips))
+    shortfalls = {}
+    for offset in range((last_week - first_week).days // 7 + 1):
+        week = first_week + timedelta(weeks=offset)
+        shortfall = max(0, minimum - yearly_trips[week])
+        if shortfall:
+            # Assign the shortfall once, to the month containing the week's first day in the year.
+            month = min(last_day, max(first_day, week)).isoformat()[:7]
+            shortfalls.setdefault(month, {})[week] = shortfall
+
+    for result in results:
+        month = result["month"]
+        contract = result["schemes"][1]
+        actual = monthly_trips[month]
+        extra = shortfalls.get(month, {})
+        billing = [
+            {"week_start": week.isoformat(), "actual_trips": actual[week],
+             "paid_trips": actual[week] + extra.get(week, 0)}
+            for week in sorted(actual.keys() | extra.keys())
+        ]
+        contract["details"]["billing_weeks"] = billing
+        contract["paid_trips"] = sum(row["paid_trips"] for row in billing)
+        contract["breakdown_rub"]["transport"] = float(rate * contract["paid_trips"])
+        cost = sum(Decimal(str(value)) for value in contract["breakdown_rub"].values())
+        contract["total_cost_rub"] = float(cost)
+        volume = Decimal(str(result["total_volume_tonnes"]))
+        contract["cost_rub_per_tonne"] = float(
+            (cost / volume).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        )
+        base_cost = result["schemes"][0].get("total_cost_rub")
+        if base_cost is not None:
+            base = Decimal(str(base_cost))
+            savings = base - cost
+            contract["savings_vs_base_rub"] = float(savings)
+            if base > 0:
+                contract["savings_vs_base_percent"] = float(
+                    (100 * savings / base).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                )
+        feasible = [row for row in result["schemes"] if row["status"] == "feasible"]
+        result["recommendation"] = (
+            min(feasible, key=lambda row: (row["total_cost_rub"], row["max_delivery_hours"]))["scheme"]
+            if feasible else None
+        )
+
+
 def compare_year(compare_transport, forecast, catalog, deadline_days, target_year):
     route = forecast["route"]
     results = []
@@ -88,24 +150,15 @@ def compare_year(compare_transport, forecast, catalog, deadline_days, target_yea
     total_tonnes = Decimal(str(forecast["forecast_yearly_tonnes"][str(target_year)]))
     if abs(sum(r["total_volume_tonnes"] for r in results) - float(total_tonnes)) > 1e-8:
         raise ValueError("Annual volume mismatch")
+    if all("total_cost_rub" in result["schemes"][1] for result in results):
+        reconcile_contract_months(results, catalog, target_year)
+
     annual = {}
     for index, scheme in enumerate(("spot_road", "contract_road", "road_rail_road")):
         months = [r["schemes"][index] for r in results]
-        counts = Counter()
-        if scheme == "contract_road" and all("total_cost_rub" in row for row in months):
-            for row in months:
-                for dispatch in row["details"]["dispatch_at"]:
-                    week = monday(datetime.fromisoformat(dispatch).astimezone(MSK).date())
-                    counts[week] += row["details"]["vehicles_per_departure"]
-            first = min(monday(date(target_year, 1, 1)), min(counts))
-            last = max(monday(date(target_year, 12, 31)), max(counts))
-            paid = sum(max(counts[first + timedelta(weeks=i)], MIN_WEEKLY_TRIPS)
-                       for i in range((last - first).days // 7 + 1))
-            cost = Decimal(paid * CONTRACT_RATE)
-        else:
-            paid = None
-            cost = (sum(Decimal(str(row["total_cost_rub"])) for row in months)
-                    if all("total_cost_rub" in row for row in months) else None)
+        complete = all("total_cost_rub" in row for row in months)
+        paid = sum(row["paid_trips"] for row in months) if scheme == "contract_road" and complete else None
+        cost = sum(Decimal(str(row["total_cost_rub"])) for row in months) if complete else None
         annual[scheme] = {
             "feasible": all(row["status"] == "feasible" for row in months),
             "cost_rub": float(cost) if cost is not None else None,
@@ -153,7 +206,7 @@ def main():
             "Договорный минимум считается один раз за каждую ISO-неделю всего года, включая крайние недели",
             "Авто и операции ж/д цепочки оценены сценарно на сопоставимой ценовой основе; фактические налоги и состав услуг требуют проверки",
             "Оплата ж/д за полную условную единицу 40 т по ориентиру 11,20 ₽/кг; это не условия оплаты перевозчика",
-            "Месячные ответы содержат помесячную симуляцию; договорная годовая стоимость пересчитана по единому календарю",
+            "Рейсы оплачиваются в месяце отправки; доплата до недельного минимума относится к месяцу первого дня этой недели в пределах расчётного года.",
         ],
         "catalog": catalog,
         "runs": [compare_year(compare_transport, forecast, catalog, days, args.year) for days in (14, 18)],

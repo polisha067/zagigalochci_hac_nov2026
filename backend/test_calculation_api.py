@@ -1,10 +1,12 @@
 from datetime import datetime, timezone
+from decimal import Decimal
 import json
 from pathlib import Path
 import secrets
 import tempfile
 import time
 import unittest
+import uuid
 
 from fastapi.testclient import TestClient
 
@@ -31,10 +33,10 @@ class CalculationApiTests(unittest.TestCase):
         self.example_dir = Path(__file__).resolve().parent / "examples"
         self.request = json.loads((self.example_dir / "calculation-request.json").read_text(encoding="utf-8"))
 
-    def test_calculation_requires_valid_session(self):
+    def test_guest_can_calculate(self):
         self.client.cookies.clear()
-        self.assertEqual(self.client.post("/calculations", json=self.request).status_code, 401)
-        self.assertEqual(self.client.get("/calculation-options").status_code, 401)
+        self.assertEqual(self.client.post("/calculations", json=self.request).status_code, 200)
+        self.assertEqual(self.client.get("/calculation-options").status_code, 200)
 
     def test_calculation_and_options_contract(self):
         response = self.client.post("/calculations", json=self.request)
@@ -117,6 +119,72 @@ class CalculationApiTests(unittest.TestCase):
         self.assertFalse(model["additionalProperties"])
         self.assertIn("capacity_basis", model["required"])
         self.assertIn("schedule", model["required"])
+
+
+    def test_guest_forecast_and_private_history(self):
+        snapshot = {
+            "id": str(uuid.uuid4()), "createdAt": "2026-11-09T12:00:00Z",
+            "result": {"request": self.request}, "draft": {}, "cargoNames": {},
+        }
+        body = {"account_id": "calc-test", "snapshot": snapshot}
+        with TestClient(self.app) as guest:
+            options = guest.get("/network/forecast/options")
+            self.assertEqual(options.status_code, 200)
+            route_id = options.json()["routes"][0]["route_id"]
+            self.assertEqual(guest.get("/network/forecast", params={
+                "route_id": route_id, "start_year": 2027, "end_year": 2028,
+            }).status_code, 200)
+            self.assertEqual(guest.get("/auth/history").status_code, 401)
+            self.assertEqual(guest.post("/auth/history", json=body).status_code, 401)
+
+        self.assertEqual(self.client.post("/auth/history", json=body).status_code, 204)
+        self.assertEqual(self.client.post("/auth/history", json=body).status_code, 204)
+        with self.app.state.database.connect() as connection:
+            now = datetime.now(timezone.utc).isoformat()
+            connection.execute(
+                "INSERT INTO users (id,email,name,password_hash,created_at,email_verified_at) VALUES (?,?,?,?,?,?)",
+                ("other", "other@example.com", "Другой", self.app.state.dummy_hash, now, now),
+            )
+            for user_id in ("calc-test", "other"):
+                connection.execute("INSERT INTO sessions VALUES (?,?,?)", (
+                    digest("device-" + user_id), user_id, int(time.time()) + 3600,
+                ))
+        with TestClient(self.app) as phone:
+            phone.cookies.set("a1_session", "device-calc-test")
+            self.assertEqual(phone.get("/auth/history").json()["entries"], [snapshot])
+            phone.cookies.set("a1_session", "device-other")
+            self.assertEqual(phone.get("/auth/history").json()["entries"], [])
+            self.assertEqual(phone.post("/auth/history", json=body).status_code, 409)
+
+    def test_forecast_granularities_match(self):
+        options = self.client.get("/network/forecast/options").json()
+        query = {"route_id": options["routes"][0]["route_id"],
+                 "start_year": 2027, "end_year": 2030}
+        monthly = self.client.get("/network/forecast", params={**query, "granularity": "month"})
+        self.assertEqual(monthly.status_code, 200, monthly.text)
+        monthly = monthly.json()
+        self.assertEqual(len(monthly["periods"]), 48)
+        values = [Decimal(str(row["forecast_tonnes"])) for row in monthly["periods"]]
+        for granularity, size in (("quarter", 3), ("year", 12)):
+            with self.subTest(granularity=granularity):
+                response = self.client.get("/network/forecast", params={**query, "granularity": granularity})
+                self.assertEqual(response.status_code, 200, response.text)
+                result = response.json()
+                self.assertEqual(result["forecast_tonnes"], monthly["forecast_tonnes"])
+                self.assertEqual(
+                    [Decimal(str(row["forecast_tonnes"])) for row in result["periods"]],
+                    [sum(values[i:i + size]) for i in range(0, len(values), size)],
+                )
+
+    def test_forecast_rejects_reversed_years(self):
+        options = self.client.get("/network/forecast/options").json()
+        response = self.client.get("/network/forecast", params={
+            "route_id": options["routes"][0]["route_id"],
+            "start_year": 2030,
+            "end_year": 2027,
+        })
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(response.json()["error"]["code"], "invalid_forecast_period")
 
 
 if __name__ == "__main__":
