@@ -111,7 +111,9 @@ class RiverApiTests(unittest.TestCase):
         p=json.loads((ROOT/'examples/river-request.json').read_text())
         o=self.client.get('/network/options',params={'network_id':p['network_id']})
         self.assertEqual(o.status_code,200,o.text)
-        self.assertEqual(len(o.json()['hubs']),2)
+        hubs={hub['id'] for hub in o.json()['hubs']}
+        self.assertEqual(hubs,{prefix+hub for prefix in ('','krasrp-2026:','enisey-nord-2026:')
+                               for hub in (p['origin_hub_id'],p['destination_hub_id'])})
         for path in ['/network/calculations','/calculations']:
             r=self.client.post(path,json=p);self.assertEqual(r.status_code,200,r.text)
             self.assertEqual(r.json()['candidates'][0]['total_cost_rub'],166200)

@@ -23,7 +23,7 @@ from .tools import CALCULATIONS, DOMAIN_TOOLS, merge_arguments, tool_definition
 PILOT_ZONE = "Europe/Moscow"
 TOOL_NAME = "compare_delivery"
 NEW_DELIVERY = re.compile(r"^(?:новый расч[её]т|новая перевозка|начни новый расч[её]т)\b", re.IGNORECASE)
-ROUTE_IN_MESSAGE = re.compile(r"→|\b(?:из|от)\s+[^.!?]{1,100}\s+(?:в|до)\s+", re.IGNORECASE)
+ROUTE_IN_MESSAGE = re.compile(r"→|\b(?:из|от)\s+[^\W\d_][^.!?]{0,99}\s+(?:в|до)\s+[^\W\d_]", re.IGNORECASE)
 ARROW_ROUTE = re.compile(r"([^,.!?→]+)→([^,.!?→]+)")
 TEXT_ROUTE = re.compile(r"\b(?:из|от)\s+([^,.!?→]+?)\s+(?:в|до)\s+([^,.!?→]+)", re.IGNORECASE)
 ROUTE_CHANGE = re.compile(r"\b(?:поменя\w*|замен\w*|вместо|маршрут\w*|(?:теперь|а если)\s+(?:из|в|до))\b", re.IGNORECASE)
@@ -446,13 +446,18 @@ class DeliveryPlanner:
             for key, graph in (networks or {}).items()
         }
         self.river_links = {}
+        self.river_provider_links = {}
         for key, graph in (networks or {}).items():
             for service in graph.services.values():
                 if service.mode != "river" or service.available is False:
                     continue
                 origin, destination = graph.hubs[service.from_hub], graph.hubs[service.to_hub]
                 cities = normalized_name(origin.city), normalized_name(destination.city)
-                self.river_links.setdefault(cities, set()).add((key, origin.id, destination.id))
+                link = key, origin.id, destination.id
+                if provider := service.reference_metadata.get("provider_name"):
+                    self.river_provider_links.setdefault(cities, {})[normalized_name(provider)] = link
+                else:
+                    self.river_links.setdefault(cities, set()).add(link)
 
     def _has_river_path(self, origin, destination):
         visited = set()
@@ -493,7 +498,12 @@ class DeliveryPlanner:
         if river_only:
             pair = tuple(map(normalized_name, cities))
             links = self.river_links.get(pair, set())
-            if len(links) == 1:
+            message = normalized_name(request.message)
+            providers = self.river_provider_links.get(pair, {})
+            named_links = {link for name, link in providers.items() if name in message}
+            if len(named_links) == 1:
+                river_hubs = next(iter(named_links))
+            elif len(links) == 1:
                 river_hubs = next(iter(links))
             elif not self._has_river_path(*pair):
                 return InformationTurn(

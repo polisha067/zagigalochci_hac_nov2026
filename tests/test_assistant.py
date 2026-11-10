@@ -475,6 +475,20 @@ class AssistantApiTests(unittest.TestCase):
         winner = next(row for row in data["candidates"] if row["id"] == data["recommendation"])
         self.assertEqual(winner["total_cost_rub"], 166_200)
 
+    def test_river_provider_named_in_chat_uses_its_published_package(self):
+        params = json.loads((BACKEND_DIR / "examples/river-request.json").read_bytes())
+        params.pop("engine")
+        params["schedule"]["ready_at"] = "2026-06-17T08:00:00+07:00"
+        self.connect_ollama(self.domain_reply("calculate_network", **params))
+        response = self.client.post("/assistant/chat", json={"message": (
+            "Рассчитай речную перевозку Красноярск → Дудинка у перевозчика Енисей-Норд."
+        )})
+        self.assertEqual(response.status_code, 200, response.text)
+        data = response.json()["calculation"]
+        winner = next(row for row in data["candidates"] if row["id"] == data["recommendation"])
+        self.assertEqual(winner["total_cost_rub"], 180_000)
+        self.assertIn("enisey-nord-2026", winner["source_ids"])
+
     def test_river_calculation_explains_expired_snapshot_without_extrapolating(self):
         params = json.loads((BACKEND_DIR / "examples/river-request.json").read_bytes())
         params.pop("engine")

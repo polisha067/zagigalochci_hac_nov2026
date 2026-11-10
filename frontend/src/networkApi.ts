@@ -164,6 +164,7 @@ export interface Candidate {
   status: "feasible" | "infeasible" | "insufficient_data";
   complete: boolean;
   total_cost_rub: number | null;
+  known_cost_subtotal_rub?: number | null;
   cost_rub_per_tonne: number | null;
   max_delivery_hours: number | null;
   issues: Issue[];

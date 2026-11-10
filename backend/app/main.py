@@ -42,7 +42,8 @@ from backend.network.models import NetworkRequest, NetworkResponse
 from backend.network.russia import RussiaRequest, RussiaResponse, load_russia
 from backend.network.pipeline import PipelineRequest, PipelineResponse, calculate_pipeline
 from backend.network.engine import calculate_network
-from backend.network.graph import CATEGORIES, load_network
+from backend.network.graph import CATEGORIES, FreightNetwork, load_network
+from backend.network.river_tariffs import river_catalog
 from backend.network.observations import coverage
 from backend.network.asop import read_asop
 from backend.network.chukotavia import ChukotaviaData, ChukotaviaRequest, ChukotaviaResponse, calculate_chukotavia
@@ -100,7 +101,7 @@ def create_app(settings=None, *, assistant_planner: Optional[TurnPlanner] = None
         app.state.verification = VerificationService(database, settings, app.state.mailer)
         app.state.calculation_catalog = load_catalog(settings.calculation_catalog_path)
         app.state.network = load_network(settings.network_catalog_path)
-        river_network = load_network(Path(__file__).resolve().parents[1] / "data_sources/river/network.json")
+        river_network = FreightNetwork(river_catalog())
         app.state.networks = {river_network.catalog.id: river_network, app.state.network.catalog.id: app.state.network}
         app.state.chukotavia = ChukotaviaData()
         forecast_path = Path(__file__).resolve().parents[1] / "data_sources/strategy/regional-forecast.json"

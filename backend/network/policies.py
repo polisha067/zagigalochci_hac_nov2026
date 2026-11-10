@@ -162,7 +162,6 @@ class Policies:
         if quote.component != component:
             raise PlanningProblem("bundled_quote", "Нужен разложенный тариф без повторного начисления включённых услуг", "insufficient_data", object_id, ["quote.component"])
         self.evidence(quote.evidence, at, object_id + ":quote", role="tariff")
-        rate = dec(need(quote.rate_rub, "rate_rub", object_id))
         mass = sum((item.mass for item in items), Decimal(0))
         volume = sum((item.volume for item in items), Decimal(0)) if all(item.volume is not None for item in items) else None
         if quote.basis == "per_unit":
@@ -181,12 +180,21 @@ class Policies:
             quantity = dec(need(storage_unit_days, "storage_unit_days", object_id))
         elif quote.basis == "per_kg":
             quantity = mass * 1000
+            if quote.weight_tariff is not None:
+                step = dec(quote.weight_tariff.actual_weight_step_kg)
+                quantity = ceil_ratio(quantity, step) * step
             if mode == "air" or quote.volumetric_kg_per_m3 is not None:
                 coefficient = dec(need(quote.volumetric_kg_per_m3, "volumetric_kg_per_m3", object_id))
                 quantity = max(quantity, dec(need(volume, "volume_m3", object_id)) * coefficient)
         else:
             coefficient = dec(need(quote.tonnes_per_m3, "tonnes_per_m3", object_id))
             quantity = max(mass, dec(need(volume, "volume_m3", object_id)) * coefficient)
+        if quote.weight_tariff is None:
+            rate = dec(need(quote.rate_rub, "rate_rub", object_id))
+        else:
+            bands = quote.weight_tariff.bands
+            rate = dec(bands[max(weight for weight in bands if dec(weight) <= quantity)])
+            quantity = max(quantity, dec(quote.weight_tariff.minimum_kg))
         result = max(dec(quote.minimum_rub), rate * quantity) + dec(quote.fixed_rub)
         if quote.tax_basis == "unknown":
             raise PlanningProblem("unknown_tax_basis", "Не определён состав налога в тарифе", "insufficient_data", object_id)

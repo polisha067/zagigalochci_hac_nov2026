@@ -12,6 +12,7 @@ from pydantic import Field, model_validator
 
 from backend.calculation_models import Hours, OnceSchedule, Schedule
 from backend.network.forecast_indices import load_indices
+from backend.network.provider_tariffs import FORECAST_BASE_SOURCES
 from backend.network.russia import END, SCENARIO, START, RussiaRequest, RussiaResponse, load_russia
 from backend.schedule import build_schedule
 from backend.transport_calculator import money
@@ -19,7 +20,7 @@ from backend.transport_calculator import money
 
 TOOL = "estimate_future_delivery_cost"
 BASE_YEAR = datetime.fromisoformat(START).year
-MODEL_VERSION = "delivery-cost-v1"
+MODEL_VERSION = "delivery-cost-v2"
 PROJECTED_MODES = frozenset(("road", "rail"))
 TECHNICAL_HOURS = 90 * 24
 MOSCOW = ZoneInfo("Europe/Moscow")
@@ -82,6 +83,9 @@ def project_catalog(catalog, simulation_end):
                 and service["windows"] == [{"start": START, "end": END}]):
             _extend_evidence(service, end)
             service["windows"][0]["end"] = end
+            quote = service["quote"]["evidence"]
+            if FORECAST_BASE_SOURCES.intersection(quote["source_ids"]):
+                quote["valid_until"] = end
     return projected
 
 
@@ -96,10 +100,12 @@ def _search_weights(network, request, index):
     def weight(edge_id):
         edge = network.edges[edge_id]
         mode = edge["mode"]
-        if edge["kind"] != "observation" or mode not in PROJECTED_MODES or factors[mode] is None:
+        if edge["kind"] not in ("observation", "provider_rail") or mode not in PROJECTED_MODES or factors[mode] is None:
             return 1000 + edge["travel_hours"]
-        quote = network.service(edge)["quote"]
-        quantity = max(1, ceil(max(tonnes / 20, volume / 82))) if mode == "road" else tonnes * edge["distance_km"]
+        service = network.service(edge)
+        quote = service["quote"]
+        quantity = (max(1, ceil(max(tonnes / service["unit_tonnes"], volume / service["unit_m3"])))
+                    if quote["basis"] == "per_unit" else tonnes * edge["distance_km"])
         base = max(quote.get("minimum_rub", 0), quote["rate_rub"] * quantity)
         return base * float(factors[mode].central) / 1000
 
@@ -109,7 +115,7 @@ def _search_weights(network, request, index):
 def _relative_calendar(row, reference, year_only):
     edges = {edge["id"]: edge for edge in row["connections"]}
     row["schedule_status"] = ("scenario" if any(
-        edge["kind"] == "observation" for edge in row["connections"]
+        edge["kind"] in ("observation", "provider_rail") for edge in row["connections"]
     ) else "snapshot")
     for step in row["steps"]:
         beginning = step.get("departure_at") or step.get("start_at")
@@ -118,7 +124,7 @@ def _relative_calendar(row, reference, year_only):
             step["duration_hours"] = round((datetime.fromisoformat(ending) - datetime.fromisoformat(beginning)).total_seconds() / 3600, 6)
         if step["kind"] == "transport":
             edge = edges[step["service_id"]]
-            step["schedule_status"] = "scenario" if edge["kind"] == "observation" else "snapshot"
+            step["schedule_status"] = "scenario" if edge["kind"] in ("observation", "provider_rail") else "snapshot"
     if not year_only:
         return
     for record in row["steps"] + row["deliveries"] + row["cost_items"]:
@@ -131,7 +137,7 @@ def _relative_calendar(row, reference, year_only):
 def _calculate_charge(item, target_year, index):
     pricing = item["pricing"]
     amount = Decimal(str(item["amount_rub"]))
-    modelled = pricing["source_ids"] == [SCENARIO]
+    modelled = pricing["source_ids"] == [SCENARIO] or FORECAST_BASE_SOURCES.intersection(pricing["source_ids"])
     if modelled:
         pricing["valid_until"] = END
         effective_year = pricing["base_year"]
@@ -160,7 +166,8 @@ def _sum_items(items, key):
 
 def _reprice(row, request, index, reference):
     requires_date = request.schedule is None and any(
-        edge["mode"] not in PROJECTED_MODES or edge["kind"] != "observation" for edge in row["connections"]
+        edge["mode"] not in PROJECTED_MODES or edge["kind"] not in ("observation", "provider_rail")
+        for edge in row["connections"]
     )
     if requires_date:
         row.update(status="insufficient_data", complete=False, total_cost_rub=None, cost_rub_per_tonne=None,
@@ -286,10 +293,16 @@ def calculate_forecast(request, network=None, indices=None):
     if candidates and result["input_status"] == "ready":
         result["status"] = "calculated" if best else "not_confirmed"
     assumptions = [
-        f"Авто и ж/д опираются на сценарные ставки, мощности и частоту базовой сети {BASE_YEAR} года. Бронирование и тарифы перевозчиков не подтверждены.",
+        f"База {BASE_YEAR} года использует ставки ТЛМ на подходящих направлениях. "
+        "На остальных направлениях цена движения рассчитывается по сценарным ставкам. "
+        "Частота и доступные мощности моделируются.",
         "Для обработки и хранения при отсутствии собственного ряда используется сводный индекс грузовых тарифов как сценарное приближение.",
         "НДС по модели базы сохраняется. Все начисления приведены к рублям выбранного года.",
     ]
+    if any(connection["reference_metadata"].get("scope") == "station_to_station"
+           for row in visible for connection in row["connections"]):
+        assumptions.append("Контейнерная ставка ТЛМ включает терминальные операции от станции до станции. "
+                           "Подвоз к станции, доставка от неё и отдельно указанная охрана в оценку не входят.")
     if request.schedule is None:
         assumptions.append("Задан только год. Для ж/д смоделирована фаза суточного интервала; даты рейсов не выводятся. Для сезонных и датированных услуг нужен период или дата.")
     if request.max_delivery_hours is None:

@@ -21,6 +21,11 @@ from backend.network.cargo import normalized_name
 from backend.network.engine import calculate_network
 from backend.network.graph import FreightNetwork
 from backend.network.models import NetworkCargo, NetworkRequest, Mode
+from backend.network.provider_tariffs import (
+    AIR_SOURCE, RAIL_SOURCE, ROAD_SOURCE, SEA_EQUIPMENT_SOURCE, SEA_SOURCE, observations, rate_evidence,
+    source as tariff_source, yakutia_tariffs,
+)
+from backend.network.river_tariffs import river_catalog
 from backend.schedule import build_schedule
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -182,8 +187,10 @@ class RussiaNetwork:
         self.observation_counts = {'usable':dict(available),'missing_or_unusable':dict(missing),'rows':len(self.snapshot['connections'])}
         self.load_river()
         self.load_aviation()
+        self.load_yakutia_tariffs()
         self.load_fesco()
         self.load_pipeline()
+        self.load_land_tariffs()
         self.incoming = defaultdict(list)
         for edge in self.edges.values():self.incoming[edge["to_hub"]].append(edge)
         self.fingerprint = digest({'model_revision':'2026-11-08.1','snapshot':self.snapshot,'edges':self.edges,'hubs':self.hubs,'sources':self.sources,'pipeline':self.pipeline,'reference_ports':self.reference_ports})
@@ -236,7 +243,7 @@ class RussiaNetwork:
         self.sources[value['id']]=value
 
     def load_river(self):
-        data=json.loads((ROOT/'data_sources/river/network.json').read_text())
+        data=river_catalog()
         for source in data['sources']:self.register_source(source)
         for hub in data['hubs']:
             city=self.add_settlement(hub['city'],'river-terminal-reference')
@@ -286,10 +293,86 @@ class RussiaNetwork:
             city=self.add_settlement(hub['settlement_name'],'fesco-terminal-reference')
             self.add_hub(hub['id'],city,['road','sea'],'seaport',name=hub['name']+' — сценарные операции',reference_ids=[hub['source_id']])
             self.connector(self.ensure_tlc(city),hub['id'])
+        collected_on, records, documents, _ = observations()
+        tariff = records['fesco-fpkl-container-cy-cy']
+        self.register_source(tariff_source(SEA_SOURCE, 'FESCO ФПКЛ — тариф CY–CY', documents[tariff['source']]))
+        self.register_source({'id':SEA_EQUIPMENT_SOURCE, 'name':'FESCO — характеристики контейнера 20’DC',
+                              'url':documents['sea-fesco-equipment.html'], 'status':'fact', 'roles':['equipment_reference']})
+        published_rate = next(row[1] for row in tariff['rows'] if row[0] == 'carrier_20_dry')
+        published = quote('transport', published_rate, 'per_unit', rate_evidence(
+            SEA_SOURCE, collected_on, tariff['valid_from']+'T00:00:00+10:00', END), 'including_vat')
         for row in data['voyages']:
+            if row['id'].startswith('fesco-fpkl:') and row['departure_at'][:10] >= tariff['valid_from']:
+                row.update(quote=published, terminal_handling_included=True)
+                row['reference_metadata'].update(movement_tariff='published', tariff_source_id=SEA_SOURCE,
+                                                 container_size_ft=20)
             dep=datetime.fromisoformat(row['departure_at']);arr=datetime.fromisoformat(row['arrival_at'])
             self.add_edge(dict(row,mode='sea',kind='fesco',travel_hours=(arr-dep).total_seconds()/3600))
         self.coverage_notes.extend(data['limitations'])
+
+    def load_yakutia_tariffs(self):
+        _, _, documents, _ = observations()
+        data = yakutia_tariffs()
+        self.register_source(tariff_source(AIR_SOURCE, 'Якутия — грузовые тарифы, октябрь–декабрь 2026',
+                                           documents[data['source']]))
+        evidence = rate_evidence(AIR_SOURCE, data['observed_on'],
+                                 data['valid_from']+'T00:00:00+09:00', data['valid_until']+'T00:00:00+09:00')
+        aliases = {'С.-Петербург':'Санкт-Петербург','Мин. Воды':'Минеральные Воды','Улан–Удэ':'Улан-Удэ'}
+        for origin, destination, rates in data['federal_rows']:
+            start, end = (self.resolve(aliases.get(name, name)) for name in
+                          (origin.rsplit(' (',1)[0], destination.rsplit(' (',1)[0]))
+            base = self.edges.get(f'observation:air:{start}:{end}')
+            if base is None:
+                continue
+            published = quote('transport', None, 'per_kg', evidence, 'including_vat', None)
+            published.update(fixed_rub=data['awb_rub'], volumetric_kg_per_m3=1_000_000/data['cubic_cm_per_kg'],
+                             weight_tariff={'minimum_kg':data['minimum_weight_kg'],
+                                 'actual_weight_step_kg':data['actual_weight_step_kg'],
+                                 'bands':dict(zip(data['breakpoints_kg'],rates))})
+            self.add_edge(dict(base,id=f'yakutia-air:{start}:{end}',kind='provider_air',quote=published,
+                cost_scope='published_component',missing_cost_components=['agent_fee','other_terminal_services'],
+                reference_metadata={**base['reference_metadata'],'tariff_source_id':AIR_SOURCE,
+                                    'published_airports':[origin,destination],'scope':'airline_and_awb_only'}))
+
+    def load_land_tariffs(self):
+        collected_on, records, documents, road = observations()
+        self.register_source(tariff_source(ROAD_SOURCE, 'ТЛМ — цены на выделенную фуру из Москвы',
+                                    road['url'], 'market_reference'))
+        road_evidence = rate_evidence(ROAD_SOURCE, road['observed_on'], START, END, 'market_reference')
+        origin = self.resolve(road['origin'])
+        for destination, rate in road['rub_per_vehicle'].items():
+            city = self.resolve(destination)
+            edge = self.edges.get(f'observation:road:{origin}:{city}')
+            if edge is not None:
+                edge['quote'] = quote('transport', rate, 'per_unit', road_evidence, 'including_vat')
+                edge['reference_metadata'].update(movement_tariff='market_reference', tariff_source_id=ROAD_SOURCE)
+
+        rail = records['tlm-moscow-container-rail']
+        self.register_source(tariff_source(RAIL_SOURCE, 'ТЛМ — ж/д тарифы от станции до станции',
+                                    documents[rail['source']]))
+        rail_evidence = rate_evidence(RAIL_SOURCE, collected_on,
+                                      rail['valid_from']+'T00:00:00+03:00', END)
+        for destination, rate20, rate40, guard20, guard40, days in rail['rows']:
+            if days.endswith('+'):  # The island service has an unverified non-rail leg.
+                continue
+            city = self.resolve('Улан-Удэ' if destination == 'Тальцы (Улан-Удэ)' else destination)
+            if city is None:
+                continue
+            base = self.edges.get(f'observation:rail:{origin}:{city}')
+            for size, rate, guard, capacity, volume in (
+                (20, rate20, guard20, 18, 28), (40, rate40, guard40, 24, 58),
+            ):
+                identifier = f'tlm-rail:{origin}:{city}:{size}'
+                # The carrier publishes the station-to-station rate and transit time.
+                # Equipment limits and frequency retain conservative scenario values.
+                self.add_edge({'id':identifier, 'from_hub':'tlc:'+origin, 'to_hub':'tlc:'+city,
+                               'mode':'rail', 'kind':'provider_rail', 'travel_hours':float(days)*24,
+                               'distance_km':base['distance_km'] if base else None,
+                               'quote':quote('transport', rate, 'per_unit', rail_evidence, 'including_vat'),
+                               'unit_tonnes':capacity, 'unit_m3':volume, 'terminal_handling_included':True,
+                               'reference_metadata':{'tariff_source_id':RAIL_SOURCE, 'container_size_ft':size,
+                                   'station_destination':destination, 'optional_security_rub_per_container':guard,
+                                   'scope':'station_to_station', 'transit_days':float(days)}})
 
     def load_pipeline(self):
         self.pipeline=json.loads((ROOT/'data_sources/pipeline/tariffs.json').read_text())
@@ -336,23 +419,31 @@ class RussiaNetwork:
             'travel_hours':edge['travel_hours'],'distance_km':edge.get('distance_km'),'cutoff_hours':0 if pipe or mode=='road' else 6,
             'booking':'flow' if pipe else 'dedicated','capacity_scope':'fleet' if mode=='road' else 'departure',
             'resource_id':identifier,'available_units':None if pipe else 8,'evidence':ev(),
-            'connection_status':'observation_based_scenario' if edge['kind']=='observation' else 'scenario',
+            'connection_status':'observation_based_scenario' if edge['kind'] in ('observation','provider_rail') else 'scenario',
             'reference_metadata':edge.get('reference_metadata',{}),
+            'terminal_handling_included':edge.get('terminal_handling_included',False),
             'allowed_phases':['liquid'] if pipe else ['solid'],
             'cost_scope':edge.get('cost_scope','complete_scenario'),'missing_cost_components':edge.get('missing_cost_components',[])}
         if mode=='road':
-            service.update(unit_tonnes=20,unit_m3=82,turnaround_hours=max(2,edge['travel_hours']*2+2),quote=quote('transport',max(5000,edge['distance_km']*90),'per_unit'))
+            service.update(unit_tonnes=20,unit_m3=82,turnaround_hours=max(2,edge['travel_hours']*2+2),quote=edge.get('quote') or quote('transport',max(5000,edge['distance_km']*90),'per_unit'))
         elif mode=='rail':
-            service.update(unit_tonnes=60,unit_m3=120,rail_gauge_mm=1520,quote=quote('transport',3,'per_tonne_km'))
-            service['quote']['minimum_rub']=15000
+            service.update(unit_tonnes=edge.get('unit_tonnes',60),unit_m3=edge.get('unit_m3',120),
+                           rail_gauge_mm=1520,quote=edge.get('quote') or dict(quote('transport',3,'per_tonne_km'),minimum_rub=15000))
+            service['require_volume'] = edge['kind']=='provider_rail'
         elif mode=='air':
             service.update(unit_tonnes=1,unit_m3=6,max_piece_tonnes=.079,max_piece_dimensions_m=[1.5,1.2,1.0],allow_rotation=True,require_volume=True,
                            quote=deepcopy(edge.get('quote')) or quote('transport',450,'per_kg'))
-            service['quote']['volumetric_kg_per_m3']=1000000/6000
+            service['quote'].setdefault('volumetric_kg_per_m3',1000000/6000)
             if edge['kind']=='observation':service['quote']['minimum_rub']=10000
         elif mode=='sea':
             service.update(unit_tonnes=18,unit_m3=28,max_piece_tonnes=2,max_piece_dimensions_m=[2,2,2],require_volume=True,allow_rotation=True,
-                vessel_draft_m=5,max_draft_m=8,ice_class_required=False,quote=quote('transport',200000,'per_unit'))
+                vessel_draft_m=5,max_draft_m=8,ice_class_required=False,quote=edge.get('quote') or quote('transport',200000,'per_unit'))
+            if schedule_source := service['reference_metadata'].get('source_id'):
+                service['evidence'] = ev(sources=[SCENARIO,schedule_source])
+            if edge.get('quote'):
+                service.update(unit_tonnes=28.26, unit_m3=33.2, gross_limit_tonnes=30, tare_tonnes=2.22,
+                               max_piece_tonnes=None, max_piece_dimensions_m=[5.898,2.34,2.28])
+                service['evidence']['source_ids'].append(SEA_EQUIPMENT_SOURCE)
         elif pipe:
             service.update(commodity_ids=['crude_oil'],flow_tonnes_per_hour=100,quote=edge['quote'],allowed_phases=['liquid'])
         if edge.get('cutoff_at'):
@@ -385,7 +476,15 @@ class RussiaNetwork:
         last_ready=max(events)+timedelta(hours=request.max_delivery_hours)
         first_ready=min(events)
         seeds=[]
+        replaced_direct=set()
         def edge_active(edge):
+            if edge['kind'] in ('provider_rail','provider_air'):
+                evidence = edge['quote']['evidence']
+                direct = not via and edge['from_hub'] in starts and edge['to_hub'] in targets
+                in_period = (datetime.fromisoformat(evidence['valid_from']) <= first_ready
+                             and max(events) < datetime.fromisoformat(evidence['valid_until']))
+                return (direct and all(cargo.volume_m3 is not None for cargo in request.cargoes)
+                        and (in_period or edge['kind']=='provider_rail' and price_weight is not None))
             departure = edge.get('departure_at')
             return not departure or include_dated and first_ready <= datetime.fromisoformat(departure) <= last_ready
 
@@ -422,10 +521,15 @@ class RussiaNetwork:
             for path in [p for p in chains if len({e['mode'] for e in p})>1][:2]:seed(path)
         if not via:
             for start in starts:
-                for edge in self.outgoing[start]:
-                    if edge['to_hub'] in targets and edge['mode'] in request.allowed_modes:
-                        if not edge_active(edge):continue
-                        seed([edge])
+                direct = [edge for edge in self.outgoing[start] if edge['to_hub'] in targets
+                          and edge['mode'] in request.allowed_modes and edge_active(edge)]
+                provider_destinations = {(edge['mode'],edge['to_hub']) for edge in direct
+                                         if edge['kind'] in ('provider_rail','provider_air')}
+                for edge in direct:
+                    if edge['kind']=='observation' and (edge['mode'],edge['to_hub']) in provider_destinations:
+                        replaced_direct.add(edge['id'])
+                        continue
+                    seed([edge])
             mixed=[]
             for target in targets:
                 for right in self.incoming[target]:
@@ -465,6 +569,8 @@ class RussiaNetwork:
                 if labels[label]>=3:continue
                 labels[label]+=1
                 for edge in self.outgoing.get(node,[]):
+                    if edge['kind'] in ('provider_rail','provider_air') or not path and edge['id'] in replaced_direct:
+                        continue
                     if edge['mode'] not in allowed or edge['to_hub'] in visited:continue
                     destination=edge['to_hub']
                     # Cannot pass a future mandatory stop before its predecessor.

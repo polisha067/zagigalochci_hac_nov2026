@@ -22,6 +22,16 @@
         "schedule_reference"
       ],
       "scope": "Даты из предоставленного PDF; время 12:00, доступный тоннаж, тариф движения и операции — допущения."
+    },
+    {
+      "id": "fesco-fpkl-nov-dec-2026",
+      "name": "FESCO ФПКЛ — расписание ноября и декабря 2026",
+      "url": "https://www.fesco.ru/_files/common/www/line_schedule/fpkl.pdf",
+      "status": "fact",
+      "roles": [
+        "schedule_reference"
+      ],
+      "scope": "Опубликованы даты и терминалы. Время суток в модели условное."
     }
   ],
   "hubs": [
@@ -68,63 +78,63 @@
         "voyage": "2637PK",
         "calendar_dates": "published",
         "clock_time": "synthetic_no_time_in_pdf",
-        "movement_tariff": "synthetic"
+        "movement_tariff": "published_in_network_for_20ft"
       }
     },
     {
       "id": "fesco-fpkl:2638PK",
       "from_hub": "fesco-vladivostok",
       "to_hub": "fesco-pk-seroglazka",
-      "departure_at": "2026-11-09T12:00:00+10:00",
+      "departure_at": "2026-11-10T12:00:00+10:00",
       "arrival_at": "2026-11-14T12:00:00+12:00",
       "reference_metadata": {
-        "source_id": "fesco-fpkl-2",
+        "source_id": "fesco-fpkl-nov-dec-2026",
         "voyage": "2638PK",
         "calendar_dates": "published",
         "clock_time": "synthetic_no_time_in_pdf",
-        "movement_tariff": "synthetic"
+        "movement_tariff": "published_in_network_for_20ft"
       }
     },
     {
       "id": "fesco-fpkl:2639PK",
       "from_hub": "fesco-vladivostok",
       "to_hub": "fesco-pk-pkmtp",
-      "departure_at": "2026-11-12T12:00:00+10:00",
-      "arrival_at": "2026-11-17T12:00:00+12:00",
+      "departure_at": "2026-11-13T12:00:00+10:00",
+      "arrival_at": "2026-11-18T12:00:00+12:00",
       "reference_metadata": {
-        "source_id": "fesco-fpkl-2",
+        "source_id": "fesco-fpkl-nov-dec-2026",
         "voyage": "2639PK",
         "calendar_dates": "published",
         "clock_time": "synthetic_no_time_in_pdf",
-        "movement_tariff": "synthetic"
+        "movement_tariff": "published_in_network_for_20ft"
       }
     },
     {
       "id": "fesco-fpkl:2641PK",
       "from_hub": "fesco-vladivostok",
-      "to_hub": "fesco-pk-seroglazka",
-      "departure_at": "2026-11-23T12:00:00+10:00",
-      "arrival_at": "2026-11-28T12:00:00+12:00",
+      "to_hub": "fesco-pk-pkmtp",
+      "departure_at": "2026-11-25T12:00:00+10:00",
+      "arrival_at": "2026-11-30T12:00:00+12:00",
       "reference_metadata": {
-        "source_id": "fesco-fpkl-2",
+        "source_id": "fesco-fpkl-nov-dec-2026",
         "voyage": "2641PK",
         "calendar_dates": "published",
         "clock_time": "synthetic_no_time_in_pdf",
-        "movement_tariff": "synthetic"
+        "movement_tariff": "published_in_network_for_20ft"
       }
     },
     {
       "id": "fesco-fpkl:2642PK",
       "from_hub": "fesco-vladivostok",
-      "to_hub": "fesco-pk-pkmtp",
-      "departure_at": "2026-12-04T12:00:00+10:00",
-      "arrival_at": "2026-12-09T12:00:00+12:00",
+      "to_hub": "fesco-pk-seroglazka",
+      "departure_at": "2026-12-07T12:00:00+10:00",
+      "arrival_at": "2026-12-12T12:00:00+12:00",
       "reference_metadata": {
-        "source_id": "fesco-fpkl-2",
+        "source_id": "fesco-fpkl-nov-dec-2026",
         "voyage": "2642PK",
         "calendar_dates": "published",
         "clock_time": "synthetic_no_time_in_pdf",
-        "movement_tariff": "synthetic"
+        "movement_tariff": "published_in_network_for_20ft"
       }
     },
     {
@@ -396,6 +406,34 @@
         "cutoff_rule": "Оба требования должны быть выполнены; условно документы готовы после обработки вместе с грузом."
       },
       "cutoff_at": "2026-11-30T12:00:00+03:00"
+    },
+    {
+      "id": "fesco-fpkl:2640PK",
+      "from_hub": "fesco-vladivostok",
+      "to_hub": "fesco-pk-seroglazka",
+      "departure_at": "2026-11-23T12:00:00+10:00",
+      "arrival_at": "2026-11-28T12:00:00+12:00",
+      "reference_metadata": {
+        "source_id": "fesco-fpkl-nov-dec-2026",
+        "voyage": "2640PK",
+        "calendar_dates": "published",
+        "clock_time": "synthetic_no_time_in_pdf",
+        "movement_tariff": "published_in_network_for_20ft"
+      }
+    },
+    {
+      "id": "fesco-fpkl:2643PK",
+      "from_hub": "fesco-vladivostok",
+      "to_hub": "fesco-pk-pkmtp",
+      "departure_at": "2026-12-09T12:00:00+10:00",
+      "arrival_at": "2026-12-14T12:00:00+12:00",
+      "reference_metadata": {
+        "source_id": "fesco-fpkl-nov-dec-2026",
+        "voyage": "2643PK",
+        "calendar_dates": "published",
+        "clock_time": "synthetic_no_time_in_pdf",
+        "movement_tariff": "published_in_network_for_20ft"
+      }
     }
   ],
   "limitations": [

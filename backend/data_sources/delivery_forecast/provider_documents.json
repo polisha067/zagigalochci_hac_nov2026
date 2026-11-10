@@ -1,0 +1,429 @@
+{
+  "collected_on": "2026-11-10",
+  "archive_path": "backend/data/delivery_forecast/provider_sources",
+  "documents": [
+    {
+      "file": "river-krasrp.html",
+      "url": "https://krasrp.ru/транспортно-экспедиционное-обслужив/",
+      "final_url": "https://krasrp.ru/%D1%82%D1%80%D0%B0%D0%BD%D1%81%D0%BF%D0%BE%D1%80%D1%82%D0%BD%D0%BE-%D1%8D%D0%BA%D1%81%D0%BF%D0%B5%D0%B4%D0%B8%D1%86%D0%B8%D0%BE%D0%BD%D0%BD%D0%BE%D0%B5-%D0%BE%D0%B1%D1%81%D0%BB%D1%83%D0%B6%D0%B8%D0%B2/",
+      "sha256": "62238ea38d117faf46bb288442d855a44ecb2a304cc2c714df7290ebfe7c7a03",
+      "bytes": 335568,
+      "status": "archived"
+    },
+    {
+      "file": "river-enisey-nord.html",
+      "url": "https://www.enisey-nord.ru/price/tarif/",
+      "final_url": "https://www.enisey-nord.ru/price/tarif/",
+      "sha256": "5130a6cdd7c040a76ab30598e9edddf4426aa72d1f0648b0231b36bd280fe83e",
+      "bytes": 102812,
+      "status": "archived"
+    },
+    {
+      "file": "river-trassa.html",
+      "url": "https://trassa-express.com/PRAIS-LIST/",
+      "final_url": "https://trassa-express.com/PRAIS-LIST/",
+      "sha256": "ac1c138dced9bf40295a605665900252f174114587ad76419e143c0de8d15e78",
+      "bytes": 37851,
+      "status": "archived"
+    },
+    {
+      "file": "river-erp-line.html",
+      "url": "https://www.e-river.ru/business/map/dudinka/",
+      "final_url": "https://www.e-river.ru/business/map/dudinka/",
+      "sha256": "2fead52f088c2f0828e506bc898b263e259f31d05cc294265dc3d7d6c008ae11",
+      "bytes": 50604,
+      "status": "archived"
+    },
+    {
+      "file": "river-erp-conditions.html",
+      "url": "https://www.e-river.ru/business/map/yenisei-down/",
+      "final_url": "https://www.e-river.ru/business/map/yenisei-down/",
+      "sha256": "62a2eb799b7caa3b6b55512f9c1eb2b193fe835a013c6d63fb60239155257007",
+      "bytes": 58589,
+      "status": "archived"
+    },
+    {
+      "file": "river-erp-container-service.html",
+      "url": "https://www.e-river.ru/news-and-media/press-releases-and-news/parokhodstvo-dostavlyaet-vse-vidy-i-lyuboy-obyem-gruzov-v-norilskiy-promyshlennyy-rayon-/",
+      "final_url": "https://www.e-river.ru/news-and-media/press-releases-and-news/parokhodstvo-dostavlyaet-vse-vidy-i-lyuboy-obyem-gruzov-v-norilskiy-promyshlennyy-rayon-/",
+      "sha256": "dc9ead707c1a8d4f69e83450c91ff48e824dc0d3ed5744111f2425b128e282ad",
+      "bytes": 60171,
+      "status": "archived"
+    },
+    {
+      "file": "river-morflot-opening.html",
+      "url": "https://t.me/s/morflot_gov/6456",
+      "final_url": "https://t.me/s/morflot_gov/6456",
+      "sha256": "4b249d11bdc369a09667ee33b41c5e0bb571049b8d01c1554f793bcd0c02529d",
+      "bytes": 156290,
+      "status": "archived"
+    },
+    {
+      "file": "river-dudinka-port.html",
+      "url": "https://www.mapm.ru/Port/Dudinka",
+      "error": "<urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1010)>",
+      "status": "unavailable"
+    },
+    {
+      "file": "sea-kmp-kamchatka.html",
+      "url": "https://www.kasco.su/schedule_vvo-pkc/",
+      "final_url": "https://www.kasco.su/schedule_vvo-pkc/",
+      "sha256": "3b1293ea878ed3b3bf5a8e90ba10486bacd0c58dfb68d108affec74546477700",
+      "bytes": 34537,
+      "status": "archived"
+    },
+    {
+      "file": "sea-kmp-sakhalin.html",
+      "url": "https://www.kasco.su/schedule_vvo-uus/",
+      "final_url": "https://www.kasco.su/schedule_vvo-uus/",
+      "sha256": "327173b8782e11c26dc45f9eae0fca6b27c3a06c25c2520ebb4bd3c9860e45bf",
+      "bytes": 34622,
+      "status": "archived"
+    },
+    {
+      "file": "sea-kmp-magadan.html",
+      "url": "https://www.kasco.su/schedule_vvo-mag/",
+      "final_url": "https://www.kasco.su/schedule_vvo-mag/",
+      "sha256": "618b00e950766e4b3c7cb9b4fd1cf43c304bbad0ff4687d9f419d26992034948",
+      "bytes": 34549,
+      "status": "archived"
+    },
+    {
+      "file": "sea-kmp-kamchatka-notice.pdf",
+      "url": "https://www.kasco.su/uploaded_documents/doc02959820260526161123.pdf",
+      "final_url": "https://www.kasco.su/uploaded_documents/doc02959820260526161123.pdf",
+      "sha256": "2f62f14ddca960fc0d1bb56d45b42bb32f0fde5bbc3350ccc442ce3d03c9700a",
+      "bytes": 357252,
+      "status": "archived"
+    },
+    {
+      "file": "sea-kmp-containers.pdf",
+      "url": "https://kasco.su/uploaded_documents/Условия использования контейнерного оборудования ООО КМП.pdf?v09092025=",
+      "final_url": "https://kasco.su/uploaded_documents/%D0%A3%D1%81%D0%BB%D0%BE%D0%B2%D0%B8%D1%8F%20%D0%B8%D1%81%D0%BF%D0%BE%D0%BB%D1%8C%D0%B7%D0%BE%D0%B2%D0%B0%D0%BD%D0%B8%D1%8F%20%D0%BA%D0%BE%D0%BD%D1%82%D0%B5%D0%B9%D0%BD%D0%B5%D1%80%D0%BD%D0%BE%D0%B3%D0%BE%20%D0%BE%D0%B1%D0%BE%D1%80%D1%83%D0%B4%D0%BE%D0%B2%D0%B0%D0%BD%D0%B8%D1%8F%20%D0%9E%D0%9E%D0%9E%20%D0%9A%D0%9C%D0%9F.pdf?v09092025=",
+      "sha256": "b575fd414618b6a2ee350e0389eae5dd842d2e9baea5f8cda9e675145ca21667",
+      "bytes": 148023,
+      "status": "archived"
+    },
+    {
+      "file": "sea-fesco-tariffs.html",
+      "url": "https://www.fesco.ru/ru/clients/schedule/tariffs/",
+      "final_url": "https://www.fesco.ru/ru/clients/schedule/tariffs/",
+      "sha256": "20bba93b3eb5159b0935a4801c42702948df39b8af0c8c11b09d81fca7bfaa6a",
+      "bytes": 595097,
+      "status": "archived"
+    },
+    {
+      "file": "sea-fesco-fpkl.html",
+      "url": "https://www.fesco.ru/ru/clients/container/line/fpkl/",
+      "final_url": "https://www.fesco.ru/ru/clients/container/line/fpkl/",
+      "sha256": "f2eb1ea7aafe8c0e11227277662b3ac2d11b338c639a0c5b35333f2d28d74f05",
+      "bytes": 680177,
+      "status": "archived"
+    },
+    {
+      "file": "sea-fesco-fpkl-reference.html",
+      "url": "https://www.fesco.ru/ru/press-center/news/fesco-uvelichila-vmestimost-kabotazhnoy-linii-vladivostok-petropavlovsk-kamchatskiy/",
+      "final_url": "https://www.fesco.ru/ru/press-center/news/fesco-uvelichila-vmestimost-kabotazhnoy-linii-vladivostok-petropavlovsk-kamchatskiy/",
+      "sha256": "491b321cab5b37f0eba7fe561ae602406423dac1e03cc89370a879e3d3617390",
+      "bytes": 591236,
+      "status": "archived"
+    },
+    {
+      "file": "sea-dvlk-tariffs.html",
+      "url": "https://www.dvlk.su/tariff/",
+      "final_url": "https://www.dvlk.su/tariff/",
+      "sha256": "a2aa449c2f73c5977b9e48b25790596eac5eba8e47a204f8d17a3ddf36451d7a",
+      "bytes": 54574,
+      "status": "archived"
+    },
+    {
+      "file": "sea-dvlk-change.html",
+      "url": "https://dvlk.su/notification/381/",
+      "final_url": "https://dvlk.su/notification/381/",
+      "sha256": "fa49fb438b8a063eaab56a67821f17bd605c7caf0f8989ffac77cc910b2dd856",
+      "bytes": 46699,
+      "status": "archived"
+    },
+    {
+      "file": "air-aeroflot.html",
+      "url": "https://www.aeroflot.ru/products/cargo/",
+      "error": "HTTP Error 503: Service Temporarily Unavailable",
+      "status": "unavailable"
+    },
+    {
+      "file": "air-moscow-cargo.html",
+      "url": "https://www.moscow-cargo.com/tarify",
+      "final_url": "https://www.moscow-cargo.com/tarify",
+      "sha256": "d794518609abe840f94ad79d032bff29765cb8a01fe25f6bd4511f9af5334bed",
+      "bytes": 165270,
+      "status": "archived"
+    },
+    {
+      "file": "air-moscow-cargo-standards.html",
+      "url": "https://www.moscow-cargo.com/uslugi/normativy-obsluzhivaniya",
+      "final_url": "https://www.moscow-cargo.com/uslugi/normativy-obsluzhivaniya",
+      "sha256": "61bb8d47ca48e475929fd074c7d5ad0e9f1673e3c069313f0fe4be7f18a4d1de",
+      "bytes": 215868,
+      "status": "archived"
+    },
+    {
+      "file": "air-moscow-cargo-aeroflot.pdf",
+      "url": "https://www.moscow-cargo.com/storage/app/media/Tariff/New Tariffs/AFL/26.10.2026/RATES ON AEROFLOT PJSC FLIGHTS, ROSSIYA JSC FLIGHTS AND POBEDA AIRLINES LLC_RUS_2026_.pdf",
+      "final_url": "https://www.moscow-cargo.com/storage/app/media/Tariff/New%20Tariffs/AFL/26.10.2026/RATES%20ON%20AEROFLOT%20PJSC%20FLIGHTS%2C%20ROSSIYA%20JSC%20FLIGHTS%20AND%20POBEDA%20AIRLINES%20LLC_RUS_2026_.pdf",
+      "sha256": "459e8c38441962e73d4530271ac6a56fbcd231b4564ab7c00aed15779f753368",
+      "bytes": 788963,
+      "status": "archived"
+    },
+    {
+      "file": "air-chukotavia.html",
+      "url": "https://chukotavia.ru/",
+      "final_url": "https://chukotavia.ru/",
+      "sha256": "2721aa4137414997595a37c9dfbb7665edb2756a7221ee443ab09ff4070f5c0a",
+      "bytes": 169996,
+      "status": "archived"
+    },
+    {
+      "file": "pipeline-fas-857-25.html",
+      "url": "https://base.garant.ru/413193877/",
+      "final_url": "https://base.garant.ru/413193877/",
+      "sha256": "ea18b7deeca18fc4e34322f7693df9a62dc7a82bce72b2bcbf5ffe6090af9c50",
+      "bytes": 80032,
+      "status": "archived"
+    },
+    {
+      "file": "pipeline-fas-operations.html",
+      "url": "https://www.consultant.ru/document/cons_doc_LAW_520601/def06aaf49031753b14c7fd3066ba01246b8883d/",
+      "final_url": "https://www.consultant.ru/document/cons_doc_LAW_520601/def06aaf49031753b14c7fd3066ba01246b8883d/",
+      "sha256": "af155921ad7b4e00315fe0fddec6628bad6d78285132f22f20d95b3c8548c6de",
+      "bytes": 51690,
+      "status": "archived"
+    },
+    {
+      "file": "rail-tlm.html",
+      "url": "https://tl-m.ru/tariffs/container/",
+      "final_url": "https://tl-m.ru/tariffs/container/",
+      "sha256": "a22da2dc092c94e9b604da092766e95aa86f587f3ce35cb0b6e7f56dfe0198d5",
+      "bytes": 25991,
+      "status": "archived"
+    },
+    {
+      "file": "rail-transcontainer-services.pdf",
+      "url": "https://trcont.com/documents/20143/0/%D0%9F%D1%80%D0%B0%D0%B9%D1%81-%D0%BB%D0%B8%D1%81%D1%82%2B%D0%9F%D1%80%D0%B8%D0%BB.%2B1%2B%D1%81%2B01.12.2025%2B%283%29.pdf/9aefc1fc-5691-6932-23d1-27ad2d80d4fe",
+      "error": "<urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1010)>",
+      "status": "unavailable"
+    },
+    {
+      "file": "road-delta.html",
+      "url": "https://tkdelta.ru/tarify/perevozka-sbornykh-gruzov/moskva-vladivostok",
+      "final_url": "https://tkdelta.ru/tarify/perevozka-sbornykh-gruzov/moskva-vladivostok",
+      "sha256": "09ecdd0c377641332d315f9a4cbf397cc41be4781d644d3088aa7285170b98b4",
+      "bytes": 50903,
+      "status": "archived"
+    },
+    {
+      "file": "road-clever.html",
+      "url": "https://clever-logistics.ru/route/msk/vladivostok/",
+      "final_url": "https://clever-logistics.ru/route/msk/vladivostok/",
+      "sha256": "9bee19bc95f92e23f0e0dcb889a1920e1ed69890d23d9923e2b68e6c80929324",
+      "bytes": 98624,
+      "status": "archived"
+    },
+    {
+      "file": "road-kmp-local.html",
+      "url": "https://www.kasco.su/services/container-trucking/",
+      "final_url": "https://www.kasco.su/services/container-trucking/",
+      "sha256": "ad2a9db49339fdbe48355b080f1ed31c70ec8116b9c7cd1a5386bfd2e4d5d106",
+      "bytes": 170771,
+      "status": "archived"
+    },
+    {
+      "file": "sea-fesco-fpkl-schedule.pdf",
+      "url": "https://www.fesco.ru/_files/common/www/line_schedule/fpkl.pdf",
+      "final_url": "https://www.fesco.ru/_files/common/www/line_schedule/fpkl.pdf",
+      "sha256": "bc69efa9e6f9d0c4422ce9d102f6e80c4b7b1436ada8e8c34669c3de65c37402",
+      "bytes": 182441,
+      "status": "archived"
+    },
+    {
+      "file": "sea-fesco-fpkl-tariff.pdf",
+      "url": "https://www.fesco.ru/_files/common/www/tariffs/fpkl.pdf",
+      "final_url": "https://www.fesco.ru/_files/common/www/tariffs/fpkl.pdf",
+      "sha256": "a7f1e8e5fa4b029da0b7090bd6e48f877972fb7cdc1e0e67f2cd9277a6c147a4",
+      "bytes": 1185008,
+      "status": "archived"
+    },
+    {
+      "file": "sea-fesco-fskl-tariff.pdf",
+      "url": "https://www.fesco.ru/_files/common/www/tariffs/fskl.pdf",
+      "final_url": "https://www.fesco.ru/_files/common/www/tariffs/fskl.pdf",
+      "sha256": "ad1ca460b5ed46404e08e2b143c4e002a971cced42dc7e4101406dc0d25c0924",
+      "bytes": 150710,
+      "status": "archived"
+    },
+    {
+      "file": "sea-fesco-fml-tariff.pdf",
+      "url": "https://www.fesco.ru/_files/common/www/tariffs/fml.pdf",
+      "final_url": "https://www.fesco.ru/_files/common/www/tariffs/fml.pdf",
+      "sha256": "16d26aa7f1ec075e6dc1a2c4327ddac845347b41bbc220947b18c7ad665a258f",
+      "bytes": 1145103,
+      "status": "archived"
+    },
+    {
+      "file": "sea-fesco-fadl-tariff.pdf",
+      "url": "https://www.fesco.ru/_files/common/www/tariffs/fadl.pdf",
+      "final_url": "https://www.fesco.ru/_files/common/www/tariffs/fadl.pdf",
+      "sha256": "e3867288751351536e7813239cf2b7e397c234affcd58aa471fcdef5436084d4",
+      "bytes": 859404,
+      "status": "archived"
+    },
+    {
+      "file": "sea-fesco-fkdl-tariff.pdf",
+      "url": "https://www.fesco.ru/_files/common/www/tariffs/fkdl.pdf",
+      "final_url": "https://www.fesco.ru/_files/common/www/tariffs/fkdl.pdf",
+      "sha256": "1235f8b2702fafb0654c5cee7941ffee43ebf8519803bdcfbabcf5e185299dfa",
+      "bytes": 1201223,
+      "status": "archived"
+    },
+    {
+      "file": "sea-fesco-magadan-terminal.pdf",
+      "url": "https://www.fesco.ru/upload/iblock/9df/uc0mc0exuiupnfuwgoe5s78ja604ja2u/Prikaz-_-255-ot-01-noyabrya-2026g.-Ob-ustanovlenii-tarifov-na-uslugi-okazyvaemye-Dopolnitelnym-ofisom-OOO-FIT-v-g.-Magadan.pdf",
+      "final_url": "https://www.fesco.ru/upload/iblock/9df/uc0mc0exuiupnfuwgoe5s78ja604ja2u/Prikaz-_-255-ot-01-noyabrya-2026g.-Ob-ustanovlenii-tarifov-na-uslugi-okazyvaemye-Dopolnitelnym-ofisom-OOO-FIT-v-g.-Magadan.pdf",
+      "sha256": "6c6b62aefd734a7e86141a2bcb0e44e8b8960c3aaa084daca392d545a98a1102",
+      "bytes": 2846846,
+      "status": "archived"
+    },
+    {
+      "file": "sea-fesco-vladivostok-terminal.pdf",
+      "url": "https://www.fesco.ru/upload/iblock/d8d/hdxhwpaplnb0bi2h0v61tvhlf1xozw72/Prikaz-_-193-ot-03-avgusta-2026g.-Ob-ustanovlenii-tarifov-na-terminalnye-uslugi-v-p.Vladivostok-pri-perevozke-gruzov-na-kabotazhnykh-sudakh.pdf",
+      "final_url": "https://www.fesco.ru/upload/iblock/d8d/hdxhwpaplnb0bi2h0v61tvhlf1xozw72/Prikaz-_-193-ot-03-avgusta-2026g.-Ob-ustanovlenii-tarifov-na-terminalnye-uslugi-v-p.Vladivostok-pri-perevozke-gruzov-na-kabotazhnykh-sudakh.pdf",
+      "sha256": "96e08ca59d3d718a36acbbf77daf629ed0c7ec7b7324bc014d5c52c79c7b564c",
+      "bytes": 2307645,
+      "status": "archived"
+    },
+    {
+      "file": "sea-fesco-kamchatka-terminal.pdf",
+      "url": "https://www.fesco.ru/upload/iblock/887/2zusjc3i93fy9s1s2z9p97ehnt8ack5w/Prikaz-_-161-ot-09-iyunya-2026g.-Ob-ustanovlenii-tarifov-na-uslugi-okazyvaemye-DO-OOO-FIT-v-g.-Petropavlovsk_Kamchatskiy.pdf",
+      "final_url": "https://www.fesco.ru/upload/iblock/887/2zusjc3i93fy9s1s2z9p97ehnt8ack5w/Prikaz-_-161-ot-09-iyunya-2026g.-Ob-ustanovlenii-tarifov-na-uslugi-okazyvaemye-DO-OOO-FIT-v-g.-Petropavlovsk_Kamchatskiy.pdf",
+      "sha256": "0099c112488a4c47ad09b707a337bf46996d8abc0d2af86d84ccf7016f524523",
+      "bytes": 2397936,
+      "status": "archived"
+    },
+    {
+      "file": "sea-fesco-sakhalin-terminal.pdf",
+      "url": "https://www.fesco.ru/upload/iblock/b0a/ugzltkzxdcdced2sbroab3xl3l0o4zk0/Prikaz-_-128-ot-07-maya-2026g.-Ob-ustanovlenii-tarifov-na-uslugi-okazyvaemye-DO-OOO-FIT-v-Sakhalinskoy-oblasti.pdf",
+      "final_url": "https://www.fesco.ru/upload/iblock/b0a/ugzltkzxdcdced2sbroab3xl3l0o4zk0/Prikaz-_-128-ot-07-maya-2026g.-Ob-ustanovlenii-tarifov-na-uslugi-okazyvaemye-DO-OOO-FIT-v-Sakhalinskoy-oblasti.pdf",
+      "sha256": "b25c8db91f22db363413adba4618f694821cde54a1fde964e9396a7693755e57",
+      "bytes": 2452044,
+      "status": "archived"
+    },
+    {
+      "file": "sea-dvlk-kamchatka.pdf",
+      "url": "https://www.dvlk.su/upload/iblock/e50/ht0rp797y6fnkrrjeihzrwmoiyhntcam/Владивосток (Восточный) - Петропавловск-Камчатский от 11.06.2026 .pdf",
+      "final_url": "https://www.dvlk.su/upload/iblock/e50/ht0rp797y6fnkrrjeihzrwmoiyhntcam/%D0%92%D0%BB%D0%B0%D0%B4%D0%B8%D0%B2%D0%BE%D1%81%D1%82%D0%BE%D0%BA%20%28%D0%92%D0%BE%D1%81%D1%82%D0%BE%D1%87%D0%BD%D1%8B%D0%B9%29%20-%20%D0%9F%D0%B5%D1%82%D1%80%D0%BE%D0%BF%D0%B0%D0%B2%D0%BB%D0%BE%D0%B2%D1%81%D0%BA-%D0%9A%D0%B0%D0%BC%D1%87%D0%B0%D1%82%D1%81%D0%BA%D0%B8%D0%B9%20%D0%BE%D1%82%2011.06.2026%20.pdf",
+      "sha256": "a8303a5a3b48f1d732df53165fc325ebe43f132d36f490e2b91ef9cc91e93dd3",
+      "bytes": 151347,
+      "status": "archived"
+    },
+    {
+      "file": "sea-dvlk-sakhalin.pdf",
+      "url": "https://www.dvlk.su/upload/iblock/c81/ak2jgp2llstewewo1pxq9y0o6um00q3k/Владивосток (Восточный) - Корсаков от 11.06.2026.pdf",
+      "final_url": "https://www.dvlk.su/upload/iblock/c81/ak2jgp2llstewewo1pxq9y0o6um00q3k/%D0%92%D0%BB%D0%B0%D0%B4%D0%B8%D0%B2%D0%BE%D1%81%D1%82%D0%BE%D0%BA%20%28%D0%92%D0%BE%D1%81%D1%82%D0%BE%D1%87%D0%BD%D1%8B%D0%B9%29%20-%20%D0%9A%D0%BE%D1%80%D1%81%D0%B0%D0%BA%D0%BE%D0%B2%20%D0%BE%D1%82%2011.06.2026.pdf",
+      "sha256": "c1bb232b42add9527d2b101c72ef79fbd930f35f557f87e382efcc086ba80ef7",
+      "bytes": 173930,
+      "status": "archived"
+    },
+    {
+      "file": "road-dvlk-sakhalin.pdf",
+      "url": "https://www.dvlk.su/upload/iblock/ac2/n6zhvx8795basw4tbivf8nla1tedjcz9/Автотарифы Сахалин с 01.01.2026.pdf",
+      "final_url": "https://www.dvlk.su/upload/iblock/ac2/n6zhvx8795basw4tbivf8nla1tedjcz9/%D0%90%D0%B2%D1%82%D0%BE%D1%82%D0%B0%D1%80%D0%B8%D1%84%D1%8B%20%D0%A1%D0%B0%D1%85%D0%B0%D0%BB%D0%B8%D0%BD%20%D1%81%2001.01.2026.pdf",
+      "sha256": "848efc48c4d17c7f0c752471856f64540cbb61e07cef98e4fe75c819eed8602e",
+      "bytes": 106836,
+      "status": "archived"
+    },
+    {
+      "file": "road-dvlk-kamchatka.pdf",
+      "url": "https://www.dvlk.su/upload/iblock/20d/gfppw3lpnvqfr2s6o5msdw9mnnp94rjs/Автотарифы Камчатка 01.07.2026.pdf",
+      "final_url": "https://www.dvlk.su/upload/iblock/20d/gfppw3lpnvqfr2s6o5msdw9mnnp94rjs/%D0%90%D0%B2%D1%82%D0%BE%D1%82%D0%B0%D1%80%D0%B8%D1%84%D1%8B%20%D0%9A%D0%B0%D0%BC%D1%87%D0%B0%D1%82%D0%BA%D0%B0%2001.07.2026.pdf",
+      "sha256": "4f155e45e631b34dbddf9bd698fa69fe3d538e14aa445e88f4561b87ce79c280",
+      "bytes": 87857,
+      "status": "archived"
+    },
+    {
+      "file": "road-dvlk-vladivostok.pdf",
+      "url": "https://www.dvlk.su/upload/iblock/d81/2pawgkz8rswezr94v2o21aib3ktptm6m/Автотарифы Владивосток с 10.08.2026.pdf",
+      "final_url": "https://www.dvlk.su/upload/iblock/d81/2pawgkz8rswezr94v2o21aib3ktptm6m/%D0%90%D0%B2%D1%82%D0%BE%D1%82%D0%B0%D1%80%D0%B8%D1%84%D1%8B%20%D0%92%D0%BB%D0%B0%D0%B4%D0%B8%D0%B2%D0%BE%D1%81%D1%82%D0%BE%D0%BA%20%D1%81%2010.08.2026.pdf",
+      "sha256": "c8a8661c5469e95b80e8bebe287df4f6d3661efef1abad6869de414fa9695a2b",
+      "bytes": 132322,
+      "status": "archived"
+    },
+    {
+      "file": "sea-dvlk-transcontainer.pdf",
+      "url": "https://www.dvlk.su/upload/iblock/f5b/rnnqzd8k8ullz9hw3it7p72cg7t04j4p/Пользование контейнерами ПАО ТрансКонтейнер с 19.01.26 .pdf",
+      "final_url": "https://www.dvlk.su/upload/iblock/f5b/rnnqzd8k8ullz9hw3it7p72cg7t04j4p/%D0%9F%D0%BE%D0%BB%D1%8C%D0%B7%D0%BE%D0%B2%D0%B0%D0%BD%D0%B8%D0%B5%20%D0%BA%D0%BE%D0%BD%D1%82%D0%B5%D0%B9%D0%BD%D0%B5%D1%80%D0%B0%D0%BC%D0%B8%20%D0%9F%D0%90%D0%9E%20%D0%A2%D1%80%D0%B0%D0%BD%D1%81%D0%9A%D0%BE%D0%BD%D1%82%D0%B5%D0%B9%D0%BD%D0%B5%D1%80%20%D1%81%2019.01.26%20.pdf",
+      "sha256": "61ff52cf0d0714a0478f381f26a898bbfcb742f4246c6bf81ecceab87a127192",
+      "bytes": 591559,
+      "status": "archived"
+    },
+    {
+      "file": "sea-dvlk-forwarder-containers.pdf",
+      "url": "https://www.dvlk.su/upload/iblock/648/34w9xamntlv5bw7g1zfm1cpm3de8pu1k/Пользование контейнерами Экспедитора с 01.01.26.pdf",
+      "final_url": "https://www.dvlk.su/upload/iblock/648/34w9xamntlv5bw7g1zfm1cpm3de8pu1k/%D0%9F%D0%BE%D0%BB%D1%8C%D0%B7%D0%BE%D0%B2%D0%B0%D0%BD%D0%B8%D0%B5%20%D0%BA%D0%BE%D0%BD%D1%82%D0%B5%D0%B9%D0%BD%D0%B5%D1%80%D0%B0%D0%BC%D0%B8%20%D0%AD%D0%BA%D1%81%D0%BF%D0%B5%D0%B4%D0%B8%D1%82%D0%BE%D1%80%D0%B0%20%D1%81%2001.01.26.pdf",
+      "sha256": "483387aa04452af5892b0efd426ebde9511570059c1065ddfb60414072e1f9a8",
+      "bytes": 598375,
+      "status": "archived"
+    },
+    {
+      "file": "river-dudinka-port-official.html",
+      "url": "https://rosatomport.ru/port_dudinka",
+      "final_url": "https://rosatomport.ru/port_dudinka",
+      "sha256": "412c81344407e48a036e683a13d2d1775605492f21c4b3c5520dfd8b0817210a",
+      "bytes": 59041,
+      "status": "archived"
+    },
+    {
+      "file": "road-tlm-ftl.html",
+      "url": "https://tl-m.ru/tariffs/magistral/",
+      "final_url": "https://tl-m.ru/tariffs/magistral/",
+      "sha256": "d5941941d23c2ceddeec9de5923592fc6fc06d1dda70eafbfae7f4db309dabb6",
+      "bytes": 20897,
+      "status": "archived"
+    },
+    {
+      "file": "air-yakutia-oct-dec-2026.pdf",
+      "url": "https://www.yakutia.aero/uslugi/gruzovye-perevozki-na-vnutrennikh-reisakh/R3-CargoFares-oct-dec-2026.pdf",
+      "final_url": "https://www.yakutia.aero/uslugi/gruzovye-perevozki-na-vnutrennikh-reisakh/R3-CargoFares-oct-dec-2026.pdf",
+      "sha256": "6f3d98001b36a8159d4b3613eebdad8dbd920a5a696ecd386f8fbe1907102715",
+      "bytes": 334146,
+      "status": "archived"
+    },
+    {
+      "file": "air-yakutia-jun-sep-2026.pdf",
+      "url": "https://www.yakutia.aero/uslugi/gruzovye-perevozki-na-vnutrennikh-reisakh/R3-CargoFares-jun-sep-2026.pdf",
+      "error": "HTTP Error 404: Not Found",
+      "status": "unavailable"
+    },
+    {
+      "file": "air-vvo-terminal.html",
+      "url": "https://air-cargo.far-east.ru/view/63/64/lang,ru/",
+      "error": "HTTP Error 500: Internal Server Error",
+      "status": "unavailable",
+      "reviewed_via_web": true
+    },
+    {
+      "file": "sea-fesco-equipment.html",
+      "url": "https://www.fesco.ru/ru/assets/containers/",
+      "final_url": "https://www.fesco.ru/ru/assets/containers/",
+      "sha256": "2defc800b918a35aabebb7cbc935df26392ff1e555685213f91f0e04ec7993b9",
+      "bytes": 669558,
+      "status": "archived"
+    },
+    {
+      "file": "rail-fas-612-26.html",
+      "url": "https://base.garant.ru/414806623/",
+      "error": "The read operation timed out",
+      "status": "unavailable",
+      "reviewed_via_web": true
+    }
+  ],
+  "updated_on": "2026-11-11"
+}

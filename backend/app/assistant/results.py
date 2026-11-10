@@ -8,11 +8,21 @@ from backend.network.delivery_forecast import ForecastResponse
 from backend.network.models import NetworkResponse
 from backend.network.pipeline import PipelineResponse
 from backend.network.russia import RussiaResponse
+from backend.network.river_tariffs import river_catalog
 
 from .references import AIR_PATH, MODE_LABELS, PIPELINE_PATH, RIVER_PATH, number, pipeline_points, snapshot, source_ref
 
 
 VAT = {"including_vat": "с НДС", "excluding_vat": "без НДС"}
+
+
+def _tariff_scope(row):
+    for connection in row.get("connections", ()):
+        metadata = connection["reference_metadata"]
+        if metadata.get("scope") == "station_to_station":
+            return (f"Для ж/д использован тариф ТЛМ на контейнер {metadata['container_size_ft']} футов "
+                    "от станции до станции. Подвоз, доставка от станции и охрана оплачиваются отдельно, если требуются.")
+    return None
 
 
 def _expired_river_summary(result):
@@ -24,7 +34,7 @@ def _expired_river_summary(result):
     ):
         return None
 
-    data = snapshot(RIVER_PATH)
+    data = river_catalog()
     if result.network_id != data["id"]:
         return None
     hubs = {hub["id"]: hub["city"] for hub in data["hubs"]}
@@ -102,6 +112,8 @@ def forecast_summary(result):
         f"Дешевле всего из рассчитанных вариантов — {name(chosen)}. "
         f"Около {price(chosen['total_cost_rub'], chosen)} {VAT[result.request['cost_basis']]}, {duration(chosen)}.",
     ]
+    if scope := _tariff_scope(chosen):
+        lines.append(scope)
     if budget["lower_rub"] is not None:
         lines.append(f"Ориентир для бюджета — от {price(budget['lower_rub'], chosen)} до {price(budget['upper_rub'], chosen)}.")
     else:
@@ -172,6 +184,8 @@ def engine_summary(result):
                      f"Примерная стоимость — {number(chosen['total_cost_rub'])} ₽ {VAT[result.request['cost_basis']]}. "
                      f"Самая долгая доставка займёт около {number(chosen['max_delivery_hours'])} ч.")
         if isinstance(result, RussiaResponse):
+            if scope := _tariff_scope(chosen):
+                lines.append(scope)
             lines.append("Цену, срок и наличие мест уточните у перевозчика. "
                          "Другие варианты и подробности доступны в результатах расчёта.")
             return "\n\n".join(lines)
@@ -181,6 +195,10 @@ def engine_summary(result):
         if not result.candidates and isinstance(result, RussiaResponse):
             return "По заданным условиям не удалось найти маршрут. Проверьте даты и выбранные виды транспорта."
         lines.append("Среди рассчитанных вариантов подходящих для ваших условий не нашлось.")
+        partial = next((row for row in result.candidates if row.get("known_cost_subtotal_rub")), None)
+        if partial:
+            lines.append(f"По опубликованным ставкам рассчитана часть стоимости — "
+                         f"{number(partial['known_cost_subtotal_rub'])} ₽ {VAT[result.request['cost_basis']]}.")
         reasons = dict.fromkeys(issue["message"] for row in result.candidates for issue in row["issues"])
         lines.extend(f"Причина: {message.rstrip('.')}." for message in list(reasons)[:3])
     partial = next((row["published_tariff_estimate"] for row in result.candidates

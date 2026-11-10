@@ -37,6 +37,18 @@ class Evidence(InputModel):
         return self
 
 
+class WeightTariff(InputModel):
+    minimum_kg: Positive
+    actual_weight_step_kg: Positive
+    bands: Dict[Nonnegative, Nonnegative]
+
+    @model_validator(mode="after")
+    def complete(self):
+        if 0 not in self.bands:
+            raise ValueError("Для весового тарифа нужна начальная ступень")
+        return self
+
+
 class Quote(InputModel):
     component: Literal["transport", "handling", "storage", "all_in"]
     currency: Literal["RUB"] = "RUB"
@@ -46,9 +58,16 @@ class Quote(InputModel):
     fixed_rub: Nonnegative = 0
     volumetric_kg_per_m3: Optional[Positive] = None
     tonnes_per_m3: Optional[Positive] = None
+    weight_tariff: Optional[WeightTariff] = None
     tax_basis: Literal["including_vat", "excluding_vat", "unknown"]
     tax_rate: Annotated[Optional[float], Field(strict=True, ge=0, le=1)] = None
     evidence: Evidence
+
+    @model_validator(mode="after")
+    def weight_basis(self):
+        if self.weight_tariff is not None and self.basis != "per_kg":
+            raise ValueError("Весовые ступени применяются к ставкам за килограмм")
+        return self
 
 
 class Operation(InputModel):
@@ -148,6 +167,7 @@ class Service(InputModel):
     missing_cost_components: List[Text] = Field(default_factory=list)
     connection_status: Literal["scenario", "published_service", "observation_based_scenario"] = "scenario"
     reference_metadata: dict = Field(default_factory=dict)
+    terminal_handling_included: StrictBool = False
     available: Optional[StrictBool] = None
     cargo_types: Annotated[List[Text], Field(min_length=1)]
     cargo_profiles: List[Text] = Field(default_factory=list)

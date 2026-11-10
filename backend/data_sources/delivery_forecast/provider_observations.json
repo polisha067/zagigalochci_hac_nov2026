@@ -1,0 +1,2001 @@
+{
+  "dataset_id": "delivery-forecast-provider-observations-v1",
+  "collected_on": "2026-11-10",
+  "currency": "RUB",
+  "status": "research_inputs",
+  "records": [
+    {
+      "id": "delta-moscow-vladivostok-ltl",
+      "mode": "road",
+      "provider": "ТК Дельта",
+      "source": "road-delta.html",
+      "kind": "freight_tariff",
+      "origin": "Москва",
+      "destination": "Владивосток",
+      "scope": "Сборный груз, тариф по плотности и расчётному объёму",
+      "vat": "included",
+      "vat_percent": 22,
+      "density_threshold_kg_m3": 220,
+      "volume_multiplier": {
+        "ordinary": 1.1,
+        "other": 1.2
+      },
+      "temperature_control_surcharge": {
+        "rub_per_kg": 20,
+        "rub_per_m3": 4600,
+        "minimum": "on_request"
+      },
+      "columns": [
+        "published_weight_band_kg",
+        "published_volume_band_m3",
+        "rub_per_kg",
+        "rub_per_m3"
+      ],
+      "minimum_rub": 1000,
+      "transit_days": [
+        11,
+        12
+      ],
+      "rows": [
+        [
+          "до 1000",
+          "до 5",
+          49.0,
+          10780
+        ],
+        [
+          "1001–2000",
+          "5,1–10",
+          48.5,
+          10670
+        ],
+        [
+          "более 2000",
+          "более 10,1",
+          47.5,
+          10450
+        ]
+      ],
+      "express": {
+        "rub_per_kg": 50,
+        "rub_per_m3": 11000,
+        "minimum_rub": 1200,
+        "transit_days": [
+          8,
+          9
+        ],
+        "departure_iso_weekdays": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ]
+      }
+    },
+    {
+      "id": "dvlk-seroglazka-drayage",
+      "mode": "road",
+      "provider": "ДВЛК",
+      "source": "road-dvlk-kamchatka.pdf",
+      "kind": "first_last_mile_tariff",
+      "origin": "Петропавловск-Камчатский, терминал Сероглазка",
+      "container_size_ft": [
+        20,
+        40
+      ],
+      "valid_from": "2026-07-01",
+      "vat": "exempt",
+      "columns": [
+        "destination",
+        "rub_per_container",
+        "gross_t_limit_without_permit_if_published"
+      ],
+      "rows": [
+        [
+          "Петропавловск-Камчатский",
+          17500,
+          null
+        ],
+        [
+          "Светлый — Нагорный (20-й км)",
+          19500,
+          null
+        ],
+        [
+          "Елизово",
+          21500,
+          null
+        ],
+        [
+          "Мирный (Вулканный)",
+          23000,
+          null
+        ],
+        [
+          "Сосновка, Николаевка",
+          23000,
+          18
+        ],
+        [
+          "Паратунка, Термальный",
+          25000,
+          18
+        ],
+        [
+          "Коряки",
+          26000,
+          18
+        ],
+        [
+          "Усть-Большерецк, Кавалерское",
+          75000,
+          18
+        ],
+        [
+          "Усть-Камчатск",
+          190000,
+          18
+        ],
+        [
+          "Соболево",
+          250000,
+          18
+        ]
+      ],
+      "included_loading_unloading_hours": {
+        "20": 3,
+        "40": 4
+      },
+      "excess_wait_rub_per_hour": 2500,
+      "notes": "Дополнительный адрес и специальное разрешение по запросу"
+    },
+    {
+      "id": "dvlk-vladivostok-drayage",
+      "mode": "road",
+      "provider": "ДВЛК",
+      "source": "road-dvlk-vladivostok.pdf",
+      "kind": "first_last_mile_tariff",
+      "area": "Владивосток и Приморский край",
+      "valid_from": "2026-08-10",
+      "vat": "included",
+      "vat_percent": 5,
+      "columns": [
+        "service",
+        "zone",
+        "rub_per_movement",
+        "gross_t_limit_without_permit_if_published"
+      ],
+      "rows": [
+        [
+          "container_supply_20_or_40",
+          "Владивосток до ост. Фабрика Заря",
+          25000,
+          null
+        ],
+        [
+          "container_supply_20_or_40",
+          "От ост. Фабрика Заря до 28 км",
+          27000,
+          null
+        ],
+        [
+          "container_supply_20_or_40",
+          "От 28 км до Артёма",
+          29000,
+          22
+        ],
+        [
+          "container_supply_20_or_40",
+          "Уссурийск",
+          37000,
+          22
+        ],
+        [
+          "loaded_20_or_40",
+          "Владивосток до ост. Фабрика Заря",
+          25000,
+          null
+        ],
+        [
+          "loaded_20_or_40",
+          "От ост. Фабрика Заря до 28 км",
+          27000,
+          null
+        ],
+        [
+          "loaded_20_or_40",
+          "От 28 км до Артёма",
+          29000,
+          22
+        ],
+        [
+          "empty_20_or_40_or_2x20",
+          "Владивосток до ост. Фабрика Заря",
+          21500,
+          null
+        ],
+        [
+          "empty_20_or_40_or_2x20",
+          "28 км",
+          24500,
+          null
+        ],
+        [
+          "empty_20_or_40_or_2x20",
+          "Артём",
+          26500,
+          null
+        ]
+      ],
+      "included_loading_unloading_hours": {
+        "20": 3,
+        "40": 4
+      },
+      "excess_wait_rub_per_hour": 2500,
+      "additional_address_same_zone_rub": 5000,
+      "notes": "Организация въезда и выезда в порту включена"
+    },
+    {
+      "id": "tlm-moscow-container-rail",
+      "mode": "rail",
+      "provider": "ТЛМ",
+      "source": "rail-tlm.html",
+      "kind": "freight_tariff",
+      "origin": "Москва",
+      "scope": "Контейнерные отправки со станции в Москве; охрана приведена отдельно",
+      "valid_from": "2026-01-31",
+      "vat": "included",
+      "vat_percent": 22,
+      "columns": [
+        "destination",
+        "container20_rub",
+        "container40_rub",
+        "security20_rub",
+        "security40_rub",
+        "published_transit_days"
+      ],
+      "rows": [
+        [
+          "Хабаровск",
+          154870,
+          211260,
+          5130,
+          5130,
+          "11"
+        ],
+        [
+          "Владивосток",
+          109850,
+          206470,
+          5740,
+          5740,
+          "12"
+        ],
+        [
+          "Иркутск",
+          50580,
+          103560,
+          3440,
+          3440,
+          "6"
+        ],
+        [
+          "Новосибирск",
+          44170,
+          81390,
+          2370,
+          2370,
+          "4"
+        ],
+        [
+          "Благовещенск",
+          170100,
+          241730,
+          4560,
+          4560,
+          "9"
+        ],
+        [
+          "Екатеринбург",
+          23540,
+          51180,
+          1520,
+          1520,
+          "2.5"
+        ],
+        [
+          "Красноярск",
+          43210,
+          120610,
+          3000,
+          3000,
+          "5"
+        ],
+        [
+          "Братск",
+          182300,
+          127050,
+          3350,
+          7680,
+          "6"
+        ],
+        [
+          "Тальцы (Улан-Удэ)",
+          164440,
+          151340,
+          3720,
+          9170,
+          "7"
+        ],
+        [
+          "Южно-Сахалинск",
+          240500,
+          360000,
+          2700,
+          6000,
+          "8+"
+        ]
+      ],
+      "notes": [
+        "Включены терминальная обработка, предоставление платформы и подача контейнера на станции отправления, сопровождение информации и пломбы.",
+        "Южно-Сахалинск — предложение из ж/д прайса; состав плеч требует проверки, до острова нет сплошного ж/д маршрута. Цены Братска и Тальцов сохранены в исходном порядке 20 и 40 футов."
+      ]
+    },
+    {
+      "id": "krasrp-yenisei-container",
+      "mode": "river",
+      "provider": "Красноярский речной порт",
+      "source": "river-krasrp.html",
+      "kind": "forwarding_tariff",
+      "origin": "Красноярск",
+      "navigation_year": 2026,
+      "vat": "included",
+      "unit": "RUB/container",
+      "scope": "Пакет экспедирования до указанного пункта, отдельно по условиям выдачи и возврата",
+      "ordinary_columns": [
+        "destination",
+        "empty_return",
+        "uuk3_forwarder",
+        "uuk3_client",
+        "uuk5_forwarder",
+        "uuk5_client",
+        "iso20_forwarder",
+        "iso20_client",
+        "iso40_forwarder",
+        "iso40_client"
+      ],
+      "ordinary_rows": [
+        [
+          "Дудинка (порт)",
+          false,
+          38175.84,
+          28060.0,
+          70200.84,
+          51138.34,
+          140000.0,
+          117400.0,
+          260500.0,
+          216700.0
+        ],
+        [
+          "Дудинка (город)",
+          false,
+          47732.5,
+          37616.66,
+          83417.5,
+          64355.0,
+          158300.0,
+          135700.0,
+          285754.0,
+          241954.0
+        ],
+        [
+          "Норильск (Алыкель, Кайеркан)",
+          false,
+          52155.0,
+          42039.16,
+          90534.16,
+          71471.66,
+          183920.0,
+          161320.0,
+          317840.0,
+          274040.0
+        ],
+        [
+          "Талнах (Оганер)",
+          false,
+          53425.84,
+          43310.0,
+          92211.66,
+          73098.34,
+          187580.0,
+          164980.0,
+          321500.0,
+          277700.0
+        ],
+        [
+          "Дудинка (порт)",
+          true,
+          null,
+          34617.5,
+          null,
+          63033.34,
+          null,
+          133800.0,
+          null,
+          248100.0
+        ],
+        [
+          "Дудинка (город)",
+          true,
+          null,
+          44174.16,
+          null,
+          76250.0,
+          null,
+          152100.0,
+          null,
+          273354.0
+        ],
+        [
+          "Норильск (Алыкель, Кайеркан)",
+          true,
+          null,
+          48596.66,
+          null,
+          83366.66,
+          null,
+          177720.0,
+          null,
+          305440.0
+        ],
+        [
+          "Талнах (Оганер)",
+          true,
+          null,
+          49867.5,
+          null,
+          85044.16,
+          null,
+          181380.0,
+          null,
+          309100.0
+        ]
+      ],
+      "reefer_columns": [
+        "destination",
+        "rf20_client_one_way",
+        "rf40_client_one_way",
+        "rf20_client_with_return",
+        "rf40_client_with_return"
+      ],
+      "reefer_rows": [
+        [
+          "Дудинка (порт)",
+          178500.0,
+          204400.0,
+          327100.0,
+          371200.0
+        ],
+        [
+          "Дудинка (город)",
+          196800.0,
+          222700.0,
+          352354.0,
+          396454.0
+        ],
+        [
+          "Норильск (Алыкель, Кайеркан)",
+          222420.0,
+          248320.0,
+          384440.0,
+          428540.0
+        ],
+        [
+          "Талнах (Оганер)",
+          226080.0,
+          251980.0,
+          388100.0,
+          432200.0
+        ]
+      ]
+    },
+    {
+      "id": "enisey-nord-yenisei-container",
+      "mode": "river",
+      "provider": "Енисей-Норд",
+      "source": "river-enisey-nord.html",
+      "kind": "forwarding_tariff",
+      "navigation_year": 2026,
+      "document_date": "2026-05-08",
+      "published_end_date": "2026-09-25",
+      "vat": "included",
+      "vat_percent": 22,
+      "unit": "RUB/container",
+      "scope": "Контейнер экспедитора, комплект услуг; довоз авто по применимому направлению",
+      "columns": [
+        "route",
+        "uuk3",
+        "uuk5",
+        "iso20",
+        "iso40"
+      ],
+      "rows": [
+        [
+          "г. Красноярск - порт Дудинка",
+          65000,
+          85000,
+          180000,
+          345000
+        ],
+        [
+          "г. Красноярск - г. Дудинка",
+          72000,
+          90000,
+          210000,
+          375000
+        ],
+        [
+          "г. Красноярск - г. Норильск",
+          85000,
+          105000,
+          230000,
+          405000
+        ],
+        [
+          "г. Красноярск - г. Талнах",
+          90000,
+          100000,
+          235000,
+          410000
+        ],
+        [
+          "г. Красноярск - Медвежий ручей (Медвежка)",
+          95000,
+          110000,
+          240000,
+          415000
+        ],
+        [
+          "г. Красноярск – ЧГОК (Черногорка)",
+          95000,
+          110000,
+          240000,
+          415000
+        ],
+        [
+          "порт Дудинка – порт Красноярск",
+          40000,
+          60000,
+          200000,
+          390000
+        ]
+      ]
+    },
+    {
+      "id": "enisey-nord-yenisei-general",
+      "mode": "river",
+      "provider": "Енисей-Норд",
+      "source": "river-enisey-nord.html",
+      "kind": "forwarding_tariff",
+      "navigation_year": 2026,
+      "document_date": "2026-05-08",
+      "published_end_date": "2026-09-15",
+      "vat": "included",
+      "vat_percent": 22,
+      "unit": "RUB per published freight unit",
+      "scope": "Генеральные грузы по категориям прайса",
+      "columns": [
+        "route",
+        "general_rub_t",
+        "metal_rub_t",
+        "cable_rub_m3",
+        "steel_construction_rub_m3",
+        "sandwich_panel_rub_m3",
+        "equipment_rub_t"
+      ],
+      "rows": [
+        [
+          "г. Красноярск - порт Дудинка",
+          12500,
+          12500,
+          14700,
+          12500,
+          8500,
+          40000
+        ],
+        [
+          "г. Красноярск - г. Дудинка",
+          14000,
+          14000,
+          15500,
+          14000,
+          9000,
+          null
+        ],
+        [
+          "г. Красноярск - г. Норильск",
+          15500,
+          15500,
+          17400,
+          15500,
+          9500,
+          null
+        ],
+        [
+          "г. Красноярск - г. Талнах",
+          16150,
+          16150,
+          18000,
+          16150,
+          10000,
+          null
+        ],
+        [
+          "г. Красноярск - Медвежий ручей (Медвежка)",
+          16800,
+          16800,
+          18500,
+          16800,
+          10500,
+          null
+        ],
+        [
+          "г. Красноярск -ЧГОК (Черногорка)",
+          16800,
+          16800,
+          19000,
+          16800,
+          11000,
+          null
+        ],
+        [
+          "порт Дудинка – порт Красноярск",
+          8000,
+          8000,
+          8000,
+          8000,
+          8000,
+          26000
+        ]
+      ]
+    },
+    {
+      "id": "erp-yenisei-navigation",
+      "mode": "river",
+      "provider": "Енисейское речное пароходство",
+      "source": "river-erp-line.html",
+      "kind": "service_reference",
+      "origin": "Красноярск",
+      "destination": "Дудинка",
+      "typical_service_interval_days": [
+        3,
+        4
+      ],
+      "related_sources": [
+        "river-erp-conditions.html",
+        "river-erp-container-service.html",
+        "river-dudinka-port-official.html"
+      ],
+      "notes": "Обычная частота в навигацию. Справочные материалы описывают речную линию и возможности стыковки в Красноярске."
+    },
+    {
+      "id": "morflot-turukhansk-dudinka-opening-2026",
+      "mode": "river",
+      "provider": "Росморречфлот",
+      "source": "river-morflot-opening.html",
+      "kind": "season_notice",
+      "section": [
+        "Туруханск",
+        "Дудинка"
+      ],
+      "opening_date": "2026-06-15",
+      "notes": "Дата открытия участка в публикации Росморречфлота, без привязки к рейсу конкретного перевозчика"
+    },
+    {
+      "id": "kmp-kamchatka-rates",
+      "mode": "sea",
+      "provider": "КМП",
+      "source": "sea-kmp-kamchatka.html",
+      "kind": "freight_tariff",
+      "endpoints": [
+        "Владивосток",
+        "Петропавловск-Камчатский"
+      ],
+      "vat": "included",
+      "scope": "Морская линия с обработкой в портах согласно условиям страницы",
+      "published_passage_days": {
+        "summer": [
+          4,
+          5
+        ],
+        "winter": [
+          5,
+          6
+        ]
+      },
+      "included_destination_storage_days": {
+        "Петропавловск-Камчатский": {
+          "dry_container": 10,
+          "reefer": 5,
+          "general": 10
+        },
+        "Владивосток": {
+          "container": 5,
+          "general": 7
+        }
+      },
+      "columns": [
+        "cargo_or_container",
+        "published_unit_forward",
+        "rub_forward",
+        "published_unit_reverse",
+        "rub_reverse"
+      ],
+      "rows": [
+        [
+          "20 фут. контейнер",
+          "ед.",
+          139404,
+          "ед.",
+          80520
+        ],
+        [
+          "40 фут. контейнер",
+          "ед.",
+          227872,
+          "ед.",
+          129930
+        ],
+        [
+          "20 фут реф. контейнер",
+          "ед.",
+          177834,
+          null,
+          null
+        ],
+        [
+          "40 фут. реф. контейнер",
+          "ед.",
+          259084,
+          null,
+          null
+        ],
+        [
+          "Грузы в МКР",
+          "тн.",
+          5592,
+          null,
+          null
+        ],
+        [
+          "Ген. груз объемный с УПО 2,45 и более",
+          "куб.",
+          7625,
+          "куб.",
+          3711
+        ],
+        [
+          "Ген. груз тяжелый с УПО до 2,45",
+          "тн.",
+          14234,
+          "тн.",
+          8032
+        ],
+        [
+          "Колесная техника от 12 до 30 тн.",
+          "тн.",
+          16979,
+          null,
+          null
+        ],
+        [
+          "Колесная техника от 5 до 12 тн.",
+          "ед.",
+          213500,
+          "тн.",
+          13929
+        ],
+        [
+          "Колесная техника от 3 до 5 тн.",
+          "ед.",
+          111834,
+          "ед.",
+          55917
+        ],
+        [
+          "Легковой автомобиль до 3 тн.",
+          "ед.",
+          91500,
+          "ед.",
+          50834
+        ],
+        [
+          "Техника от 30 тн.",
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          "Прокат черных металлов, трубы металлич. МД до 159 мм",
+          "тн.",
+          8134,
+          null,
+          null
+        ]
+      ],
+      "notes": "null для ставок по запросу, без подтверждения грузового места; ограничения по УПО и минимальным партиям в описаниях строк"
+    },
+    {
+      "id": "kmp-kamchatka-calls",
+      "mode": "sea",
+      "provider": "КМП",
+      "source": "sea-kmp-kamchatka.html",
+      "kind": "planned_port_calls",
+      "ports": [
+        "Владивосток",
+        "Петропавловск-Камчатский"
+      ],
+      "columns": [
+        "vessel",
+        "Владивосток ETA",
+        "Владивосток ETD",
+        "Петропавловск-Камчатский ETA",
+        "Петропавловск-Камчатский ETD"
+      ],
+      "rows": [
+        [
+          "ОЛЕГ ТАВОЛЖАНСКИЙ",
+          "2026-10-15",
+          "2026-10-23",
+          "2026-11-01",
+          "2026-11-09"
+        ],
+        [
+          "ИВАН КАПРАЛОВ",
+          "2026-11-01",
+          "2026-11-03",
+          "2026-11-12",
+          "2026-11-14"
+        ],
+        [
+          "ЮРИЙ ТАРАПУРОВ",
+          "2026-11-05",
+          "2026-11-06",
+          "2026-11-14",
+          "2026-11-16"
+        ],
+        [
+          "ОЛЕГ ТАВОЛЖАНСКИЙ",
+          "2026-11-14",
+          "2026-11-17",
+          "2026-11-22",
+          "2026-11-25"
+        ],
+        [
+          "ИВАН КАПРАЛОВ",
+          "2026-11-19",
+          "2026-11-21",
+          "2026-11-26",
+          "2026-11-28"
+        ]
+      ],
+      "notes": "Календарные даты по каждому порту в порядке колонок источника; отдельные отметки могут отсутствовать"
+    },
+    {
+      "id": "kmp-magadan-rates",
+      "mode": "sea",
+      "provider": "КМП",
+      "source": "sea-kmp-magadan.html",
+      "kind": "freight_tariff",
+      "endpoints": [
+        "Владивосток",
+        "Магадан"
+      ],
+      "vat": "included",
+      "scope": "Морская линия с обработкой в портах согласно условиям страницы",
+      "published_passage_days": {
+        "forward": [
+          6,
+          6
+        ]
+      },
+      "included_destination_storage_days": null,
+      "columns": [
+        "cargo_or_container",
+        "published_unit_forward",
+        "rub_forward",
+        "published_unit_reverse",
+        "rub_reverse"
+      ],
+      "rows": [
+        [
+          "20-фут контейнер",
+          "ед.",
+          139200,
+          "ед.",
+          40159
+        ],
+        [
+          "40-фут контейнер",
+          "ед.",
+          239767,
+          "ед.",
+          66084
+        ],
+        [
+          "20-фут реф. контейнер",
+          "ед.",
+          208333,
+          "ед.",
+          47784
+        ],
+        [
+          "40-фут реф. контейнер",
+          "ед.",
+          315000,
+          "ед.",
+          77267
+        ],
+        [
+          "Техника на колесном /гусеничном ходу, массой до 5 тн.",
+          "ед.",
+          203334,
+          "ед.",
+          188084
+        ],
+        [
+          "Техника на колесном /гусеничном ходу, массой от 5 тн. до 15 тн.",
+          "ед.",
+          305000,
+          "ед.",
+          188084
+        ],
+        [
+          "Техника на колесном /гусеничном ходу, массой от 15 тн. до 50 тн.",
+          "тн.",
+          19317,
+          "тн.",
+          12505
+        ],
+        [
+          "Прокат чёрных металлов, трубы металл МД до 159мм. Минимальная партия 10 тн.",
+          "тн.",
+          14234,
+          "тн.",
+          12505
+        ],
+        [
+          "Генеральные грузы с УПО до 2,45 куб.м/т Минимальная партия 10 тн.",
+          "тн.",
+          17284,
+          "тн.",
+          12505
+        ],
+        [
+          "Генеральные грузы с УПО свыше 2,45 куб.м/тМинимальная партия 20 кубов",
+          "куб.",
+          7015,
+          "куб.",
+          4575
+        ]
+      ],
+      "notes": "null для ставок по запросу, без подтверждения грузового места; ограничения по УПО и минимальным партиям в описаниях строк"
+    },
+    {
+      "id": "kmp-magadan-calls",
+      "mode": "sea",
+      "provider": "КМП",
+      "source": "sea-kmp-magadan.html",
+      "kind": "planned_port_calls",
+      "ports": [
+        "Владивосток",
+        "Восточный",
+        "Магадан"
+      ],
+      "columns": [
+        "vessel",
+        "Владивосток ETA",
+        "Владивосток ETD",
+        "Восточный ETA",
+        "Восточный ETD",
+        "Магадан ETA",
+        "Магадан ETD"
+      ],
+      "rows": [
+        [
+          "СЕРГЕЙ ГАВРИЛОВ",
+          "2026-10-24",
+          "2026-10-28",
+          "2026-10-28",
+          "2026-10-29",
+          "2026-11-06",
+          "2026-11-09"
+        ],
+        [
+          "ВЛАДИМИР МЯСНИКОВ",
+          "2026-11-14",
+          "2026-11-15",
+          "2026-11-13",
+          "2026-11-13",
+          "2026-11-20",
+          "2026-11-22"
+        ],
+        [
+          "СЕРГЕЙ ГАВРИЛОВ",
+          "2026-11-14",
+          "2026-11-16",
+          "2026-11-17",
+          "2026-11-17",
+          "2026-11-22",
+          "2026-11-24"
+        ]
+      ],
+      "notes": "Календарные даты по каждому порту в порядке колонок источника; отдельные отметки могут отсутствовать"
+    },
+    {
+      "id": "kmp-sakhalin-rates",
+      "mode": "sea",
+      "provider": "КМП",
+      "source": "sea-kmp-sakhalin.html",
+      "kind": "freight_tariff",
+      "endpoints": [
+        "Владивосток",
+        "Корсаков"
+      ],
+      "vat": "included",
+      "scope": "Морская линия с обработкой в портах согласно условиям страницы",
+      "published_passage_days": {
+        "typical": [
+          2,
+          2
+        ]
+      },
+      "included_destination_storage_days": {
+        "Корсаков": {
+          "container": 2,
+          "general": 2
+        },
+        "Владивосток": {
+          "container": 5,
+          "general": 7
+        }
+      },
+      "columns": [
+        "cargo_or_container",
+        "published_unit_forward",
+        "rub_forward",
+        "published_unit_reverse",
+        "rub_reverse"
+      ],
+      "rows": [
+        [
+          "20-фут контейнер",
+          "ед.",
+          124034,
+          "ед.",
+          56019
+        ],
+        [
+          "40-фут контейнер",
+          "ед.",
+          215025,
+          "ед.",
+          83265
+        ],
+        [
+          "20-фут реф. контейнер",
+          "ед.",
+          194184,
+          "ед.",
+          62017
+        ],
+        [
+          "40-фут реф. контейнер",
+          "ед.",
+          260267,
+          "ед.",
+          81334
+        ],
+        [
+          "Техника на колесном /гусеничном ходу, массой до 16 тн.",
+          "ед.",
+          223667,
+          "ед.",
+          223667
+        ],
+        [
+          "Техника на колесном /гусеничном ходу, массой от 16 тн. до 30 тн.",
+          "тн.",
+          14234,
+          "тн.",
+          14234
+        ]
+      ],
+      "notes": "null для ставок по запросу, без подтверждения грузового места; ограничения по УПО и минимальным партиям в описаниях строк"
+    },
+    {
+      "id": "kmp-sakhalin-calls",
+      "mode": "sea",
+      "provider": "КМП",
+      "source": "sea-kmp-sakhalin.html",
+      "kind": "planned_port_calls",
+      "ports": [
+        "Владивосток",
+        "Корсаков"
+      ],
+      "columns": [
+        "vessel",
+        "Владивосток ETA",
+        "Владивосток ETD",
+        "Корсаков ETA",
+        "Корсаков ETD"
+      ],
+      "rows": [
+        [
+          "НИКОЛАЙ АХРОМЕЕВ",
+          "2026-11-01",
+          "2026-11-03",
+          "2026-11-06",
+          "2026-11-11"
+        ],
+        [
+          "НИКОЛАЙ АХРОМЕЕВ",
+          "2026-11-13",
+          "2026-11-15",
+          "2026-11-17",
+          "2026-11-19"
+        ]
+      ],
+      "notes": "Календарные даты по каждому порту в порядке колонок источника; отдельные отметки могут отсутствовать"
+    },
+    {
+      "id": "dvlk-kamchatka-container",
+      "mode": "sea",
+      "provider": "ДВЛК",
+      "source": "sea-dvlk-kamchatka.pdf",
+      "kind": "freight_tariff",
+      "endpoints": [
+        "Владивосток/Восточный",
+        "Петропавловск-Камчатский"
+      ],
+      "valid_from": "2026-06-11",
+      "vat": "unknown",
+      "unit": "RUB/container",
+      "columns": [
+        "container_category",
+        "rub_forward",
+        "rub_reverse"
+      ],
+      "rows": [
+        [
+          "carrier_20_dry",
+          139000,
+          71000
+        ],
+        [
+          "carrier_40_dry",
+          228000,
+          109000
+        ],
+        [
+          "carrier_20_reefer",
+          177000,
+          155000
+        ],
+        [
+          "carrier_40_reefer",
+          259000,
+          200000
+        ],
+        [
+          "shipper_20_dry",
+          128700,
+          71000
+        ],
+        [
+          "shipper_40_dry",
+          216500,
+          109000
+        ],
+        [
+          "shipper_20_reefer",
+          143800,
+          129000
+        ],
+        [
+          "shipper_40_reefer",
+          221500,
+          169000
+        ],
+        [
+          "shipper_20_dry_with_empty_return",
+          139000,
+          null
+        ],
+        [
+          "shipper_40_dry_with_empty_return",
+          228000,
+          null
+        ],
+        [
+          "shipper_20_reefer_with_empty_return",
+          152800,
+          null
+        ],
+        [
+          "shipper_40_reefer_with_empty_return",
+          232000,
+          null
+        ],
+        [
+          "shipper_20_empty",
+          47000,
+          20000
+        ],
+        [
+          "shipper_40_empty",
+          67000,
+          31000
+        ]
+      ],
+      "related_sources": [
+        "sea-dvlk-change.html"
+      ],
+      "notes": "Полный морской прайс. Точный подтип контейнера, налог и состав терминальных операций сверяются с прейскурантом и перевозчиком; надбавка из отдельного уведомления не прибавляется повторно."
+    },
+    {
+      "id": "dvlk-sakhalin-container",
+      "mode": "sea",
+      "provider": "ДВЛК",
+      "source": "sea-dvlk-sakhalin.pdf",
+      "kind": "freight_tariff",
+      "endpoints": [
+        "Владивосток/Восточный",
+        "Корсаков"
+      ],
+      "valid_from": "2026-06-11",
+      "vat": "unknown",
+      "unit": "RUB/container",
+      "columns": [
+        "container_category",
+        "rub_forward",
+        "rub_reverse"
+      ],
+      "rows": [
+        [
+          "carrier_20_dry",
+          122000,
+          52500
+        ],
+        [
+          "carrier_40_dry",
+          215000,
+          82000
+        ],
+        [
+          "carrier_20_reefer",
+          194000,
+          62000
+        ],
+        [
+          "carrier_40_reefer",
+          260000,
+          85100
+        ],
+        [
+          "shipper_20_dry",
+          109700,
+          52500
+        ],
+        [
+          "shipper_40_dry",
+          204100,
+          82000
+        ],
+        [
+          "shipper_20_reefer",
+          135200,
+          62000
+        ],
+        [
+          "shipper_40_reefer",
+          204100,
+          85100
+        ],
+        [
+          "shipper_20_dry_with_empty_return",
+          122000,
+          null
+        ],
+        [
+          "shipper_40_dry_with_empty_return",
+          215000,
+          null
+        ],
+        [
+          "shipper_20_reefer_with_empty_return",
+          150500,
+          null
+        ],
+        [
+          "shipper_40_reefer_with_empty_return",
+          225000,
+          null
+        ],
+        [
+          "shipper_20_empty",
+          47400,
+          15300
+        ],
+        [
+          "shipper_40_empty",
+          82800,
+          20900
+        ]
+      ],
+      "related_sources": [
+        "sea-dvlk-change.html"
+      ],
+      "notes": "Полный морской прайс. Точный подтип контейнера, налог и состав терминальных операций сверяются с прейскурантом и перевозчиком; надбавка из отдельного уведомления не прибавляется повторно."
+    },
+    {
+      "id": "fesco-fpkl-container-cy-cy",
+      "mode": "sea",
+      "provider": "FESCO / ФИТ",
+      "source": "sea-fesco-fpkl-tariff.pdf",
+      "kind": "freight_tariff",
+      "endpoints": [
+        "Владивосток",
+        "Петропавловск-Камчатский"
+      ],
+      "valid_from": "2026-06-18",
+      "vat": "included",
+      "unit": "RUB/container",
+      "source_locator": "Приложение 1, страницы 1–2 PDF",
+      "columns": [
+        "container_category",
+        "rub_forward",
+        "rub_reverse"
+      ],
+      "rows": [
+        [
+          "carrier_20_dry",
+          139945,
+          69658
+        ],
+        [
+          "carrier_40_dry",
+          228328,
+          105258
+        ],
+        [
+          "shipper_20_dry_with_empty_return",
+          139945,
+          null
+        ],
+        [
+          "shipper_40_dry_with_empty_return",
+          228328,
+          null
+        ],
+        [
+          "shipper_20_dry",
+          132828,
+          69658
+        ],
+        [
+          "shipper_40_dry",
+          219788,
+          105258
+        ],
+        [
+          "shipper_20_reefer",
+          106192,
+          124000
+        ],
+        [
+          "shipper_40_reefer",
+          193050,
+          170000
+        ],
+        [
+          "shipper_20_empty",
+          47742,
+          23383
+        ],
+        [
+          "shipper_40_empty",
+          67525,
+          27450
+        ]
+      ],
+      "included_destination_storage_days": {
+        "Владивосток": 10,
+        "Петропавловск-Камчатский": 10
+      },
+      "approval_required_above_gross_t": 30,
+      "notes": "CY–CY: обработка в обоих портах включена. Электропитание и мониторинг рефконтейнера оплачиваются отдельно. Норматив хранения отделён от пользования оборудованием."
+    },
+    {
+      "id": "fesco-fskl-container",
+      "mode": "sea",
+      "provider": "FESCO / ФИТ",
+      "source": "sea-fesco-fskl-tariff.pdf",
+      "kind": "freight_tariff",
+      "endpoints": [
+        "Санкт-Петербург",
+        "Балтийск"
+      ],
+      "valid_from": "2026-05-22",
+      "vat": "excluded",
+      "unit": "RUB/container",
+      "scope": "LI–LO",
+      "source_locator": "Контейнерная таблица на стр. 1 и примечания",
+      "columns": [
+        "container_category",
+        "rub_forward",
+        "rub_reverse"
+      ],
+      "rows": [
+        [
+          "carrier_20_dry",
+          107000,
+          40000
+        ],
+        [
+          "carrier_40_dry",
+          134000,
+          40000
+        ],
+        [
+          "shipper_20_dry",
+          75000,
+          35000
+        ],
+        [
+          "shipper_40_dry",
+          102000,
+          42500
+        ],
+        [
+          "shipper_20_reefer",
+          85000,
+          85000
+        ],
+        [
+          "shipper_40_reefer",
+          112500,
+          100000
+        ],
+        [
+          "shipper_20_empty",
+          45000,
+          30000
+        ],
+        [
+          "shipper_40_empty",
+          60000,
+          35000
+        ]
+      ],
+      "included_destination_storage_days": null,
+      "notes": "Ставка включает погрузку и выгрузку в портах линии. Отдельно проверяются применение ставки, режимные услуги и условия для порожнего контейнера. При нескольких портах в одной графе точный заход берётся из расписания."
+    },
+    {
+      "id": "fesco-fml-container",
+      "mode": "sea",
+      "provider": "FESCO / ФИТ",
+      "source": "sea-fesco-fml-tariff.pdf",
+      "kind": "freight_tariff",
+      "endpoints": [
+        "Владивосток/Восточный",
+        "Магадан"
+      ],
+      "valid_from": "2026-06-01",
+      "vat": "included",
+      "unit": "RUB/container",
+      "scope": "CY–CY",
+      "source_locator": "Контейнерная таблица на стр. 1 и примечания",
+      "columns": [
+        "container_category",
+        "rub_forward",
+        "rub_reverse"
+      ],
+      "rows": [
+        [
+          "carrier_20_dry",
+          149367,
+          47275
+        ],
+        [
+          "carrier_40_dry",
+          259083,
+          68422
+        ],
+        [
+          "shipper_20_dry",
+          139149,
+          47275
+        ],
+        [
+          "shipper_40_dry",
+          243427,
+          68422
+        ],
+        [
+          "shipper_20_reefer",
+          161567,
+          50833
+        ],
+        [
+          "shipper_40_reefer",
+          282467,
+          79300
+        ],
+        [
+          "shipper_20_empty",
+          83944,
+          16267
+        ],
+        [
+          "shipper_40_empty",
+          152638,
+          21350
+        ],
+        [
+          "shipper_20_dry_with_empty_return",
+          149367,
+          null
+        ],
+        [
+          "shipper_40_dry_with_empty_return",
+          259083,
+          null
+        ]
+      ],
+      "included_destination_storage_days": {
+        "Владивосток": 10,
+        "Магадан": 4
+      },
+      "notes": "Ставка включает погрузку и выгрузку в портах линии. Отдельно проверяются применение ставки, режимные услуги и условия для порожнего контейнера. При нескольких портах в одной графе точный заход берётся из расписания."
+    },
+    {
+      "id": "fesco-fadl-container",
+      "mode": "sea",
+      "provider": "FESCO / ФИТ",
+      "source": "sea-fesco-fadl-tariff.pdf",
+      "kind": "freight_tariff",
+      "endpoints": [
+        "Владивосток",
+        "Анадырь/Эгвекинот"
+      ],
+      "valid_from": "2026-05-11",
+      "vat": "included",
+      "unit": "RUB/container",
+      "scope": "CY–CY",
+      "source_locator": "Контейнерная таблица на стр. 1 и примечания",
+      "columns": [
+        "container_category",
+        "rub_forward",
+        "rub_reverse"
+      ],
+      "rows": [
+        [
+          "carrier_20_dry",
+          404800,
+          144500
+        ],
+        [
+          "carrier_40_dry",
+          719600,
+          230800
+        ],
+        [
+          "shipper_20_dry",
+          361900,
+          144500
+        ],
+        [
+          "shipper_40_dry",
+          670500,
+          230800
+        ],
+        [
+          "shipper_20_reefer",
+          375200,
+          168600
+        ],
+        [
+          "shipper_40_reefer",
+          699700,
+          261600
+        ],
+        [
+          "shipper_20_empty",
+          null,
+          48900
+        ],
+        [
+          "shipper_40_empty",
+          null,
+          70700
+        ]
+      ],
+      "included_destination_storage_days": {
+        "Владивосток": 10,
+        "Анадырь": 3,
+        "Эгвекинот": 3
+      },
+      "notes": "Ставка включает погрузку и выгрузку в портах линии. Отдельно проверяются применение ставки, режимные услуги и условия для порожнего контейнера. При нескольких портах в одной графе точный заход берётся из расписания."
+    },
+    {
+      "id": "fesco-fkdl-container",
+      "mode": "sea",
+      "provider": "FESCO / ФИТ",
+      "source": "sea-fesco-fkdl-tariff.pdf",
+      "kind": "freight_tariff",
+      "endpoints": [
+        "Владивосток",
+        "Корсаков"
+      ],
+      "valid_from": "2026-06-01",
+      "vat": "included",
+      "unit": "RUB/container",
+      "scope": "CY–CY",
+      "source_locator": "Контейнерная таблица на стр. 1 и примечания",
+      "columns": [
+        "container_category",
+        "rub_forward",
+        "rub_reverse"
+      ],
+      "rows": [
+        [
+          "carrier_20_dry",
+          122442,
+          44200
+        ],
+        [
+          "carrier_40_dry",
+          215278,
+          55765
+        ],
+        [
+          "shipper_20_dry",
+          109937,
+          44200
+        ],
+        [
+          "shipper_40_dry",
+          200130,
+          55765
+        ],
+        [
+          "shipper_20_reefer",
+          123194,
+          49283
+        ],
+        [
+          "shipper_40_reefer",
+          202956,
+          63492
+        ],
+        [
+          "shipper_20_empty",
+          68152,
+          null
+        ],
+        [
+          "shipper_40_empty",
+          104126,
+          null
+        ],
+        [
+          "shipper_20_dry_with_empty_return",
+          122442,
+          null
+        ],
+        [
+          "shipper_40_dry_with_empty_return",
+          215278,
+          null
+        ]
+      ],
+      "included_destination_storage_days": {
+        "Владивосток": 10,
+        "Корсаков": 2
+      },
+      "notes": "Ставка включает погрузку и выгрузку в портах линии. Отдельно проверяются применение ставки, режимные услуги и условия для порожнего контейнера. При нескольких портах в одной графе точный заход берётся из расписания."
+    },
+    {
+      "id": "fesco-fpkl-port-calls",
+      "mode": "sea",
+      "provider": "FESCO",
+      "source": "sea-fesco-fpkl-schedule.pdf",
+      "kind": "planned_port_calls",
+      "ports": [
+        "Владивосток",
+        "Петропавловск-Камчатский"
+      ],
+      "columns": [
+        "vessel",
+        "voyage",
+        "vvo_eta",
+        "vvo_etd",
+        "pkc_eta",
+        "pkc_etd",
+        "discharge_terminal"
+      ],
+      "rows": [
+        [
+          "ФЕСКО Магадан",
+          "2638PK",
+          "2026-11-07",
+          "2026-11-10",
+          "2026-11-14",
+          "2026-11-16",
+          "Сероглазка"
+        ],
+        [
+          "Капитан Бянкин",
+          "2639PK",
+          "2026-11-11",
+          "2026-11-13",
+          "2026-11-18",
+          "2026-11-20",
+          "ПКМТП"
+        ],
+        [
+          "ФЕСКО Магадан",
+          "2640PK",
+          "2026-11-21",
+          "2026-11-23",
+          "2026-11-28",
+          "2026-11-30",
+          "Сероглазка"
+        ],
+        [
+          "ФЕСКО Монерон",
+          "2641PK",
+          "2026-11-23",
+          "2026-11-25",
+          "2026-11-30",
+          "2026-12-02",
+          "ПКМТП"
+        ],
+        [
+          "ФЕСКО Магадан",
+          "2642PK",
+          "2026-12-05",
+          "2026-12-07",
+          "2026-12-12",
+          "2026-12-14",
+          "Сероглазка"
+        ],
+        [
+          "ФЕСКО Монерон",
+          "2643PK",
+          "2026-12-07",
+          "2026-12-09",
+          "2026-12-14",
+          "2026-12-16",
+          "ПКМТП"
+        ]
+      ],
+      "notes": "Расписание может меняться; даты без точного времени и данных об остаточной вместимости"
+    },
+    {
+      "id": "svo-moscow-cargo-ground",
+      "mode": "air",
+      "provider": "Москва Карго",
+      "source": "air-moscow-cargo-aeroflot.pdf",
+      "kind": "terminal_tariff",
+      "terminal": "Шереметьево, Москва Карго",
+      "vat": "excluded",
+      "source_locator": "Стр. 1 и 6 PDF",
+      "airlines": [
+        "Аэрофлот",
+        "Россия",
+        "Победа"
+      ],
+      "related_sources": [
+        "air-moscow-cargo.html",
+        "air-moscow-cargo-standards.html"
+      ],
+      "columns": [
+        "service",
+        "charge_basis",
+        "rub",
+        "minimum_rub_per_awb"
+      ],
+      "rows": [
+        [
+          "general_storage_first_five_days",
+          "kg_day",
+          14.32,
+          821.11
+        ],
+        [
+          "general_storage_from_day_six",
+          "kg_day",
+          25.19,
+          821.11
+        ],
+        [
+          "temperature_controlled_storage",
+          "kg_day",
+          21.53,
+          2000.35
+        ],
+        [
+          "additional_loading_unloading",
+          "kg",
+          6.06,
+          1214.69
+        ],
+        [
+          "deconsolidation_or_consolidation",
+          "kg",
+          13.1,
+          4829
+        ],
+        [
+          "weighing",
+          "piece",
+          954.95,
+          null
+        ]
+      ],
+      "storage_weight_basis": "chargeable_weight",
+      "general_free_storage_calendar_days": 3,
+      "notes": "Минимумы указаны за авианакладную. Для генерального груза бесплатный период включает день размещения или приёмки; условия продления приведены в примечаниях. Для AWB с префиксами, отличными от 555 и 195, обработка тарифицируется по условиям для других авиакомпаний."
+    },
+    {
+      "id": "svo-moscow-cargo-general-cutoff",
+      "mode": "air",
+      "provider": "Москва Карго",
+      "source": "air-moscow-cargo-standards.html",
+      "kind": "service_reference",
+      "terminal": "Шереметьево, Москва Карго",
+      "airlines": [
+        "Аэрофлот",
+        "Россия"
+      ],
+      "cargo_category": "GEN",
+      "cargo_acceptance_cutoff_hours_before_scheduled_departure": 6,
+      "notes": "Норматив для опубликованного условия приёма, без гарантии наличия места"
+    },
+    {
+      "id": "vvo-aerocargo-domestic-terminal-2026",
+      "mode": "air",
+      "provider": "Аэро-Груз",
+      "source": "air-vvo-terminal.html",
+      "kind": "terminal_tariff",
+      "observed_on": "2026-11-11",
+      "valid_from": "2026-09-01",
+      "terminal": "Владивосток (Кневичи), Аэро-Груз",
+      "vat": "included",
+      "vat_percent": 22,
+      "charge_basis": "actual_gross_kg",
+      "minimum_chargeable_weight_kg": 10,
+      "columns": [
+        "service",
+        "published_item",
+        "rub_per_kg"
+      ],
+      "rows": [
+        [
+          "site_access_service",
+          "1.1",
+          3.0
+        ],
+        [
+          "domestic_general_handling",
+          "1.2",
+          22.5
+        ],
+        [
+          "domestic_temperature_controlled_handling",
+          "1.3",
+          24.9
+        ],
+        [
+          "domestic_special_handling",
+          "1.4",
+          28.0
+        ],
+        [
+          "domestic_dangerous_handling",
+          "1.5",
+          25.5
+        ],
+        [
+          "domestic_live_animals",
+          "1.6",
+          27.4
+        ],
+        [
+          "domestic_valuable_handling",
+          "1.7",
+          28.0
+        ]
+      ],
+      "notes": "Позиции проверены по странице оператора. Применимость и сочетание сборов зависят от услуги и договора. Минимальный сбор за ценный груз 6300 ₽. Данные справочные, без автоматического начисления по рейсам других операторов."
+    }
+  ],
+  "existing_datasets": [
+    {
+      "modes": [
+        "road",
+        "rail",
+        "river",
+        "sea",
+        "air",
+        "pipeline"
+      ],
+      "path": "delivery_forecast/indices.json",
+      "purpose": "Исторические индексы Росстата. Морской и внутренний водный ряды не взаимозаменяемы."
+    },
+    {
+      "modes": [
+        "road",
+        "rail"
+      ],
+      "path": "russia/connectivity.json",
+      "purpose": "Связность, расстояния и время поездок"
+    },
+    {
+      "modes": [
+        "rail"
+      ],
+      "path": "a1_forecast/kemerovo-reference.json",
+      "purpose": "Ставка-ориентир, применимая к исходной публикации"
+    },
+    {
+      "modes": [
+        "river"
+      ],
+      "path": "river/network.json",
+      "related_sources": [
+        "river-trassa.html"
+      ],
+      "purpose": "Публикуемые компоненты и явно сценарные параметры речного расчёта"
+    },
+    {
+      "modes": [
+        "sea"
+      ],
+      "path": "russia/fesco-voyages.json",
+      "related_sources": [
+        "sea-fesco-fpkl.html",
+        "sea-fesco-tariffs.html"
+      ],
+      "purpose": "Даты и терминалы из прежней подборки, сценарные ставки в сети"
+    },
+    {
+      "modes": [
+        "air"
+      ],
+      "path": "chukotavia/dataset.json",
+      "related_sources": [
+        "air-chukotavia.html"
+      ],
+      "purpose": "Опубликованные ставки и плановые рейсы ЧукотАВИА"
+    },
+    {
+      "modes": [
+        "pipeline"
+      ],
+      "path": "pipeline/tariffs.json",
+      "related_sources": [
+        "pipeline-fas-857-25.html",
+        "pipeline-fas-operations.html"
+      ],
+      "purpose": "Действующий в проекте снимок регулируемых компонентов ФАС для нефти. Ставки хранятся один раз в этом снимке."
+    }
+  ],
+  "updated_on": "2026-11-11"
+}

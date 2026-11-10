@@ -490,6 +490,17 @@ function CandidateReport({
             </p>
           </div>
         )}
+        {!c.published_tariff_estimate && !completePrice(c) && !r.forecast &&
+          c.known_cost_subtotal_rub != null && (
+            <p className="table-note">
+              Опубликованная часть стоимости · {money(c.known_cost_subtotal_rub)}
+            </p>
+          )}
+        {c.connections.some((connection) => connection.reference_metadata?.scope === "station_to_station") && (
+          <p className="table-note">
+            Тариф ТЛМ от станции до станции. Подвоз, доставка от станции и охрана оплачиваются отдельно, если требуются.
+          </p>
+        )}
         {c.steps.length > 0 && (
           <section className="report-section">
             <div className="timeline-title">

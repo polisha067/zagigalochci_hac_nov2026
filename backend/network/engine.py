@@ -49,6 +49,7 @@ class Planner:
         self.costs, self.steps, self.deliveries = [], [], []
         self.stored = {}
         self.include_pricing = include_pricing
+        self.published_costs = []
 
     def charge(self, kind, identifier, at, batch, quote, items, quote_id=None, recorded_at=None, **terms):
         pricing = {} if self.include_pricing else None
@@ -57,8 +58,10 @@ class Planner:
         if pricing is not None:
             row["pricing"] = pricing
         self.costs.append(row)
+        if quote.evidence.status == "fact":
+            self.published_costs.append(amount)
 
-    def operation(self, hub, operation, items, ready, latest, kind, batch):
+    def operation(self, hub, operation, items, ready, latest, kind, batch, *, included=False):
         operation = need(operation, kind + "_operation", hub.id)
         ready = max(ready, operation.evidence.valid_from)
         if operation.quote is not None:
@@ -71,8 +74,9 @@ class Planner:
         start, end = self.ledger.operation("handling:" + operation.resource_id, ready, duration, operation.lanes, hub.windows, min(latest,operation.evidence.valid_until,hub.evidence.valid_until))
         self.policies.evidence(operation.evidence, start, operation.resource_id, end, role="handling")
         self.policies.evidence(hub.evidence, start, hub.id, end, role="hub")
-        self.charge(kind, hub.id, start, batch, operation.quote, items,
-                    quote_id=operation.resource_id, component="handling")
+        if not included:
+            self.charge(kind, hub.id, start, batch, operation.quote, items,
+                        quote_id=operation.resource_id, component="handling")
         self.steps.append({"kind": kind, "hub_id": hub.id, "cargo_ids": [item.key for item in items], "start_at": start.isoformat(), "end_at": end.isoformat(), "batch": batch})
         return end
 
@@ -205,7 +209,8 @@ class Planner:
             self.policies.acceptance(hub, visited, max(arrival, min((item.ready for item in collected), default=arrival)))
             current = arrival
             if delivered:
-                current = self.operation(hub, hub.exit, delivered, current, latest, "delivery_handling", batch)
+                current = self.operation(hub, hub.exit, delivered, current, latest, "delivery_handling", batch,
+                                         included=previous.terminal_handling_included)
                 self.storage(hub, delivered, {item.key: arrival for item in delivered}, current, batch, previous)
                 for item in delivered:
                     hours = (current-item.ready).total_seconds()/3600
@@ -224,7 +229,8 @@ class Planner:
                 self.steps[-1]["transfer_id"] = transfer.id
             if collected:
                 current = max(current, max(item.ready for item in collected))
-                current = self.operation(hub, hub.entry, collected, current, latest, "pickup_handling", batch)
+                current = self.operation(hub, hub.entry, collected, current, latest, "pickup_handling", batch,
+                                         included=following is not None and following.terminal_handling_included)
             dwell = self.request.stop_dwell_hours.get(identifier, 0)
             if dwell:
                 end = current + timedelta(hours=dwell)
@@ -268,7 +274,7 @@ def calculate_network(payload, network=None, *, include_pricing=False):
                 if sum((dec(row["weight_tonnes"]) for row in planner.deliveries), Decimal(0)) != total_mass:
                     raise PlanningProblem("mass_balance", "Не совпал баланс исходного и доставленного груза")
                 if any(leg.cost_scope == "published_component" for leg in legs):
-                    result["known_cost_subtotal_rub"] = float(money(cost))
+                    result["known_cost_subtotal_rub"] = float(money(sum(planner.published_costs, Decimal(0))))
                     result["missing_cost_components"] = sorted({field for leg in legs for field in leg.missing_cost_components})
                     raise PlanningProblem("partial_tariff", "Опубликован только компонент тарифа; полная стоимость не подтверждена", "insufficient_data", fields=result["missing_cost_components"])
                 result.update(status="feasible", total_cost_rub=float(money(cost)), cost_rub_per_tonne=float(money(cost/total_mass)), max_delivery_hours=max(row["delivery_hours"] for row in planner.deliveries), issues=[])

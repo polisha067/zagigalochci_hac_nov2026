@@ -116,13 +116,18 @@ class RussiaTests(unittest.TestCase):
 
     def test_sea_voyages_respect_terminal_and_no_return_invented(self):
         edges=[e for e in self.network.edges.values() if e['kind']=='fesco']
-        self.assertEqual(len(edges),20)
+        self.assertEqual(len(edges),22)
         self.assertTrue(all(e['mode']=='sea' and e.get('departure_at') for e in edges))
-        self.assertFalse(any(e['id']=='fesco-fpkl:2640PK' for e in edges))
+        refreshed=self.network.edges['fesco-fpkl:2640PK']
+        self.assertEqual(refreshed['to_hub'],'fesco-pk-seroglazka')
+        self.assertEqual(refreshed['departure_at'][:10],'2026-11-23')
         q=self.payload();q.update(origin='Владивосток',destination='Петропавловск-Камчатский',allowed_modes=['sea'],max_delivery_hours=400)
         r=self.network.calculate(q)
         self.assertTrue(any(c['status']=='feasible' for c in r['candidates']))
-        self.assertTrue(all(c['connections'][0]['reference_metadata']['source_id']=='fesco-fpkl-2' for c in r['candidates']))
+        self.assertTrue(all(c['connections'][0]['reference_metadata']['source_id']=='fesco-fpkl-nov-dec-2026' for c in r['candidates']))
+        priced=next(c for c in r['candidates'] if c['status']=='feasible')
+        self.assertEqual(next(item['amount_rub'] for item in priced['cost_items'] if item['kind']=='transport'),139945)
+        self.assertFalse(any(item['kind'] in ('pickup_handling','delivery_handling') for item in priced['cost_items']))
         q['schedule']['ready_at']='2027-01-09T08:00:00+03:00'
         self.assertEqual(self.network.calculate(q)['status'],'no_route_in_dataset')
 
@@ -140,6 +145,22 @@ class RussiaTests(unittest.TestCase):
         q['schedule']['ready_at']='2026-11-09T08:00:00+07:00'
         self.assertFalse(any(c['status']=='feasible' for c in self.network.calculate(q)['candidates']))
 
+    def test_yakutia_rate_includes_awb_and_excludes_unconfirmed_terminal_charges(self):
+        q=self.payload()
+        q.update(origin='Москва',destination='Якутск',allowed_modes=['air'],max_legs=1,max_delivery_hours=100)
+        q['cargoes'][0].update(weight_tonnes=.1,volume_m3=.2)
+        row=self.network.calculate(q)['candidates'][0]
+        self.assertEqual(row['known_cost_subtotal_rub'],27500)
+        self.assertIsNone(row['total_cost_rub'])
+        self.assertIn('yakutia-air-cargo-q4-2026',row['source_ids'])
+
+    def test_river_operator_packages_use_distinct_published_rates(self):
+        q=self.payload()
+        q.update(origin='Красноярск',destination='Дудинка',allowed_modes=['river'],max_legs=1,max_delivery_hours=480)
+        q['schedule']['ready_at']='2026-06-17T08:00:00+07:00'
+        candidates={row['service_ids'][0]:row for row in self.network.calculate(q)['candidates']}
+        self.assertEqual(candidates['river-krasrp-2026:down:20']['total_cost_rub'],140000)
+        self.assertEqual(candidates['river-enisey-nord-2026:down:20']['total_cost_rub'],180000)
 
     def test_route_planning_does_not_mutate_cached_network(self):
         from backend.network.russia import digest
@@ -185,7 +206,7 @@ class RussiaTests(unittest.TestCase):
     def test_all_reference_ports_kept_without_invented_shipping_lines(self):
         self.assertEqual(len(self.network.reference_ports),54)
         sea=[e for e in self.network.edges.values() if e['mode']=='sea']
-        self.assertEqual(len(sea),20)
+        self.assertEqual(len(sea),22)
         self.assertTrue(all(e['kind']=='fesco' for e in sea))
         self.assertEqual(len(self.network.pipeline['pumping_by_operator']),12)
         self.assertTrue(self.network.pipeline['destination_point_reference']['destination_table_raw_cells'])
