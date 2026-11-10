@@ -163,9 +163,6 @@ function Conditions({ snapshot }: { snapshot: NetworkSnapshot }) {
           {num(totalVolume(r), 6)} т · {r.shipments} отправок
         </span>
         <span>{request.max_delivery_hours == null ? "Без лимита срока" : `Лимит ${hours(request.max_delivery_hours)}`}</span>
-        <span className="chevron" aria-hidden="true">
-          ⌄
-        </span>
       </summary>
       <div className="conditions-expanded">
         <div className="facts">
@@ -958,10 +955,7 @@ function NetworkResults({
                             setOpened((old) => (old === c.id ? null : c.id))
                           }
                         >
-                          {opened === c.id ? "Свернуть" : "Подробнее"}{" "}
-                          <span aria-hidden="true">
-                            {opened === c.id ? "⌃" : "⌄"}
-                          </span>
+                          {opened === c.id ? "Свернуть" : "Подробнее"}
                         </button>
                         {opened === c.id && (
                           <svg

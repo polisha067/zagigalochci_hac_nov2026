@@ -71,9 +71,9 @@ FIELD_LABELS = {
     "settlement": "название населённого пункта",
     "action": "что нужно сделать в промежуточном пункте",
     "mass_basis": "масса груза без упаковки или вместе с упаковкой",
-    "max_piece_tonnes": "вес самого тяжёлого места груза",
-    "max_piece_weight_kg": "вес самого тяжёлого места груза в кг",
-    "max_piece_dimensions_m": "длина, ширина и высота самого крупного места груза",
+    "max_piece_tonnes": "сколько весит самая тяжёлая единица груза, например мешок или поддон",
+    "max_piece_weight_kg": "сколько килограммов весит самая тяжёлая единица груза, например мешок или поддон",
+    "max_piece_dimensions_m": "длина, ширина и высота самой крупной единицы груза, например коробки или поддона",
     "temperature_c": "допустимая температура перевозки",
     "required_temperature_c": "допустимая температура перевозки",
     "temperature_control_required": "нужно ли поддерживать температуру",
@@ -268,7 +268,7 @@ def _outside_russia_year(message, arguments):
 def _clarification_reply(turn, fields, context, *, introduction="", message=None, **details):
     if message is None:
         lines = "\n".join(f"• {label}" for label in dict.fromkeys(fields.values()))
-        message = f"Уточните, пожалуйста, всё, что знаете:\n{lines}"
+        message = f"Чтобы продолжить расчёт, уточните, пожалуйста:\n{lines}"
     return ClarificationReply(
         kind="clarification", reply=introduction + message,
         pending=turn.model_copy(update={"missing_fields": list(fields)}),

@@ -11,25 +11,24 @@ const vat = (basis: string) => basis === "including_vat" ? "с НДС" : "без
 const rubles = (value: number | null) => value === null ? "—" : money(value);
 const hours = (value: number | null) => value === null ? "—" : num(value, 2);
 
-function ReportTable({ columns, rows }: { columns: string[]; rows: ReactNode[][] }) {
-  if (!rows.length) return null;
+function ReportRows({ columns, rows }: { columns: string[]; rows: ReactNode[][] }) {
   return (
-    <div className="table-scroll">
-      <table className="detail-table">
-        <thead><tr>{columns.map((title) => <th scope="col" key={title}>{title}</th>)}</tr></thead>
-        <tbody>
-          {rows.map((row, index) => (
-            <tr key={index}>{row.map((value, cell) => <td key={cell}>{value}</td>)}</tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    rows.map((row, index) => (
+      <dl className="assistant-data" key={index}>
+        {row.map((value, cell) => (
+          <div key={columns[cell]}>
+            <dt>{columns[cell]}</dt>
+            <dd>{value}</dd>
+          </div>
+        ))}
+      </dl>
+    ))
   );
 }
 
 function CalculationData({ result }: { result: Exclude<AssistantCalculation, DashboardCalculation> }) {
   if (result.engine === "pipeline") {
-    return <ReportTable
+    return <ReportRows
       columns={["Маршрут", "Масса нетто, т", "Ставка, ₽/т без НДС", "Опубликованная часть без НДС"]}
       rows={result.known_components.map((component) => [
         component.route_id, num(result.request.net_weight_tonnes, 6),
@@ -38,16 +37,16 @@ function CalculationData({ result }: { result: Exclude<AssistantCalculation, Das
     />;
   }
   if (result.engine === "chukotavia") {
-    return <ReportTable
-      columns={["Отправка", "Рейс", "Плановый вылет", "Плановое прибытие", `Тарифная часть ${vat(result.overview.cost_basis)}`, "Сценарный срок, ч"]}
+    return <ReportRows
+      columns={["Отправка", "Рейс", "Плановый вылет", "Плановое прибытие", `По грузовому тарифу ${vat(result.overview.cost_basis)}`, "Примерный срок, ч"]}
       rows={result.shipments.flatMap((shipment) => shipment.candidates.map((flight) => [
         shipment.number, flight.flight, flight.departure_at, flight.arrival_at,
         rubles(flight.transport_component_estimate_rub), hours(flight.scenario_delivery_hours),
       ]))}
     />;
   }
-  return <ReportTable
-    columns={["Схема", "Статус", `Сценарная стоимость ${vat(result.request.cost_basis)}`, "Макс. срок, ч"]}
+  return <ReportRows
+    columns={["Вариант", "Оценка", `Примерная стоимость ${vat(result.request.cost_basis)}`, "Макс. срок, ч"]}
     rows={result.candidates.map((candidate) => {
       const container = candidate.service_ids.length === 1
         ? /^river-(20|40)-(?:up|down)$/.exec(candidate.service_ids[0])
@@ -85,7 +84,7 @@ const valueLabels: Record<string, string> = {
 function ReferenceData({ result, tool }: { result: ReferenceResult; tool: string | null }) {
   const columns = (referenceColumns[tool || ""] || []).filter(([field]) => result.rows.some((row) => row[field] != null));
   if (!columns.length) return null;
-  return <ReportTable
+  return <ReportRows
     columns={columns.map(([, label]) => label)}
     rows={result.rows.map((row) => columns.map(([field]) => {
       const value = row[field];

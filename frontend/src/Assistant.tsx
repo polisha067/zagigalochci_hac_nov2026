@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { errorText, post } from "./api";
 import { getCorridorReport, hasDashboard, type AssistantDraft, type AssistantReply, type AssistantSource, type CorridorReport, type DashboardCalculation, type PendingTool } from "./assistantApi";
 import { AssistantData } from "./AssistantData";
@@ -23,10 +23,14 @@ export function SourceLinks({ sources }: { sources: AssistantSource[] }) {
   );
 }
 
-export function ReplyText({ text }: { text: string }) {
-  return <p>{text.split("\n").map((line, index) => (
-    <Fragment key={index}>{index > 0 && <br />}{line}</Fragment>
-  ))}</p>;
+type PanelPosition = { x: number; y: number };
+
+function fitPanel(x: number, y: number, { width, height }: DOMRect): PanelPosition {
+  const { clientWidth, clientHeight } = document.documentElement;
+  return {
+    x: Math.max(0, Math.min(x, clientWidth - width)),
+    y: Math.max(0, Math.min(y, clientHeight - height)),
+  };
 }
 
 export function Assistant({ snapshot, onResult, onRequireAuth }: {
@@ -41,10 +45,14 @@ export function Assistant({ snapshot, onResult, onRequireAuth }: {
   const [pending, setPending] = useState<PendingTool | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [position, setPosition] = useState<PanelPosition | null>(null);
   const button = useRef<HTMLButtonElement>(null);
   const close = useRef<HTMLButtonElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
+  const panel = useRef<HTMLElement>(null);
   const content = useRef<HTMLDivElement>(null);
+  const latestReply = useRef<HTMLParagraphElement>(null);
+  const drag = useRef<{ pointerId: number; offsetX: number; offsetY: number } | null>(null);
   const active = useRef<AbortController | null>(null);
   useEffect(() => () => active.current?.abort(), []);
   useEffect(() => {
@@ -57,11 +65,47 @@ export function Assistant({ snapshot, onResult, onRequireAuth }: {
       }
     }
     window.addEventListener("keydown", escape);
-    return () => window.removeEventListener("keydown", escape);
+
+    function fitToViewport() {
+      const bounds = panel.current?.getBoundingClientRect();
+      if (bounds) setPosition((previous) => previous && fitPanel(previous.x, previous.y, bounds));
+    }
+    fitToViewport();
+    window.addEventListener("resize", fitToViewport);
+    return () => {
+      drag.current = null;
+      window.removeEventListener("keydown", escape);
+      window.removeEventListener("resize", fitToViewport);
+    };
   }, [open]);
   useEffect(() => {
-    if (open && content.current) content.current.scrollTop = content.current.scrollHeight;
+    if (!open || !content.current) return;
+    content.current.scrollTop = busy || error
+      ? content.current.scrollHeight
+      : latestReply.current?.offsetTop ?? 0;
   }, [open, turns, busy, error]);
+
+  function startDrag(event: PointerEvent<HTMLDivElement>) {
+    if (event.button !== 0 || drag.current || (event.target as Element).closest("button")) return;
+    const bounds = panel.current?.getBoundingClientRect();
+    if (!bounds) return;
+    drag.current = {
+      pointerId: event.pointerId,
+      offsetX: event.clientX - bounds.left,
+      offsetY: event.clientY - bounds.top,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function movePanel(event: PointerEvent<HTMLElement>) {
+    const current = drag.current;
+    if (current?.pointerId !== event.pointerId) return;
+    setPosition(fitPanel(
+      event.clientX - current.offsetX,
+      event.clientY - current.offsetY,
+      event.currentTarget.getBoundingClientRect(),
+    ));
+  }
 
   async function send() {
     const text = message.trim();
@@ -89,7 +133,7 @@ export function Assistant({ snapshot, onResult, onRequireAuth }: {
       active.current = null;
       if (!controller.signal.aborted) {
         setBusy(false);
-        requestAnimationFrame(() => input.current?.focus());
+        requestAnimationFrame(() => input.current?.focus({ preventScroll: true }));
       }
     }
   }
@@ -99,11 +143,19 @@ export function Assistant({ snapshot, onResult, onRequireAuth }: {
       {open && (
         <section
           id="assistant-panel"
+          ref={panel}
           role="dialog"
           aria-labelledby="assistant-title"
           className="assistant-panel"
+          style={position ? { left: position.x, top: position.y, right: "auto", bottom: "auto" } : undefined}
+          onPointerMove={movePanel}
+          onLostPointerCapture={(event) => {
+            if (drag.current?.pointerId === event.pointerId) drag.current = null;
+          }}
         >
-          <div className="assistant-heading">
+          <div className="assistant-drag-handle left" aria-hidden="true" onPointerDown={startDrag} />
+          <div className="assistant-drag-handle right" aria-hidden="true" onPointerDown={startDrag} />
+          <div className="assistant-heading" onPointerDown={startDrag}>
             <h2 id="assistant-title">
               <svg className="chat-icon" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M21 11.5c0 5-4 8.5-9 8.5-1.5 0-3-.3-4.2-.9L3 21l1.5-4.4A8 8 0 0 1 3 11.5C3 6.8 7 3 12 3s9 3.8 9 8.5Z" />
@@ -122,7 +174,7 @@ export function Assistant({ snapshot, onResult, onRequireAuth }: {
               ×
             </button>
           </div>
-          <div className="assistant-content" ref={content} aria-live="polite">
+          <div className="assistant-content" ref={content} role="region" aria-label="Переписка с ассистентом" aria-live="polite" tabIndex={0}>
             {!turns.length && (
               <>
                 <span className="availability">Планирование перевозок</span>
@@ -140,9 +192,14 @@ export function Assistant({ snapshot, onResult, onRequireAuth }: {
             {turns.map(({ message, response }, index) => (
               <article key={index}>
                 <p className="assistant-context">{message}</p>
-                <ReplyText text={response.reply} />
+                <p className="assistant-reply" ref={index === turns.length - 1 ? latestReply : null}>{response.reply}</p>
                 <AssistantData response={response} />
-                <SourceLinks sources={response.sources} />
+                {response.sources.length > 0 && (
+                  <details className="assistant-sources">
+                    <summary>Источники</summary>
+                    <SourceLinks sources={response.sources} />
+                  </details>
+                )}
               </article>
             ))}
             {busy && <p role="status">Обрабатываем запрос…</p>}
@@ -158,6 +215,11 @@ export function Assistant({ snapshot, onResult, onRequireAuth }: {
               placeholder="Спросите о перевозке…"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
+              onKeyDown={(event) => {
+                if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) return;
+                event.preventDefault();
+                event.currentTarget.form?.requestSubmit();
+              }}
               maxLength={2000}
               readOnly={busy}
             />
@@ -168,7 +230,6 @@ export function Assistant({ snapshot, onResult, onRequireAuth }: {
             >
               →
             </button>
-            <small>Для начала с чистого черновика напишите «Новый расчёт».</small>
           </form>
         </section>
       )}
@@ -180,8 +241,7 @@ export function Assistant({ snapshot, onResult, onRequireAuth }: {
         aria-controls="assistant-panel"
         onClick={onRequireAuth ?? (() => setOpen(!open))}
       >
-        <i aria-hidden="true" /> ИИ-ассистент{" "}
-        <span aria-hidden="true">{open ? "⌄" : ""}</span>
+        <i aria-hidden="true" /> ИИ-ассистент
       </button>
     </>
   );

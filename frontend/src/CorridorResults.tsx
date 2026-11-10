@@ -32,7 +32,6 @@ export function CorridorResults({ report, onNew }: { report: CorridorReport; onN
           <span>{report.origin} → {report.destination}</span>
           <span>{num(report.forecastTonnes)} т за {report.year} год</span>
           <span>Лимит {num(report.deadlineDays)} дн.</span>
-          <span className="chevron" aria-hidden="true">⌄</span>
         </summary>
         <div className="conditions-expanded">
           <p>Объём распределён по сценарному графику. Срок отсчитывается от готовности каждой партии.</p>

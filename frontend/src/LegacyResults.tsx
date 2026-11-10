@@ -134,9 +134,6 @@ function Conditions({ snapshot }: { snapshot: Snapshot }) {
           {num(r.total_volume_tonnes, 6)} т · {r.shipments} отправок
         </span>
         <span>Лимит {hours(r.request.max_delivery_hours)}</span>
-        <span className="chevron" aria-hidden="true">
-          ⌄
-        </span>
       </summary>
       <div className="conditions-expanded">
         <div className="facts">
@@ -669,10 +666,7 @@ export function Results({
                         )
                       }
                     >
-                      {s.scheme === openScheme ? "Свернуть" : "Подробнее"}{" "}
-                      <span aria-hidden="true">
-                        {s.scheme === openScheme ? "⌃" : "⌄"}
-                      </span>
+                      {s.scheme === openScheme ? "Свернуть" : "Подробнее"}
                     </button>
                     {s.scheme === openScheme && (
                       <svg

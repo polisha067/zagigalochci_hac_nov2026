@@ -44,8 +44,15 @@ select {
 
 /* Курсор-указатель у доступных кнопок и выпадающих списков. */
 button:not(:disabled),
-select {
+select,
+summary {
   cursor: pointer;
+}
+summary {
+  list-style: none;
+}
+summary::-webkit-details-marker {
+  display: none;
 }
 /* Заметная рамка фокуса при переходе между элементами с клавиатуры. */
 button:focus-visible,
@@ -778,15 +785,6 @@ nav button[aria-current="page"] {
 .account {
   position: relative;
 }
-/* Кликабельный элемент открытия меню аккаунта без стандартного маркера. */
-.account > summary {
-  list-style: none;
-  cursor: pointer;
-}
-/* Убираем стандартную стрелку раскрытия меню аккаунта в браузерах Chromium и Safari. */
-.account > summary::-webkit-details-marker {
-  display: none;
-}
 /* Круглый значок аккаунта с инициалами пользователя. */
 .account > summary span {
   width: 44px;
@@ -1251,32 +1249,16 @@ header.auth-header {
   gap: 22px;
   align-items: center;
   padding: 20px 26px;
-  list-style: none;
-  cursor: pointer;
   font-size: 15px;
 }
-/* Убираем стандартную стрелку браузера у раскрываемых условий. */
-.conditions-summary > summary::-webkit-details-marker {
-  display: none;
-}
 /* Пунктирные разделители и отступы между краткими показателями условий. */
-.conditions-summary > summary > span:not(.chevron) {
+.conditions-summary > summary > span {
   padding-left: 22px;
   border-left: 2px dotted #adc6e9;
 }
 /* Размер подписи «Условия расчёта» в компактном билете. */
 .conditions-summary > summary > b {
   font-size: 18px;
-}
-/* Значок раскрытия условий у правого края строки. */
-.chevron {
-  margin-left: auto;
-  font-size: 24px;
-  line-height: 1;
-}
-/* Поворот значка при раскрытии условий расчёта. */
-.conditions-summary[open] .chevron {
-  transform: rotate(180deg);
 }
 /* Внутренние отступы подробных условий под раскрывающейся строкой. */
 .conditions-expanded {
@@ -1907,11 +1889,33 @@ header.auth-header {
   box-shadow:
     0 10px 40px #23436c33,
     0 2px 7px #23436c22;
-  z-index: 49;
+  z-index: 51;
   display: flex;
   flex-direction: column;
   padding: 21px;
   border: 1px solid #c4d5e9;
+}
+.assistant-drag-handle {
+  position: absolute;
+  top: 14px;
+  bottom: 14px;
+  width: 16px;
+}
+.assistant-drag-handle.left {
+  left: 0;
+}
+.assistant-drag-handle.right {
+  right: 0;
+}
+.assistant-drag-handle,
+.assistant-heading {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+.assistant-drag-handle:active,
+.assistant-heading:active {
+  cursor: grabbing;
 }
 /* Верхняя строка панели ассистента с названием и крестиком закрытия. */
 .assistant-heading {
@@ -1933,9 +1937,55 @@ header.auth-header {
 }
 /* Прокручиваемая область содержимого панели ассистента. */
 .assistant-content {
+  position: relative;
   overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  overflow-wrap: anywhere;
   flex: 1;
-  padding: 28px 4px;
+  min-height: 0;
+  padding: 20px 4px;
+}
+.assistant-content::-webkit-scrollbar {
+  display: none;
+}
+.assistant-content:focus-visible {
+  outline: 1px solid var(--muted);
+  outline-offset: -1px;
+}
+.assistant-content .assistant-reply {
+  color: var(--ink);
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+.assistant-data {
+  margin: 0 0 10px;
+  padding: 12px;
+  border-radius: 10px;
+  background: #f2f6fb;
+  font-size: 13px;
+}
+.assistant-data > div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.assistant-data > div + div {
+  margin-top: 6px;
+}
+.assistant-data dt {
+  color: var(--muted);
+}
+.assistant-data dd {
+  margin: 0;
+}
+.assistant-sources {
+  margin-bottom: 18px;
+  font-size: 13px;
+}
+.assistant-sources > summary {
+  color: var(--blue);
 }
 /* Плашка доступности сервиса ИИ-ассистента. */
 .availability {
@@ -1982,7 +2032,7 @@ header.auth-header {
 .assistant-context small {
   color: #607792;
 }
-/* Область черновика сообщения ассистенту с кнопкой отправки и пояснением. */
+/* Область черновика сообщения ассистенту с кнопкой отправки. */
 .assistant-compose {
   display: grid;
   grid-template-columns: 1fr 45px;
@@ -1996,6 +2046,7 @@ header.auth-header {
   font: inherit;
   font-size: 14px;
   resize: none;
+  scrollbar-width: none;
   height: 65px;
   min-width: 0;
   border: 0;
@@ -2003,10 +2054,14 @@ header.auth-header {
   background: transparent;
   color: var(--ink);
 }
-/* Рамка фокуса поля сообщения ассистенту. */
+.assistant-compose textarea::-webkit-scrollbar {
+  display: none;
+}
 .assistant-compose textarea:focus {
-  outline: 2px solid #9dc2f4;
-  outline-offset: 2px;
+  outline: none;
+}
+.assistant-compose:has(textarea:focus) {
+  border-color: var(--muted);
 }
 /* Синяя кнопка отправки сообщения ассистенту. */
 .assistant-compose button {
@@ -2017,12 +2072,6 @@ header.auth-header {
   font-size: 27px;
   align-self: end;
   height: 44px;
-}
-/* Небольшая подпись доступности отправки под полем сообщения. */
-.assistant-compose small {
-  grid-column: 1 / -1;
-  color: #6c7c91;
-  font-size: 10px;
 }
 /* Адаптация интерфейса для экранов шириной до 1150 пикселей. */
 @media (max-width: 1150px) {
@@ -2042,7 +2091,7 @@ header.auth-header {
     font-size: 13px;
   }
   /* Пунктирные разделители и отступы между краткими показателями условий. */
-  .conditions-summary > summary > span:not(.chevron) {
+  .conditions-summary > summary > span {
     padding-left: 14px;
   }
   /* Заголовок страницы и расположенные рядом действия. */
@@ -2167,19 +2216,13 @@ header.auth-header {
   }
   /* Ширина и размер подписи раскрываемых условий на узком экране. */
   .conditions-summary > summary b {
-    flex-basis: calc(100% - 36px);
+    flex-basis: 100%;
     font-size: 17px;
   }
   /* Пунктирные разделители и отступы между краткими показателями условий. */
-  .conditions-summary > summary > span:not(.chevron) {
+  .conditions-summary > summary > span {
     border: 0;
     padding: 0;
-  }
-  /* Положение стрелки раскрытия условий на узком экране. */
-  .conditions-summary .chevron {
-    position: absolute;
-    right: 18px;
-    top: 17px;
   }
   /* Внутренние отступы подробных условий под раскрывающейся строкой. */
   .conditions-expanded {
