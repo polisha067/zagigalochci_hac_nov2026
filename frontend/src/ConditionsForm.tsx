@@ -374,10 +374,25 @@ export function ConditionsForm({
                     >
                       <summary>Свойства и требования к грузу</summary>
                       <p className="table-note">
-                        Для нового названия укажите все четыре основных
-                        свойства. Это ваше описание груза, а не подтверждённые
-                        данные перевозчика.
+                        Для груза вне справочника подтвердите типовые условия
+                        или укажите свойства вручную.
                       </p>
+                      {propsRequired && ![c.phase, c.hazardous, c.profile, c.temperatureRequired].some(Boolean) && (
+                        <button
+                          type="button"
+                          className="text-button"
+                          onClick={() =>
+                            cargoUpdate(c.id, {
+                              phase: "solid",
+                              hazardous: "no",
+                              profile: "dry_general",
+                              temperatureRequired: "no",
+                            })
+                          }
+                        >
+                          Подтвердить сухой неопасный груз без терморежима
+                        </button>
+                      )}
                       <label>
                         Состояние
                         <select

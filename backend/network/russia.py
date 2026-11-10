@@ -141,6 +141,19 @@ class RussiaNetwork:
             'dry_general':{'name':'Сухой неопасный груз','aliases':[],'phase':'solid','hazardous':False,'handling_profile':'dry_general','packagings':['boxes','bags'],'evidence':ev()},
             'crude_oil':{'name':'Нефть','aliases':['сырая нефть','товарная нефть'],'phase':'liquid','hazardous':True,'handling_profile':'crude_oil','packagings':['bulk_liquid'],'evidence':ev()},
         }
+        # Standard packaged goods for scenario estimates. Match only exact names and aliases.
+        for identifier, name, aliases, profile, packagings in [
+            ('sugar', 'Сахар', ['сахарный песок'], 'dry_food', ['bags', 'boxes']),
+            ('rice', 'Рис', [], 'dry_food', ['bags', 'boxes']),
+            ('pasta', 'Макароны', ['макаронные изделия'], 'dry_food', ['bags', 'boxes']),
+            ('paper', 'Бумага', ['офисная бумага'], 'dry_general', ['boxes']),
+            ('condoms', 'Презервативы', ['презерватив'], 'dry_general', ['boxes']),
+            ('ceramic_vases', 'Керамические вазы', ['керамическая ваза'], 'dry_general', ['boxes']),
+        ]:
+            self.cargo_types[identifier] = {
+                'name':name, 'aliases':aliases, 'phase':'solid', 'hazardous':False,
+                'handling_profile':profile, 'packagings':packagings, 'evidence':ev(),
+            }
         self.coverage_notes = []
         self.reference_ports = json.loads((ROOT/'data_sources/rosmorport/references.json').read_text())['ports']
         # A co-located road/rail hub is a model assumption. No station is inferred from coordinates.

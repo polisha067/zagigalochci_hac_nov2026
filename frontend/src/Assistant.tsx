@@ -29,9 +29,10 @@ export function ReplyText({ text }: { text: string }) {
   ))}</p>;
 }
 
-export function Assistant({ snapshot, onResult }: {
+export function Assistant({ snapshot, onResult, onRequireAuth }: {
   snapshot: Snapshot | null;
   onResult: (result: DashboardCalculation | CorridorReport) => void;
+  onRequireAuth?: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
@@ -177,7 +178,7 @@ export function Assistant({ snapshot, onResult }: {
         className="assistant"
         aria-expanded={open}
         aria-controls="assistant-panel"
-        onClick={() => setOpen(!open)}
+        onClick={onRequireAuth ?? (() => setOpen(!open))}
       >
         <i aria-hidden="true" /> ИИ-ассистент{" "}
         <span aria-hidden="true">{open ? "⌄" : ""}</span>

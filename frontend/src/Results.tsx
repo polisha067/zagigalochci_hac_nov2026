@@ -1,10 +1,13 @@
 import {
   Fragment,
+  useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
   type CSSProperties,
 } from "react";
+import { RouteMap } from "./RouteMap";
 import { Results as LegacyResults } from "./LegacyResults";
 import type { Calculation, Candidate, Source } from "./networkApi";
 import {
@@ -320,6 +323,7 @@ function CandidateReport({
   return (
     <section
       id="scheme-report"
+      tabIndex={-1}
       className="scheme-report ticket-shadow"
       aria-label={`Подробный расчёт: ${candidateName(c)}`}
       style={
@@ -612,11 +616,45 @@ function NetworkResults({
   const r = snapshot.result;
   const [filter, setFilter] = useState("all");
   const [opened, setOpened] = useState<string | null>(null);
+  const [reportNavigation, setReportNavigation] = useState(0);
+  function openFromMap(id: string) {
+    if (!candidates.some((candidate) => candidate.id === id)) setFilter("all");
+    setOpened(id);
+    setReportNavigation((count) => count + 1);
+  }
+  useEffect(() => {
+    if (!reportNavigation) return;
+    const report = document.getElementById("scheme-report");
+    if (!report) return;
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let frameId: number;
+    frameId = requestAnimationFrame((startedAt) => {
+      const start = window.scrollY;
+      const target = Math.min(
+        start + report.getBoundingClientRect().top - 20,
+        document.documentElement.scrollHeight - window.innerHeight,
+      );
+      const distance = target - start;
+      const duration = Math.min(800, Math.max(450, Math.abs(distance) * 0.55));
+      function step(now: number) {
+        const progress = reduceMotion ? 1 : Math.min((now - startedAt) / duration, 1);
+        const eased = (1 - Math.cos(progress * Math.PI)) / 2;
+        window.scrollTo({ top: start + distance * eased, behavior: "instant" });
+        if (progress < 1) frameId = requestAnimationFrame(step);
+        else report?.focus({ preventScroll: true });
+      }
+      step(startedAt);
+    });
+    return () => cancelAnimationFrame(frameId);
+  }, [reportNavigation]);
   const frame = useRef<HTMLDivElement>(null),
     scroll = useRef<HTMLDivElement>(null),
     selectedCell = useRef<HTMLTableCellElement>(null);
   const [bridge, setBridge] = useState({ x: 0, visible: false });
-  const candidates = r.candidates.filter(
+  const ranked = useMemo(() => [...r.candidates].sort(
+    (a, b) => Number(b.id === r.recommendation) - Number(a.id === r.recommendation),
+  ), [r.candidates, r.recommendation]);
+  const candidates = ranked.filter(
     (c) =>
       filter === "all" ||
       (filter === "multimodal" && c.multimodal) ||
@@ -722,6 +760,10 @@ function NetworkResults({
         </div>
       </div>
       <Conditions snapshot={snapshot} />
+      {r.candidates.length > 0 && (
+        <RouteMap candidates={ranked} recommendation={r.recommendation}
+          opened={opened} onOpen={openFromMap} />
+      )}
       <h2 id="comparison" className="comparison-title">
         Сравнение вариантов
       </h2>
@@ -818,7 +860,7 @@ function NetworkResults({
                                 )}
                           </span>
                           <span className="candidate-number">
-                            Вариант {r.candidates.indexOf(c) + 1}
+                            Вариант {ranked.indexOf(c) + 1}
                           </span>
                         </div>
                         <b>{candidateName(c)}</b>
@@ -855,7 +897,7 @@ function NetworkResults({
                         <button
                           className="text-button"
                           type="button"
-                          aria-label={`${opened === c.id ? "Свернуть" : "Подробнее"}: вариант ${r.candidates.indexOf(c) + 1}`}
+                          aria-label={`${opened === c.id ? "Свернуть" : "Подробнее"}: вариант ${ranked.indexOf(c) + 1}`}
                           aria-expanded={opened === c.id}
                           aria-controls={
                             opened === c.id ? "scheme-report" : undefined
@@ -904,12 +946,12 @@ function NetworkResults({
             <p>Посмотрите причины ограничений ниже или измените условия.</p>
           </div>
         )}
-        {r.candidates
+        {ranked
           .filter((c) => c.status !== "feasible" || !c.complete)
           .map((c) => (
             <div className="notice warning" key={c.id}>
               <b>
-                Вариант {r.candidates.indexOf(c) + 1} · {candidateName(c)}
+                Вариант {ranked.indexOf(c) + 1} · {candidateName(c)}
               </b>
               <Issues c={c} />
             </div>

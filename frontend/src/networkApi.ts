@@ -13,6 +13,8 @@ export interface Settlement {
   id: string;
   name: string;
   region?: string;
+  latitude?: number | null;
+  longitude?: number | null;
   provenance?: string;
 }
 export interface SettlementPage {
@@ -150,7 +152,7 @@ export interface Candidate {
   evidence_levels: string[];
   route_hubs: {
     id: string;
-    settlement_id: string;
+    settlement_id: string | null;
     name: string;
     identity_status: string;
   }[];

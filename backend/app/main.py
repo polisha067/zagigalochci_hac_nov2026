@@ -74,7 +74,13 @@ def optional_user(request: Request):
 def require_user(request: Request):
     user = optional_user(request)
     if user is None:
-        raise error(401, "not_authenticated", "Войдите в аккаунт")
+        settings = request.app.state.settings
+        message = (
+            "Сессия недействительна или истекла. Войдите снова"
+            if request.cookies.get(settings.cookie_name)
+            else "Сначала войдите в аккаунт"
+        )
+        raise error(401, "not_authenticated", message)
     return user
 
 

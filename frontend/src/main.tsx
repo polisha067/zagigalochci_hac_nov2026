@@ -26,11 +26,13 @@ function navigate(hash: string) {
 }
 function Workspace({
   user,
-  sessionVersion,
+  onUser,
+  authMessage,
   onLogout,
 }: {
-  user: User;
-  sessionVersion: number;
+  user: User | null;
+  onUser: (user: User) => void;
+  authMessage: string;
   onLogout: () => void;
 }) {
   const [options, setOptions] = useState<Options | null>(null);
@@ -40,7 +42,14 @@ function Workspace({
   const [formVersion, setFormVersion] = useState(0);
   const [current, setCurrent] = useState<Snapshot | null>(null);
   const [corridor, setCorridor] = useState<CorridorReport | null>(null);
-  const [historyState, setHistoryState] = useState(() => loadHistory(user.id));
+  const userId = user?.id;
+  const [historyCache, setHistoryCache] = useState<{
+    userId: string;
+    state: ReturnType<typeof loadHistory>;
+  } | null>(null);
+  const historyState = userId
+    ? historyCache?.userId === userId ? historyCache.state : loadHistory(userId)
+    : { entries: [], warning: "" };
   const [hash, setHash] = useState(window.location.hash || "#calculation");
   const [logoutBusy, setLogoutBusy] = useState(false);
   const [logoutError, setLogoutError] = useState("");
@@ -74,20 +83,28 @@ function Workspace({
         if (!controller.signal.aborted) setCatalogError(errorText(e));
       });
     return () => controller.abort();
-  }, [catalogAttempt, sessionVersion]);
+  }, [catalogAttempt]);
   useEffect(() => {
-    const sync = () =>
-      setHistoryState((previous) => {
-        const loaded = loadHistory(user.id);
-        return loaded.warning
-          ? { ...previous, warning: loaded.warning }
-          : loaded;
-      });
+    if (!userId) return;
+    const sync = () => {
+      const loaded = loadHistory(userId);
+      setHistoryCache((previous) => ({
+        userId,
+        state: loaded.warning && previous?.userId === userId
+          ? { ...previous.state, warning: loaded.warning }
+          : loaded,
+      }));
+    };
+    sync();
     window.addEventListener("storage", sync);
     return () => window.removeEventListener("storage", sync);
-  }, [user.id]);
+  }, [userId]);
   const inHistory = hash.startsWith("#history");
   const showingCorridor = hash === CORRIDOR_HASH ? corridor : null;
+  const needsAuth = !user && (inHistory || hash === "#login");
+  const calculationHash = corridor ? CORRIDOR_HASH : current
+    ? "#calculation/result/" + current.id
+    : "#calculation";
   const saved = hash.startsWith("#history/")
     ? historyState.entries.find((s) => s.id === hash.slice("#history/".length))
     : undefined;
@@ -128,15 +145,21 @@ function Workspace({
   function publishSnapshot(snapshot: Snapshot) {
     setCurrent(snapshot);
     setCorridor(null);
-    const savedHistory = saveSnapshot(user.id, snapshot);
-    setHistoryState((previous) => ({
-      ...savedHistory,
-      entries: [
-        ...new Map(
-          [...savedHistory.entries, ...previous.entries].map((s) => [s.id, s]),
-        ).values(),
-      ],
-    }));
+    if (userId) {
+      const savedHistory = saveSnapshot(userId, snapshot);
+      setHistoryCache((previous) => ({
+        userId,
+        state: {
+          ...savedHistory,
+          entries: [
+            ...new Map(
+              [...savedHistory.entries, ...(previous?.userId === userId ? previous.state.entries : [])]
+                .map((entry) => [entry.id, entry]),
+            ).values(),
+          ],
+        },
+      }));
+    }
     navigate("#calculation/result/" + snapshot.id);
   }
   function showAssistantResult(result: DashboardCalculation | CorridorReport) {
@@ -161,6 +184,18 @@ function Workspace({
       setLogoutBusy(false);
     }
   }
+  if (needsAuth) {
+    return (
+      <Auth
+        initialMessage={authMessage || (inHistory ? "Войдите или зарегистрируйтесь, чтобы открыть историю расчётов." : "")}
+        onBack={() => navigate(calculationHash)}
+        onUser={(authenticatedUser) => {
+          if (!inHistory) navigate(calculationHash);
+          onUser(authenticatedUser);
+        }}
+      />
+    );
+  }
   return (
     <div className="page">
       <header className="app-header">
@@ -169,13 +204,7 @@ function Workspace({
           <nav aria-label="Разделы">
             <button
               aria-current={!inHistory ? "page" : undefined}
-              onClick={() =>
-                navigate(
-                  corridor ? CORRIDOR_HASH : current
-                    ? "#calculation/result/" + current.id
-                    : "#calculation",
-                )
-              }
+              onClick={() => navigate(calculationHash)}
             >
               Расчёт
             </button>
@@ -186,7 +215,7 @@ function Workspace({
               История
             </button>
           </nav>
-          <details className="account">
+          {user ? <details className="account">
             <summary aria-label={"Аккаунт: " + user.name}>
               <span>
                 <b className="account-initials">
@@ -211,7 +240,11 @@ function Workspace({
                 {logoutBusy ? "Выходим…" : "Выйти"}
               </button>
             </div>
-          </details>
+          </details> : (
+            <button className="text-button" onClick={() => navigate("#login")}>
+              Войти
+            </button>
+          )}
         </div>
       </header>
       <main className={showing || showingCorridor || inHistory ? "wide-main" : ""}>
@@ -284,16 +317,19 @@ function Workspace({
           </section>
         )}
       </main>
-      <Assistant snapshot={showing} onResult={showAssistantResult} />
+      <Assistant
+        snapshot={showing}
+        onResult={showAssistantResult}
+        onRequireAuth={user ? undefined : () => navigate("#login")}
+      />
     </div>
   );
 }
 function App() {
   const [user, setUser] = useState<User | null>(null);
   const [checking, setChecking] = useState(true);
-  const [expired, setExpired] = useState(false);
+  const [workspaceVersion, setWorkspaceVersion] = useState(0);
   const [initialError, setInitialError] = useState("");
-  const [sessionVersion, setSessionVersion] = useState(0);
   useEffect(() => {
     const controller = new AbortController();
     request<{ user: User }>("/auth/me", { signal: controller.signal })
@@ -308,7 +344,11 @@ function App() {
       .finally(() => {
         if (!controller.signal.aborted) setChecking(false);
       });
-    const onExpired = () => setExpired(true);
+    const onExpired = () => {
+      setUser(null);
+      setWorkspaceVersion((version) => version + 1);
+      setInitialError("Сессия истекла. Войдите снова, чтобы открыть историю.");
+    };
     window.addEventListener("session-expired", onExpired);
     return () => {
       controller.abort();
@@ -317,9 +357,7 @@ function App() {
   }, []);
   const authenticated = useCallback((u: User) => {
     setUser(u);
-    setExpired(false);
     setInitialError("");
-    setSessionVersion((v) => v + 1);
   }, []);
   if (checking)
     return (
@@ -335,31 +373,16 @@ function App() {
       </div>
     );
   return (
-    <>
-      {(!user || expired) && (
-        <Auth
-          onUser={authenticated}
-          initialMessage={
-            expired
-              ? "Сессия истекла. Войдите снова, чтобы продолжить. Введённые условия сохранены на этой странице."
-              : initialError
-          }
-        />
-      )}
-      {user && (
-        <div hidden={expired}>
-          <Workspace
-            key={user.id}
-            user={user}
-            sessionVersion={sessionVersion}
-            onLogout={() => {
-              setUser(null);
-              setExpired(false);
-            }}
-          />
-        </div>
-      )}
-    </>
+    <Workspace
+      key={workspaceVersion}
+      user={user}
+      onUser={authenticated}
+      authMessage={initialError}
+      onLogout={() => {
+        setUser(null);
+        setWorkspaceVersion((version) => version + 1);
+      }}
+    />
   );
 }
 createRoot(document.getElementById("root")!).render(<App />);
