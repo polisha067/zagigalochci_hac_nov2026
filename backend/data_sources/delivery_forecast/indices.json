@@ -1,0 +1,200 @@
+{
+  "version": "rosstat-freight-december-2012-2025-v1",
+  "basis": "december_over_previous_december",
+  "geography": "Российская Федерация",
+  "collected_on": "2026-11-10",
+  "max_year": 2035,
+  "sources": [
+    {
+      "id": "prices-2016",
+      "name": "Росстат. Цены в России, 2016",
+      "url": "https://rosstat.gov.ru/storage/mediabank/cena_2016.pdf#page=117",
+      "description": "Таблица 6.1, данные за 2012–2013 гг.",
+      "publication_year": "2016",
+      "status": "fact",
+      "path": "backend/data_sources/delivery_forecast/indices.json"
+    },
+    {
+      "id": "prices-2018",
+      "name": "Росстат. Цены в России, 2018",
+      "url": "https://rosstat.gov.ru/storage/mediabank/Cena-2018.pdf#page=107",
+      "description": "Таблица 6.1, данные за 2014–2016 гг. За 2015 г. без Крыма и Севастополя для сопоставимости.",
+      "publication_year": "2018",
+      "status": "fact",
+      "path": "backend/data_sources/delivery_forecast/indices.json"
+    },
+    {
+      "id": "yearbook-2020",
+      "name": "Росстат. Российский статистический ежегодник, 2020",
+      "url": "https://rosstat.gov.ru/storage/mediabank/Ejegodnik_2020.pdf#page=574",
+      "description": "Таблица 25.30, данные за 2017–2019 гг.",
+      "publication_year": "2020",
+      "status": "fact",
+      "path": "backend/data_sources/delivery_forecast/indices.json"
+    },
+    {
+      "id": "prices-2024",
+      "name": "Росстат. Цены в России, 2024",
+      "url": "https://rosstat.gov.ru/storage/mediabank/Cena_2024.pdf",
+      "description": "Таблица 6.1, данные за 2020–2023 гг.",
+      "publication_year": "2024",
+      "status": "fact",
+      "path": "backend/data_sources/delivery_forecast/indices.json"
+    },
+    {
+      "id": "december-2025",
+      "name": "Росстат. Социально-экономическое положение России, 2025",
+      "url": "https://rosstat.gov.ru/storage/mediabank/osn-12-2025.pdf#page=153",
+      "description": "Таблица 10, декабрь к декабрю за 2024 и 2025 гг. Показатели за 2025 г. предварительные в этом выпуске.",
+      "publication_year": "2026",
+      "status": "fact",
+      "path": "backend/data_sources/delivery_forecast/indices.json"
+    },
+    {
+      "id": "delivery-index-model-v1",
+      "name": "Модель индексации цены перевозки",
+      "description": "Медиана пяти годовых индексов, сценарные границы по историческим ошибкам.",
+      "status": "scenario",
+      "path": "docs/data/delivery_forecast/README.md"
+    }
+  ],
+  "proxies": {
+    "handling": "freight_total",
+    "storage": "freight_total"
+  },
+  "series": {
+    "freight_total": {
+      "model_source": "delivery-index-model-v1",
+      "points": [
+        [2012, 107.5, "prices-2016", "observed"],
+        [2013, 108.0, "prices-2016", "observed"],
+        [2014, 100.9, "prices-2018", "observed"],
+        [2015, 111.5, "prices-2018", "observed"],
+        [2016, 105.6, "prices-2018", "observed"],
+        [2017, 109.0, "yearbook-2020", "observed"],
+        [2018, 101.4, "yearbook-2020", "observed"],
+        [2019, 101.5, "yearbook-2020", "observed"],
+        [2020, 105.2, "prices-2024", "observed"],
+        [2021, 104.8, "prices-2024", "observed"],
+        [2022, 128.4, "prices-2024", "observed"],
+        [2023, 116.5, "prices-2024", "observed"],
+        [2024, 113.7, "december-2025", "observed"],
+        [2025, 104.1, "december-2025", "observed"]
+      ]
+    },
+    "rail": {
+      "model_source": "delivery-index-model-v1",
+      "points": [
+        [2012, 105.6, "prices-2016", "observed"],
+        [2013, 105.4, "prices-2016", "observed"],
+        [2014, 102.3, "prices-2018", "observed"],
+        [2015, 112.9, "prices-2018", "observed"],
+        [2016, 108.7, "prices-2018", "observed"],
+        [2017, 104.0, "yearbook-2020", "observed"],
+        [2018, 105.0, "yearbook-2020", "observed"],
+        [2019, 104.2, "yearbook-2020", "observed"],
+        [2020, 103.5, "prices-2024", "observed"],
+        [2021, 103.7, "prices-2024", "observed"],
+        [2022, 120.0, "prices-2024", "observed"],
+        [2023, 121.9, "prices-2024", "observed"],
+        [2024, 113.8, "december-2025", "observed"],
+        [2025, 110.5, "december-2025", "observed"]
+      ]
+    },
+    "road": {
+      "model_source": "delivery-index-model-v1",
+      "points": [
+        [2012, 105.3, "prices-2016", "observed"],
+        [2013, 104.2, "prices-2016", "observed"],
+        [2014, 107.2, "prices-2018", "observed"],
+        [2015, 106.4, "prices-2018", "observed"],
+        [2016, 100.6, "prices-2018", "observed"],
+        [2017, 102.8, "yearbook-2020", "observed"],
+        [2018, 100.7, "yearbook-2020", "observed"],
+        [2019, 102.1, "yearbook-2020", "observed"],
+        [2020, 97.0, "prices-2024", "observed"],
+        [2021, 103.5, "prices-2024", "observed"],
+        [2022, 114.8, "prices-2024", "observed"],
+        [2023, 114.3, "prices-2024", "observed"],
+        [2024, 121.0, "december-2025", "observed"],
+        [2025, 107.8, "december-2025", "observed"]
+      ]
+    },
+    "pipeline": {
+      "model_source": "delivery-index-model-v1",
+      "points": [
+        [2012, 109.6, "prices-2016", "observed"],
+        [2013, 111.0, "prices-2016", "observed"],
+        [2014, 96.5, "prices-2018", "observed"],
+        [2015, 111.2, "prices-2018", "observed"],
+        [2016, 103.6, "prices-2018", "observed"],
+        [2017, 113.9, "yearbook-2020", "observed"],
+        [2018, 96.8, "yearbook-2020", "observed"],
+        [2019, 98.5, "yearbook-2020", "observed"],
+        [2020, 92.6, "prices-2024", "observed"],
+        [2021, 104.2, "prices-2024", "observed"],
+        [2022, 141.0, "prices-2024", "observed"],
+        [2023, 116.5, "prices-2024", "observed"],
+        [2024, 108.7, "december-2025", "observed"],
+        [2025, 102.9, "december-2025", "observed"]
+      ]
+    },
+    "sea": {
+      "model_source": "delivery-index-model-v1",
+      "points": [
+        [2012, 95.3, "prices-2016", "observed"],
+        [2013, 103.3, "prices-2016", "observed"],
+        [2014, 144.1, "prices-2018", "observed"],
+        [2015, 114.4, "prices-2018", "observed"],
+        [2016, 90.1, "prices-2018", "observed"],
+        [2017, 103.4, "yearbook-2020", "observed"],
+        [2018, 110.9, "yearbook-2020", "observed"],
+        [2019, 98.5, "yearbook-2020", "observed"],
+        [2020, 104.3, "prices-2024", "observed"],
+        [2021, 109.8, "prices-2024", "observed"],
+        [2022, 110.8, "prices-2024", "observed"],
+        [2023, 123.2, "prices-2024", "observed"],
+        [2024, 111.7, "december-2025", "observed"],
+        [2025, 99.8, "december-2025", "observed"]
+      ]
+    },
+    "river": {
+      "model_source": "delivery-index-model-v1",
+      "points": [
+        [2012, 106.3, "prices-2016", "observed"],
+        [2013, 107.5, "prices-2016", "observed"],
+        [2014, 140.0, "prices-2018", "observed"],
+        [2015, 113.5, "prices-2018", "observed"],
+        [2016, 97.8, "prices-2018", "observed"],
+        [2017, 108.3, "yearbook-2020", "observed"],
+        [2018, 111.8, "yearbook-2020", "observed"],
+        [2019, 102.8, "yearbook-2020", "observed"],
+        [2020, 100.9, "prices-2024", "observed"],
+        [2021, 104.8, "prices-2024", "observed"],
+        [2022, 120.4, "prices-2024", "observed"],
+        [2023, 109.8, "prices-2024", "observed"],
+        [2024, 107.5, "december-2025", "observed"],
+        [2025, 101.6, "december-2025", "observed"]
+      ]
+    },
+    "air": {
+      "model_source": "delivery-index-model-v1",
+      "points": [
+        [2012, 108.9, "prices-2016", "observed"],
+        [2013, 103.1, "prices-2016", "observed"],
+        [2014, 105.7, "prices-2018", "observed"],
+        [2015, 107.6, "prices-2018", "observed"],
+        [2016, 120.7, "prices-2018", "observed"],
+        [2017, 115.3, "yearbook-2020", "observed"],
+        [2018, 122.3, "yearbook-2020", "observed"],
+        [2019, 105.2, "yearbook-2020", "observed"],
+        [2020, 288.9, "prices-2024", "observed"],
+        [2021, 116.6, "prices-2024", "observed"],
+        [2022, 110.9, "prices-2024", "observed"],
+        [2023, 106.8, "prices-2024", "observed"],
+        [2024, 108.5, "december-2025", "observed"],
+        [2025, 107.7, "december-2025", "observed"]
+      ]
+    }
+  }
+}

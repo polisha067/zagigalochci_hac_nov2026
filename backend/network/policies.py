@@ -157,7 +157,7 @@ class Policies:
                     raise PlanningProblem("pipeline_form", "Нужен подходящий наливной/газовый продукт, а не упакованный твёрдый груз", object_id=service.id)
             need(service.flow_tonnes_per_hour, "flow_tonnes_per_hour", service.id)
 
-    def price(self, quote, items, at, object_id, units=1, distance=None, storage_tonne_hours=None, mode=None, component="transport", storage_unit_days=None):
+    def price(self, quote, items, at, object_id, units=1, distance=None, storage_tonne_hours=None, mode=None, component="transport", storage_unit_days=None, breakdown=None):
         quote = need(quote, "quote", object_id)
         if quote.component != component:
             raise PlanningProblem("bundled_quote", "Нужен разложенный тариф без повторного начисления включённых услуг", "insufficient_data", object_id, ["quote.component"])
@@ -193,4 +193,15 @@ class Policies:
         if quote.tax_basis != self.request.cost_basis:
             tax = dec(need(quote.tax_rate, "tax_rate", object_id))
             result = result * (1 + tax) if self.request.cost_basis == "including_vat" else result / (1 + tax)
+        if breakdown is not None:
+            breakdown.update(
+                category=mode if component == "transport" else component,
+                basis=quote.basis, quantity=float(quantity), rate_rub=float(rate),
+                minimum_rub=quote.minimum_rub, fixed_rub=quote.fixed_rub,
+                rate_tax_basis=quote.tax_basis, tax_rate=quote.tax_rate,
+                base_year=quote.evidence.valid_from.year,
+                valid_from=quote.evidence.valid_from.isoformat(),
+                valid_until=quote.evidence.valid_until.isoformat(),
+                source_ids=list(quote.evidence.source_ids),
+            )
         return money(result)

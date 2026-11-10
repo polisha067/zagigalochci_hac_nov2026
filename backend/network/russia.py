@@ -361,7 +361,7 @@ class RussiaNetwork:
             service['timetable']={'kind':'explicit','departures':[edge['departure_at']]}
         return service
 
-    def subgraph(self, paths):
+    def subgraph(self, paths, *, project_catalog=None):
         edges={edge['id']:edge for path in paths for edge in path}
         services=[self.service(edge) for edge in edges.values()]
         hub_ids={key for s in services for key in (s['from_hub'],s['to_hub'])}
@@ -376,14 +376,19 @@ class RussiaNetwork:
                     'cargo_profiles':['crude_oil'] if ma==mb=='pipeline' else ['dry_food','dry_general'],
                     'packagings':['bulk_liquid'] if ma==mb=='pipeline' else ['boxes','bags'],'hazardous_allowed':ma==mb=='pipeline',
                     'operation':{'fixed_hours':1 if ma==mb else 4,'tonnes_per_hour':20,'resource_id':'transfer:'+hub,'lanes':2,'quote':quote('handling',300),'evidence':ev()},'evidence':ev()})
-        return FreightNetwork({'id':ID,'coverage':self.coverage()['geography'],'sources':list(self.sources.values()),'cargo_types':self.cargo_types,
-                               'compatibility':{'dry_general|flour':True},'hubs':[self.hubs[h] for h in sorted(hub_ids)],'services':services,'transfers':transfers})
+        catalog = {'id':ID,'coverage':self.coverage()['geography'],'sources':list(self.sources.values()),'cargo_types':self.cargo_types,
+                   'compatibility':{'dry_general|flour':True},'hubs':[self.hubs[h] for h in sorted(hub_ids)],'services':services,'transfers':transfers}
+        return FreightNetwork(project_catalog(catalog) if project_catalog else catalog)
 
-    def paths(self, starts, targets, via, request, events):
+    def paths(self, starts, targets, via, request, events, *, price_weight=None, include_dated=True):
         counter=itertools.count();found=[];seen_paths=set();stats={'expansions':0,'truncated':False,'scope':'bounded_candidate_search_not_global_optimum'}
         last_ready=max(events)+timedelta(hours=request.max_delivery_hours)
         first_ready=min(events)
         seeds=[]
+        def edge_active(edge):
+            departure = edge.get('departure_at')
+            return not departure or include_dated and first_ready <= datetime.fromisoformat(departure) <= last_ready
+
         def seed(path):
             ids=tuple(e['id'] for e in path)
             if ids not in seen_paths and len(path)<=request.max_legs:
@@ -399,8 +404,8 @@ class RussiaNetwork:
                 options=[]
                 for start in left:
                     options.extend(e for e in self.outgoing[start] if e['to_hub'] in right and e['mode'] in request.allowed_modes
-                                   and (not e.get('departure_at') or first_ready<=datetime.fromisoformat(e['departure_at'])<=last_ready))
-                options.sort(key=lambda e:e['travel_hours'])
+                                   and edge_active(e))
+                options.sort(key=price_weight or (lambda e:e['travel_hours']))
                 # At most one direct service per physical mode for seeding.
                 selected={}
                 for edge in options:selected.setdefault(edge['mode'],edge)
@@ -410,7 +415,7 @@ class RussiaNetwork:
                 if number>=4096:break
                 if all(a['to_hub']==b['from_hub'] for a,b in zip(path,path[1:])):
                     chains.append(list(path))
-            chains.sort(key=lambda p:sum(e['travel_hours'] for e in p))
+            chains.sort(key=lambda p:sum(price_weight(e) if price_weight else e['travel_hours'] for e in p))
             for mode in request.allowed_modes:
                 match=next((p for p in chains if {e['mode'] for e in p}=={mode}),None)
                 if match:seed(match)
@@ -419,22 +424,24 @@ class RussiaNetwork:
             for start in starts:
                 for edge in self.outgoing[start]:
                     if edge['to_hub'] in targets and edge['mode'] in request.allowed_modes:
-                        if edge.get('departure_at') and not first_ready<=datetime.fromisoformat(edge['departure_at'])<=last_ready:continue
+                        if not edge_active(edge):continue
                         seed([edge])
             mixed=[]
             for target in targets:
                 for right in self.incoming[target]:
                     if right['mode'] not in request.allowed_modes:continue
                     for left in self.incoming[right['from_hub']]:
-                        if any(e.get("departure_at") and not first_ready<=datetime.fromisoformat(e["departure_at"])<=last_ready for e in (left,right)):continue
+                        if not edge_active(left) or not edge_active(right):continue
                         if left['from_hub'] in starts and left['mode'] in request.allowed_modes and left['mode']!=right['mode'] and right['from_hub'] not in starts and right['from_hub'] not in targets:
                             mixed.append([left,right])
-            for path in sorted(mixed,key=lambda p:sum(e['travel_hours'] for e in p))[:2]:seed(path)
+            for path in sorted(mixed,key=lambda p:sum(price_weight(e) if price_weight else e['travel_hours'] for e in p))[:2]:seed(path)
         # Search per physical mode and mixed, so dense road observations cannot hide all rail/sea options.
         searches=[{m} for m in request.allowed_modes]+[set(request.allowed_modes)]
         seed_groups=defaultdict(list)
         for path in seeds:seed_groups[tuple((e['mode'],e['kind']) for e in path)].append(path)
         def seed_rank(path):
+            if price_weight:
+                return sum(price_weight(edge) for edge in path)
             wait=sum(max(0,(datetime.fromisoformat(e['departure_at'])-first_ready).total_seconds()/3600) for e in path if e.get('departure_at'))
             return sum(e['travel_hours'] for e in path)+wait
         buckets=[sorted(bucket,key=seed_rank) for bucket in seed_groups.values()]
@@ -462,11 +469,9 @@ class RussiaNetwork:
                     destination=edge['to_hub']
                     # Cannot pass a future mandatory stop before its predecessor.
                     if any(destination in group for group in via[progress+1:]):continue
-                    if edge.get('departure_at'):
-                        dep=datetime.fromisoformat(edge['departure_at'])
-                        if dep<first_ready or dep>last_ready:continue
+                    if not edge_active(edge):continue
                     penalty=4 if last_mode and last_mode!=edge['mode'] else 0
-                    weight=edge['travel_hours']+penalty+1
+                    weight=(price_weight(edge) if price_weight else edge['travel_hours'])+penalty+1
                     heapq.heappush(heap,(score+weight,next(counter),destination,path+(edge,),visited|{destination},progress,edge['mode']))
             stats['expansions']+=expanded
             buckets.append(bucket)
@@ -477,7 +482,7 @@ class RussiaNetwork:
         if len(found)>request.max_candidates:stats['truncated']=True
         return found[:request.max_candidates],stats
 
-    def calculate(self, payload):
+    def calculate(self, payload, *, project_catalog=None, price_weight=None, include_dated=True):
         request=payload if isinstance(payload,RussiaRequest) else RussiaRequest.model_validate(payload)
         events,_,_=build_schedule(request.schedule)
         if len(events)>64:raise ValueError('Не более 64 отправок за один сетевой расчёт')
@@ -509,7 +514,7 @@ class RussiaNetwork:
         for cargo in request.cargoes:
             pi=pickups.get(cargo.id,-1);di=deliveries.get(cargo.id,len(via))
             if pi>=di:raise ValueError('Погрузка позиции должна предшествовать её выгрузке: '+cargo.id)
-        paths,search=self.paths(starts,targets,via,request,events)
+        paths,search=self.paths(starts,targets,via,request,events,price_weight=price_weight,include_dated=include_dated)
         base['search']=search;base['stops']=stops
         if not paths:
             base['status']='no_route_in_dataset';base['warnings'].append('Нет цепочки в выбранных видах транспорта, датах и пределах поиска; это не доказательство отсутствия перевозки в РФ.')
@@ -518,7 +523,7 @@ class RussiaNetwork:
             base['input_status']='needs_clarification';base['status']='needs_clarification'
             base['clarifications'].append({'code':'pipeline_net_mass_required','field':'mass_basis','message':'Тариф нефти считается по массе нетто в начале маршрута. Укажите net и массу без балласта.'})
             return base
-        graph=self.subgraph(paths);candidates=[];questions=[]
+        graph=self.subgraph(paths,project_catalog=project_catalog);candidates=[];questions=[]
         for path in paths:
             origin,destination=path[0]['from_hub'],path[-1]['to_hub']
             nodes=[origin,*[e['to_hub'] for e in path]]
@@ -530,7 +535,7 @@ class RussiaNetwork:
                 schedule=request.schedule,max_delivery_hours=request.max_delivery_hours,capacity_basis=request.capacity_basis,cost_basis=request.cost_basis,
                 data_policy=request.data_policy,service_ids=[e['id'] for e in path],via_hub_ids=selected_via,max_legs=request.max_legs,
                 stop_dwell_hours={hub:s['dwell_hours'] for hub,s in zip(selected_via,stops)})
-            result=calculate_network(plan,graph);questions.extend(result['clarifications'])
+            result=calculate_network(plan,graph,include_pricing=project_catalog is not None);questions.extend(result['clarifications'])
             for row in result['candidates']:
                 row['stop_actions']=[dict(stop,hub_id=hub) for stop,hub in zip(stops,selected_via)]
                 row['route_hubs']=[{'id':identifier,'settlement_id':self.hubs[identifier]['settlement_id'],'name':self.hubs[identifier]['name'],

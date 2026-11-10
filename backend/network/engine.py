@@ -42,15 +42,21 @@ def _next_timetable(timetable, ready):
 
 
 class Planner:
-    def __init__(self, network, request):
+    def __init__(self, network, request, include_pricing=False):
         self.network, self.request = network, request
         self.policies = Policies(network, request)
         self.ledger = Ledger()
         self.costs, self.steps, self.deliveries = [], [], []
         self.stored = {}
+        self.include_pricing = include_pricing
 
-    def charge(self, kind, identifier, amount, at, batch):
-        self.costs.append({"kind": kind, "object_id": identifier, "amount_rub": float(money(amount)), "at": at.isoformat(), "batch": batch})
+    def charge(self, kind, identifier, at, batch, quote, items, quote_id=None, recorded_at=None, **terms):
+        pricing = {} if self.include_pricing else None
+        amount = self.policies.price(quote, items, at, quote_id or identifier, breakdown=pricing, **terms)
+        row = {"kind": kind, "object_id": identifier, "amount_rub": float(amount), "at": (recorded_at or at).isoformat(), "batch": batch}
+        if pricing is not None:
+            row["pricing"] = pricing
+        self.costs.append(row)
 
     def operation(self, hub, operation, items, ready, latest, kind, batch):
         operation = need(operation, kind + "_operation", hub.id)
@@ -65,8 +71,8 @@ class Planner:
         start, end = self.ledger.operation("handling:" + operation.resource_id, ready, duration, operation.lanes, hub.windows, min(latest,operation.evidence.valid_until,hub.evidence.valid_until))
         self.policies.evidence(operation.evidence, start, operation.resource_id, end, role="handling")
         self.policies.evidence(hub.evidence, start, hub.id, end, role="hub")
-        amount = self.policies.price(operation.quote, items, start, operation.resource_id, component="handling")
-        self.charge(kind, hub.id, amount, start, batch)
+        self.charge(kind, hub.id, start, batch, operation.quote, items,
+                    quote_id=operation.resource_id, component="handling")
         self.steps.append({"kind": kind, "hub_id": hub.id, "cargo_ids": [item.key for item in items], "start_at": start.isoformat(), "end_at": end.isoformat(), "batch": batch})
         return end
 
@@ -118,13 +124,12 @@ class Planner:
                 self.policies.mode(service, items, departure)
                 for key, amount, cap in requirements:
                     self.ledger.reserve(key, departure, reservation_end, amount, cap)
-                amount = self.policies.price(quote, items, departure, service.id, units=units, distance=service.distance_km, mode=service.mode)
-                self.charge("transport", service.id, amount, departure, batch)
+                self.charge("transport", service.id, departure, batch, quote, items,
+                            units=units, distance=service.distance_km, mode=service.mode)
                 for charge in service.additional_charges:
                     charge_at = departure if charge.at == "departure" else arrival
-                    fee = self.policies.price(charge.quote, items, charge_at, service.id+":"+charge.id,
-                                              units=units, component="handling")
-                    self.charge(charge.id, service.id, fee, charge_at, batch)
+                    self.charge(charge.id, service.id, charge_at, batch, charge.quote, items,
+                                quote_id=service.id+":"+charge.id, units=units, component="handling")
                 self.steps.append({"kind": "transport", "service_id": service.id, "mode": service.mode, "from_hub": service.from_hub, "to_hub": service.to_hub, "cargo_ids": [item.key for item in items], "weight_tonnes": float(mass), "volume_m3": float(volume) if volume is not None else None, "units": units if service.booking != "flow" else None, "flow_hours": float(flow_hours), "ready_at": ready.isoformat(), "departure_at": departure.isoformat(), "arrival_at": arrival.isoformat(), "wait_hours": (departure-ready).total_seconds()/3600, "batch": batch})
                 return departure, arrival
             # Для on-demand сдвигаем к фактической границе окна/освобождению ресурса,
@@ -179,8 +184,8 @@ class Planner:
             payable_hours = max(Decimal(0), hours-dec(hub.storage_free_hours))
             # The started-day convention must be disclosed in storage quote evidence.
             unit_days = units * math.ceil(payable_hours / 24)
-        amount = self.policies.price(quote, items, storage_start, hub.id + ":storage", storage_tonne_hours=tonne_hours,component="storage",storage_unit_days=unit_days)
-        self.charge("storage", hub.id, amount, end, batch)
+        self.charge("storage", hub.id, storage_start, batch, quote, items, quote_id=hub.id + ":storage",
+                    recorded_at=end, storage_tonne_hours=tonne_hours, component="storage", storage_unit_days=unit_days)
 
     def run_batch(self, legs, items, batch):
         nodes = [legs[0].from_hub] + [leg.to_hub for leg in legs]
@@ -238,7 +243,7 @@ class Planner:
             raise PlanningProblem("cargo_balance", "Не все исходные позиции доставлены; частичный объём не выдаётся за полный")
 
 
-def calculate_network(payload, network=None):
+def calculate_network(payload, network=None, *, include_pricing=False):
     request = payload if isinstance(payload, NetworkRequest) else NetworkRequest.model_validate(payload)
     network = network or load_network()
     original_request, base_fingerprint = request, network.fingerprint
@@ -253,7 +258,7 @@ def calculate_network(payload, network=None):
         for group_size in request.group_sizes:
             ids = [leg.id for leg in legs]
             identifier = hashlib.sha256(("|".join(ids) + ":" + str(group_size)).encode()).hexdigest()[:16]
-            planner = Planner(network, request)
+            planner = Planner(network, request, include_pricing)
             result = {"id": identifier, "service_ids": ids, "modes": [leg.mode for leg in legs], "group_size": group_size, "multimodal": len({leg.mode for leg in legs}) > 1}
             try:
                 for offset in range(0, len(events), group_size):
