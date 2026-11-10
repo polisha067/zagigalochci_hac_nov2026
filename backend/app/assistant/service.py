@@ -51,6 +51,7 @@ FIELD_LABELS = {
     "shipment_at": "дата отправки нефти",
     "flight_date": "местная календарная дата вылета",
     "year": "год",
+    "target_year": "на какой будущий год нужна оценка стоимости",
     "start_year": "год начала прогноза",
     "end_year": "год окончания прогноза",
     "transport": "вид транспорта",
@@ -313,7 +314,7 @@ def _handle_tool(turn, request, calculate, aviation, forecast, networks):
         if name in CALCULATIONS:
             engine, _, response_model, _ = CALCULATIONS[name]
             context["engine"] = engine
-            if engine == "russia" and (year := _outside_russia_year(request.message, arguments)):
+            if name == "calculate_russia" and (year := _outside_russia_year(request.message, arguments)):
                 arguments = {key: value for key, value in arguments.items() if key != "schedule"}
                 turn = turn.model_copy(update={"arguments": arguments})
                 introduction = (f"Для {year} года в проекте нет тарифов и расписаний для расчёта этого маршрута. "

@@ -34,6 +34,8 @@ from .password_reset import reset_password, send_reset_code
 from .schemas import Credentials, EmailRequest, PasswordResetRequested, ResetPasswordRequest, ErrorResponse, RegisterRequest, ResendRequest, UserResponse, VerificationResponse, VerificationRequired, VerifyEmailRequest
 from .verification import VerificationProblem, VerificationService
 from backend.a1_forecast import Granularity, MAX_FORECAST_YEAR, MIN_FORECAST_YEAR, forecast_options, forecast_route
+from backend.network.delivery_forecast import ForecastRequest, ForecastResponse, calculate_forecast
+from backend.network.delivery_forecast import forecast_options as delivery_forecast_options
 from backend.calculation_models import CalculationRequest, CalculationResponse, MAX_SHIPMENTS
 from backend.transport_calculator import catalog_cities, compare_transport, load_catalog
 from backend.network.models import NetworkRequest, NetworkResponse
@@ -406,6 +408,8 @@ def create_app(settings=None, *, assistant_planner: Optional[TurnPlanner] = None
         try:
             if isinstance(payload, PipelineRequest):
                 return calculate_pipeline(payload)
+            if isinstance(payload, ForecastRequest):
+                return calculate_forecast(payload)
             if isinstance(payload, RussiaRequest):
                 return load_russia().calculate(payload)
             if isinstance(payload, ChukotaviaRequest):
@@ -473,7 +477,7 @@ def create_app(settings=None, *, assistant_planner: Optional[TurnPlanner] = None
 
     @app.get("/network/russia/options", tags=["Общая сеть России"])
     def russia_options(query: str = Query(default="", max_length=100), offset: int = Query(default=0, ge=0), limit: int = Query(default=50, ge=1, le=250)):
-        return load_russia().options(query, offset, limit)
+        return load_russia().options(query, offset, limit) | {"delivery_forecast": delivery_forecast_options()}
 
     @app.get("/network/russia/hubs", tags=["Общая сеть России"])
     def russia_hubs(settlement: str = Query(max_length=100)):
@@ -526,6 +530,10 @@ def create_app(settings=None, *, assistant_planner: Optional[TurnPlanner] = None
             return load_russia().calculate(payload)
         except ValueError as exc:
             raise error(422,"calculation_error",str(exc))
+
+    @app.post("/network/russia/forecasts", response_model=ForecastResponse, tags=["Общая сеть России"])
+    def russia_forecast(request: Request, payload: ForecastRequest, user=Depends(optional_user)):
+        return calculate_for_user(request, payload, user)
 
     @app.get("/network/aviation/options", tags=["Авиация"])
     def aviation_options():

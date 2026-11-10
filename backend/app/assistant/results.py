@@ -1,8 +1,10 @@
 """Render engine results without asking the language model to restate numbers"""
 
 from datetime import datetime, timedelta
+from decimal import Decimal, ROUND_HALF_UP
 
 from backend.network.chukotavia import ChukotaviaResponse
+from backend.network.delivery_forecast import ForecastResponse
 from backend.network.models import NetworkResponse
 from backend.network.pipeline import PipelineResponse
 
@@ -61,10 +63,53 @@ def calculation_sources(result, engine):
     if engine == "pipeline" and result.known_components:
         ids = {row["source_id"] for row in result.known_components}
         sources = [source for source in sources if source["id"] in ids]
-    return [source_ref(source, path) for source in sources]
+    return [source_ref(source, source.get("path") or path) for source in sources]
+
+
+def forecast_summary(result):
+    forecast = result.forecast
+    rows = result.candidates
+    chosen = next((row for row in rows if row["id"] == result.recommendation), None)
+    header = f"{result.request['origin']} → {result.request['destination']}, {forecast['target_year']} год. Сценарная оценка {VAT[result.request['cost_basis']]}."
+    if chosen is None:
+        reasons = list(dict.fromkeys(issue["message"] for row in rows for issue in row["issues"]))
+        return "\n".join([header, "Среди найденных схем нет полной сопоставимой цены.", *(reasons[:3] or result.warnings[:1]),
+                          "Откройте варианты на дашборде, чтобы посмотреть ограничения."])
+
+    def price(value, row):
+        step = 1000 if row["forecast_price"]["long_term"] else 100
+        amount = Decimal(str(value))
+        rounded = (amount / step).quantize(Decimal(1), rounding=ROUND_HALF_UP) * step if amount >= step else amount
+        return f"{number(rounded)} ₽"
+
+    def name(row):
+        return " → ".join(MODE_LABELS[mode] for mode in row["modes"])
+
+    budget = chosen["forecast_price"]
+    lines = [
+        header,
+        f"Самый дешёвый среди рассчитанных вариантов — {name(chosen)}. "
+        f"Около {price(chosen['total_cost_rub'], chosen)}, расчётный срок {number(chosen['max_delivery_hours'])} ч.",
+    ]
+    if budget["lower_rub"] is not None:
+        lines.append(f"Диапазон бюджета — {price(budget['lower_rub'], chosen)} – {price(budget['upper_rub'], chosen)}.")
+    else:
+        lines.append("Долгосрочный сценарий. Диапазон бюджета для этого горизонта не откалиброван.")
+    if budget["base_rub"] is not None:
+        lines.append(f"Стоимость в ценах {budget['base_year']} года — {number(budget['base_rub'])} ₽.")
+    if alternative := forecast["alternative"]:
+        other = next(row for row in rows if row["id"] == alternative["id"])
+        lines.append(f"Запасной вариант — {name(other)}, около {price(other['total_cost_rub'], other)}, "
+                     f"{number(other['max_delivery_hours'])} ч.")
+        if alternative["ranges_overlap"]:
+            lines.append("Диапазоны пересекаются, поэтому преимущество по цене зависит от сценария.")
+    lines.append("Сроки авто и ж/д сценарные. Доступность и ставку на будущую дату нужно подтвердить у перевозчика.")
+    return "\n".join(lines)
 
 
 def engine_summary(result):
+    if isinstance(result, ForecastResponse):
+        return forecast_summary(result)
     if isinstance(result, PipelineResponse):
         data = snapshot(PIPELINE_PATH)
         points = pipeline_points(data)

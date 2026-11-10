@@ -15,6 +15,7 @@ from backend.network.russia import RussiaRequest, RussiaResponse
 
 from . import references as refs
 from .aviation import AirTariffQuery, answer_air_tariff
+from backend.network.delivery_forecast import TOOL as FUTURE_COST_TOOL, ForecastRequest, ForecastResponse
 from .regional_forecast import ForecastQuery
 
 
@@ -27,6 +28,7 @@ class PipelineArguments(PipelineRequest):
 CALCULATIONS = {
     "calculate_network": ("network", NetworkRequest, NetworkResponse, "Расчёт по хабам и услугам из именованного сетевого каталога. Сюда относится речной сценарий Красноярск ↔ Дудинка."),
     "calculate_russia": ("russia", RussiaRequest, RussiaResponse, "Общий сценарный расчёт по населённым пунктам России с автоматическим выбором хабов и возможными остановками."),
+    FUTURE_COST_TOOL: ("russia", ForecastRequest, ForecastResponse, "Оценить цену перевозки заданного груза в будущем году и сравнить схемы. Передай target_year, заданные параметры груза и график только при указанных датах."),
     "calculate_chukotavia": ("chukotavia", ChukotaviaRequest, ChukotaviaResponse, "Расчёт перевозки ЧукотАВИА с грузом, готовностью и предельным сроком. Плановые варианты и частичная цена."),
     "calculate_pipeline": ("pipeline", PipelineArguments, PipelineResponse, "Рассчитать опубликованный компонент перевозки товарной нефти по направлению, массе нетто в тоннах и дате отправки."),
 }

@@ -15,6 +15,7 @@ from backend.calculation_models import (
     Text,
 )
 from backend.network.chukotavia import ChukotaviaResponse
+from backend.network.delivery_forecast import ForecastResponse
 from backend.network.models import NetworkResponse
 from backend.network.pipeline import PipelineResponse
 from backend.network.russia import RussiaResponse
@@ -113,7 +114,7 @@ class ClarificationTurn(InputModel):
 
 
 AssistantTurn = Union[DeliveryTurn, InformationTurn, ClarificationTurn, ToolState]
-EngineResult = Union[NetworkResponse, CalculationResponse, ChukotaviaResponse, RussiaResponse, PipelineResponse]
+EngineResult = Union[NetworkResponse, CalculationResponse, ChukotaviaResponse, ForecastResponse, RussiaResponse, PipelineResponse]
 
 
 class ReplyBase(InputModel):

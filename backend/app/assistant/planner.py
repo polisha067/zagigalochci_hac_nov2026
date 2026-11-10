@@ -12,10 +12,11 @@ from backend.network.chukotavia import ChukotaviaData
 from backend.network.russia import load_russia
 from backend.transport_calculator import catalog_cities
 
+from backend.network.delivery_forecast import BASE_YEAR as FUTURE_COST_BASE_YEAR, TOOL as FUTURE_COST_TOOL
 from .ollama_client import OllamaClient
 from .references import RIVER_PATH, StrategyQuery, source_ref
 from .schemas import ChatRequest, ClarificationTurn, DeliveryDraft, DeliveryTurn, InformationTurn, ReplyText, ToolState
-from .service import InvalidAssistantTurn
+from .service import SHIPMENT_YEAR, InvalidAssistantTurn
 from .tools import CALCULATIONS, DOMAIN_TOOLS, merge_arguments, tool_definition
 
 
@@ -36,7 +37,11 @@ DEADLINE_DURATION = r"(?P<amount>\d{1,4}(?:[.,]\d{1,2})?)\s*(?P<unit>ч|час(?
 SHORT_DEADLINE = re.compile(r"\s*(?:(?:до|за|не более)\s+)?" + DEADLINE_DURATION + r"[.!]?\s*", re.IGNORECASE)
 STATED_DEADLINE = re.compile(r"\b(?:доставить за|срок(?: доставки)?(?: до)?|не дольше)\s+" + DEADLINE_DURATION + r"\b", re.IGNORECASE)
 MENTIONED_DURATIONS = re.compile(r"\b" + DEADLINE_DURATION + r"\b", re.IGNORECASE)
-SHIPMENT_TOOLS = ("calculate_russia", "calculate_network", "calculate_chukotavia")
+SHIPMENT_TOOLS = ("calculate_russia", "calculate_network", "calculate_chukotavia", FUTURE_COST_TOOL)
+PRICE_REQUEST = re.compile(r"\b(?:стоимост\w*|стоить|цен[ауые]|цен|дешев\w*|дешёв\w*|бюджет\w*|сколько\s+обойд[её]тся)\b", re.IGNORECASE)
+CALENDAR_YEAR = re.compile(r"\b(?:\d{1,2}\s+(?:" + "|".join(MONTH_NAMES) + r")\s+|\d{1,2}\.\d{2}\.)(20\d{2})\b", re.IGNORECASE)
+EXPLICIT_DATE = re.compile(r"\b(?:\d{1,2}\s+(?:" + "|".join(MONTH_NAMES) + r")|\d{1,2}\.\d{2}\.20\d{2}|20\d{2}-\d{2}-\d{2})\b", re.IGNORECASE)
+REGULAR_FORECAST = re.compile(r"\b(?:регулярн\w*|еженедельно|ежемесячно|ежедневно|раз(?:а)?\s+в\s+(?:день|неделю|месяц)|каждую\s+неделю|каждый\s+месяц)\b", re.IGNORECASE)
 ONE_SHIPMENT = re.compile(r"(?:разово|разовая отправка|(?:одна|1) отправка(?: груза)?|одним рейсом)[.!]?", re.IGNORECASE)
 WEEKLY_FREQUENCY = re.compile(r"(?<!не )\b(\d{1,3}|один|два|три|четыре|пять|шесть|семь|восемь|девять|десять)\s+раз(?:а)?\s+в неделю\b", re.IGNORECASE)
 WEEKLY_PERIOD = re.compile(r"\b(?:в течение|на протяжении)\s+(\d{1,3}|одной|двух|тр[её]х|четыр[её]х|пяти|шести|семи|восьми|девяти|десяти)\s+недел(?:и|ь)\b", re.IGNORECASE)
@@ -101,6 +106,8 @@ ROUTER_PROMPT = """Классифицируй запрос о грузопере
   сравни разовые автозаказы, договорное авто и авто → ж/д → авто на сценарном грузопотоке.
 - calculate_corridor_forecast: «Рассчитай прогноз грузопотока из Москвы в Ростов-на-Дону на 2030 год»:
   прогноз объёма на конкретном направлении, а не расчёт доставки заданной партии.
+- estimate_future_delivery_cost: «Сколько будет стоить перевезти 10 т муки из Брянска в Москву в 2030 году?»:
+  оценка цены доставки заданной партии в будущий год. «Перевезти 10 т муки из Москвы во Владивосток в 2030 году. Что дешевле?» — тот же инструмент.
 - rank_regional_forecast: прогноз или рейтинг отдельных регионов по виду транспорта и году.
 - help: приветствие, вопросы о возможностях и вопросы вне темы.
 """
@@ -227,6 +234,11 @@ temperature_control_required=false. Передавай эти флаги, есл
 """,
     "calculate_corridor_forecast": "Один год передавай в start_year. По месяцам → granularity=month, по кварталам → quarter.",
     "compare_corridor_hypotheses": "Передай origin, destination и year. Пункты в именительном падеже.",
+    FUTURE_COST_TOOL: NETWORK_PROMPT + """
+Передай target_year, например 2030. Если назван только год, не заполняй schedule.
+Если срок не назван, не заполняй max_delivery_hours. Передавай только заданные пользователем свойства груза.
+Ничего не предполагай об упаковке, объёме и делимости. Ставки и индексы вычисляет сервер.
+""",
     "rank_regional_forecast": "Абсолютный рост — metric=tonnes. Используй percent только если явно просят рост в процентах.",
 }
 
@@ -361,6 +373,12 @@ def _deadline_hours(match):
     return float(match["amount"].replace(",", ".")) * factor
 
 
+def _future_year(message):
+    years = SHIPMENT_YEAR.findall(message) + CALENDAR_YEAR.findall(message) + re.findall(r"\b(20\d{2})-\d{2}-\d{2}\b", message)
+    future_years = {int(year) for year in years if int(year) > FUTURE_COST_BASE_YEAR}
+    return next(iter(future_years)) if len(future_years) == 1 else None
+
+
 def _has_single_duration(message):
     durations = (match for match in MENTIONED_DURATIONS.finditer(message)
                  if not (re.fullmatch(r"20\d{2}", match["amount"]) and _key(match["unit"]).startswith("год")))
@@ -463,8 +481,10 @@ class DeliveryPlanner:
             if "max_delivery_hours" in pending.missing_fields and (duration := SHORT_DEADLINE.fullmatch(request.message)):
                 arguments = dict(pending.arguments, max_delivery_hours=_deadline_hours(duration))
                 return ToolState(tool=pending.tool, arguments=arguments)
+        stated_year = _future_year(request.message)
+        future_year = stated_year if PRICE_REQUEST.search(request.message) else None
         river_mentioned = RIVER_MENTION.search(request.message)
-        cities = _stated_city_pair(request.message) if river_mentioned or "→" in request.message else None
+        cities = _stated_city_pair(request.message) if future_year or river_mentioned or "→" in request.message else None
         river_only = (cities and river_mentioned
                       and not any(pattern.search(request.message) for pattern in (ROAD_MENTION, RAIL_MENTION, OTHER_THAN_RIVER))
                       and not re.search(r"\b(?:не|без|кроме)\s+(?:по реке|рекой|речн\w*)\b", request.message, re.IGNORECASE))
@@ -491,6 +511,12 @@ class DeliveryPlanner:
             {"role": "user", "content": json.dumps(route_input, ensure_ascii=False)},
         ], [], response_schema=ROUTE_SCHEMA)
         selected = RouteChoice.model_validate_json(route.content).tool
+        if (future_year and (cities or selected in ("calculate_russia", FUTURE_COST_TOOL))
+                and selected in ("help", TOOL_NAME, "calculate_russia", "calculate_network", "calculate_corridor_forecast", FUTURE_COST_TOOL)):
+            selected = FUTURE_COST_TOOL
+        elif (pending and pending.tool == FUTURE_COST_TOOL and selected in SHIPMENT_TOOLS
+              and not ROUTE_IN_MESSAGE.search(request.message)):
+            selected = FUTURE_COST_TOOL
         if selected == "help" and cities and request.message.strip().rstrip(".!?") == " → ".join(cities):
             selected = "calculate_russia"
         if selected == "help":
@@ -560,7 +586,7 @@ class DeliveryPlanner:
             if river_hubs and selected == "calculate_network":
                 network_id, origin, destination = river_hubs
                 arguments.update(network_id=network_id, origin_hub_id=origin, destination_hub_id=destination)
-            elif cities and selected == "calculate_russia":
+            elif cities and selected in ("calculate_russia", FUTURE_COST_TOOL):
                 arguments.update(origin=cities[0], destination=cities[1])
                 if river_only:
                     arguments["allowed_modes"] = ["river"]
@@ -574,7 +600,21 @@ class DeliveryPlanner:
                     if (isinstance(cargoes, list) and len(cargoes) == 1 and isinstance(cargoes[0], dict)
                             and _has_single_duration(request.message)):
                         cargoes[0].pop("max_delivery_hours", None)
-            if selected in ("calculate_russia", "calculate_network") and arguments.get("capacity_basis") == "mass_only":
+            if selected == FUTURE_COST_TOOL:
+                if stated_year:
+                    arguments["target_year"] = stated_year
+                elif pending:
+                    arguments.pop("target_year", None)
+                arguments.pop("annual_growth_percent", None)
+                if not EXPLICIT_DATE.search(request.message):
+                    schedule = arguments.pop("schedule", None)
+                    if REGULAR_FORECAST.search(request.message):
+                        arguments["schedule"] = {"mode": "regular"}
+                        if isinstance(schedule, dict) and schedule.get("frequency"):
+                            arguments["schedule"]["frequency"] = schedule["frequency"]
+                if not STATED_DEADLINE.search(request.message) and not SHORT_DEADLINE.fullmatch(request.message):
+                    arguments.pop("max_delivery_hours", None)
+            if selected in ("calculate_russia", "calculate_network", FUTURE_COST_TOOL) and arguments.get("capacity_basis") == "mass_only":
                 previous_mass_only = pending and pending.arguments.get("capacity_basis") == "mass_only"
                 if not previous_mass_only and not MASS_ONLY.search(request.message):
                     arguments.pop("capacity_basis")
@@ -587,9 +627,9 @@ class DeliveryPlanner:
                 schedule = _weekly_schedule(request.message, arguments.get("schedule"), self.zone)
                 if schedule is not None:
                     arguments["schedule"] = schedule
-            if selected == "calculate_russia" and rail_only:
+            if selected in ("calculate_russia", FUTURE_COST_TOOL) and rail_only:
                 arguments["allowed_modes"] = ["rail"]
-            elif selected == "calculate_russia" and compare_road_rail:
+            elif selected in ("calculate_russia", FUTURE_COST_TOOL) and compare_road_rail:
                 arguments["allowed_modes"] = ["road", "rail"]
             return ToolState(tool=selected, arguments=arguments)
 
