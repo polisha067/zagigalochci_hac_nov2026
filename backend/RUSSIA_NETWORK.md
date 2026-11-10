@@ -2,7 +2,7 @@
 
 Входная точка фронта: `GET /network/russia/options` и `POST /network/russia/calculations`.
 В `POST /calculations` тот же запрос определяется по `engine: "russia"`.
-Методы требуют существующую сессию; браузер использует `credentials: "include"`.
+Методы расчёта доступны гостям. Для истории аккаунта браузер использует `credentials: "include"`.
 
 ## География и статус данных
 

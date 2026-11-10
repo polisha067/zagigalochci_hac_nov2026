@@ -1,0 +1,218 @@
+[
+  {
+    "route_id": "45000000000-40000000000",
+    "origin": "Москва",
+    "destination": "Санкт-Петербург",
+    "origin_region": "Москва",
+    "destination_region": "Санкт-Петербург",
+    "coverage_case": "Между двумя крупнейшими городскими узлами",
+    "connectivity_reference": {
+      "rail": {
+        "km": 656.0,
+        "hours": 11.9
+      },
+      "road": {
+        "km": 803.0,
+        "hours": 11.2
+      }
+    }
+  },
+  {
+    "route_id": "45000000000-60701000001",
+    "origin": "Москва",
+    "destination": "Ростов-на-Дону",
+    "origin_region": "Москва",
+    "destination_region": "Ростовская область",
+    "coverage_case": "Связь Центральной России с югом",
+    "connectivity_reference": {
+      "rail": {
+        "km": 1236.0,
+        "hours": 22.5
+      },
+      "road": {
+        "km": 1181.0,
+        "hours": 16.3
+      }
+    }
+  },
+  {
+    "route_id": "03701000001-03720000001",
+    "origin": "Краснодар",
+    "destination": "Новороссийск",
+    "origin_region": "Краснодарский край",
+    "destination_region": "Краснодарский край",
+    "coverage_case": "Короткое плечо к морскому порту",
+    "connectivity_reference": {
+      "rail": {
+        "km": 135.0,
+        "hours": 2.5
+      },
+      "road": {
+        "km": 149.0,
+        "hours": 2.5
+      }
+    }
+  },
+  {
+    "route_id": "60701000001-82701000001",
+    "origin": "Ростов-на-Дону",
+    "destination": "Махачкала",
+    "origin_region": "Ростовская область",
+    "destination_region": "Республика Дагестан",
+    "coverage_case": "Юг и Северный Кавказ",
+    "connectivity_reference": {
+      "rail": {
+        "km": 896.0,
+        "hours": 16.3
+      },
+      "road": {
+        "km": 1032.0,
+        "hours": 14.3
+      }
+    }
+  },
+  {
+    "route_id": "11701000001-19701000001",
+    "origin": "Архангельск",
+    "destination": "Вологда",
+    "origin_region": "Архангельская область",
+    "destination_region": "Вологодская область",
+    "coverage_case": "Европейский Север",
+    "connectivity_reference": {
+      "rail": {
+        "km": 638.0,
+        "hours": 11.6
+      },
+      "road": {
+        "km": 853.0,
+        "hours": 11.9
+      }
+    }
+  },
+  {
+    "route_id": "22701000001-92701000001",
+    "origin": "Нижний Новгород",
+    "destination": "Казань",
+    "origin_region": "Нижегородская область",
+    "destination_region": "Республика Татарстан",
+    "coverage_case": "Перевозка между крупными узлами Поволжья",
+    "connectivity_reference": {
+      "rail": {
+        "km": 503.0,
+        "hours": 9.1
+      },
+      "road": {
+        "km": 470.0,
+        "hours": 6.8
+      }
+    }
+  },
+  {
+    "route_id": "80701000001-65701000001",
+    "origin": "Уфа",
+    "destination": "Екатеринбург",
+    "origin_region": "Республика Башкортостан",
+    "destination_region": "Свердловская область",
+    "coverage_case": "Переход из Поволжья на Урал",
+    "connectivity_reference": {
+      "rail": {
+        "km": 633.0,
+        "hours": 11.5
+      },
+      "road": {
+        "km": 536.0,
+        "hours": 7.6
+      }
+    }
+  },
+  {
+    "route_id": "75701000001-52701000001",
+    "origin": "Челябинск",
+    "destination": "Омск",
+    "origin_region": "Челябинская область",
+    "destination_region": "Омская область",
+    "coverage_case": "Переход с Урала в Западную Сибирь",
+    "connectivity_reference": {
+      "rail": {
+        "km": 816.0,
+        "hours": 14.8
+      },
+      "road": {
+        "km": 967.0,
+        "hours": 13.4
+      }
+    }
+  },
+  {
+    "route_id": "50701000001-04701000001",
+    "origin": "Новосибирск",
+    "destination": "Красноярск",
+    "origin_region": "Новосибирская область",
+    "destination_region": "Красноярский край",
+    "coverage_case": "Межрегиональное плечо внутри Сибири",
+    "connectivity_reference": {
+      "rail": {
+        "km": 776.0,
+        "hours": 14.1
+      },
+      "road": {
+        "km": 840.0,
+        "hours": 11.7
+      }
+    }
+  },
+  {
+    "route_id": "25701000001-81701000001",
+    "origin": "Иркутск",
+    "destination": "Улан-Удэ",
+    "origin_region": "Иркутская область",
+    "destination_region": "Республика Бурятия",
+    "coverage_case": "Коридор через Прибайкалье",
+    "connectivity_reference": {
+      "rail": {
+        "km": 456.0,
+        "hours": 8.3
+      },
+      "road": {
+        "km": 450.0,
+        "hours": 6.5
+      }
+    }
+  },
+  {
+    "route_id": "04701000001-08701000001",
+    "origin": "Красноярск",
+    "destination": "Хабаровск",
+    "origin_region": "Красноярский край",
+    "destination_region": "Хабаровский край",
+    "coverage_case": "Длинное плечо между Сибирью и Дальним Востоком",
+    "connectivity_reference": {
+      "rail": {
+        "km": 4196.0,
+        "hours": 76.3
+      },
+      "road": {
+        "km": 4262.0,
+        "hours": 57.3
+      }
+    }
+  },
+  {
+    "route_id": "08701000001-05701000001",
+    "origin": "Хабаровск",
+    "destination": "Владивосток",
+    "origin_region": "Хабаровский край",
+    "destination_region": "Приморский край",
+    "coverage_case": "Дальневосточный коридор к порту",
+    "connectivity_reference": {
+      "rail": {
+        "km": 765.0,
+        "hours": 13.9
+      },
+      "road": {
+        "km": 822.0,
+        "hours": 11.5
+      }
+    }
+  }
+]

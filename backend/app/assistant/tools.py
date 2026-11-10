@@ -42,6 +42,8 @@ REFERENCES = {
     "lookup_rosmorport": (refs.PortQuery, refs.ports, None, "Справочник Росморпорта по названию или бассейну: навигация, характеристики, сборы, расположение и услуги."),
     "lookup_asop": (refs.AsopQuery, refs.asop, None, "Статистика АСОП по году, периоду, показателю и категории. Например, вывоз из портов по транспорту — port_outbound."),
     "lookup_transport_strategy": (refs.StrategyQuery, refs.strategy, None, "Макросценарии Транспортной стратегии 2021 года по России в целом. Внутренний водный — river."),
+    "calculate_corridor_forecast": (refs.CorridorForecastQuery, refs.corridor_forecast, None, "Рассчитать сценарный прогноз объёма для направления между двумя городами в 2026–2100 годах, по годам, кварталам или месяцам."),
+    "compare_corridor_hypotheses": (refs.CorridorComparisonQuery, refs.corridor_comparison, None, "Сравнить две гипотезы A1 на опорном направлении и годе: авто по договору и авто → ж/д → авто относительно разовых автозаказов."),
     "rank_regional_forecast": (ForecastQuery, refs.regional_forecast, "forecast", "Рейтинг регионов по прогнозному росту грузоперевозок по году и виду транспорта. Не подменяет региональные данные макросценариями."),
 }
 
@@ -89,11 +91,22 @@ def _prepare_arguments(engine, arguments):
         payload.setdefault("capacity_basis", "mass_and_volume")
         payload.setdefault("cost_basis", "including_vat")
         payload.setdefault("data_policy", "allow_assumptions")
+    river = engine == "network" and payload.get("network_id") == "river-krasnoyarsk-dudinka-scenario-v1"
     if isinstance(payload.get("cargoes"), list):
         payload["cargoes"] = [
             {"id": f"cargo-{index}", **item} if isinstance(item, dict) else item
             for index, item in enumerate(payload["cargoes"], 1)
         ]
+        if river:
+            for cargo in payload["cargoes"]:
+                props = cargo.get("properties") if isinstance(cargo, dict) else None
+                if (isinstance(props, dict) and props.get("phase") == "solid" and props.get("hazardous") is False
+                        and props.get("temperature_control_required") is False and props.get("handling_profile") == "general"):
+                    cargo["properties"] = dict(props, handling_profile="dry_general")
+    if river:
+        schedule = payload.get("schedule")
+        if isinstance(schedule, dict) and schedule.get("mode") == "once":
+            payload["group_sizes"] = [1]
     if engine == "chukotavia" and isinstance(payload.get("schedule"), dict):
         schedule = dict(payload["schedule"])
         for field in ("ready_at", "start_at", "end_at"):

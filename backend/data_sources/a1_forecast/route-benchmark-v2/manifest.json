@@ -1,0 +1,25 @@
+{
+  "benchmark_version": 2,
+  "volume_status": "synthetic",
+  "volume_scope": "Один условный грузоотправитель на каждом направлении",
+  "source_url": "https://tochno.st/datasets/intercity_connectivity",
+  "source_snapshot_id": "russia-connectivity-2026-v1",
+  "source_snapshot_sha256": "57e9f4cd906babfa5e4d36291324c539c3dcdce5fa14bcffe5000b9b89f05710",
+  "generator_sha256": "ed4ddcdc406ccce417172ec2d207c3123d411936f0b2405b03fdf3b79cba285a",
+  "seed": 826041,
+  "routes": 12,
+  "endpoint_regions": 19,
+  "train_months_per_route": 48,
+  "holdout_months_per_route": 12,
+  "files_sha256": {
+    "routes.json": "2592eef1fc29993464a4491a23575945dac9a9fe1a1cde60376895414e06e23a",
+    "train.json": "2c0c2d7c7e0df03e48c3d27e8a1fcd29793092aa46717e614e71fbdfbcbb71c0",
+    "holdout.json": "1f3a308d922b721f887bbb2535df5ab9ea1e7ad22816c9e3fabeacfce883e855"
+  },
+  "protocol": [
+    "География и связность взяты из исходного снимка. Грузовая доступность не подтверждена.",
+    "Уровень, тренд, сезонность и возмущения объёма заданы синтетически, независимо от тарифов и схем.",
+    "Модель и её параметры выбираются по train.json. Прогноз на 2025 год сохраняется до чтения holdout.json.",
+    "После раскрытия holdout результаты считаются проверкой зафиксированной версии модели."
+  ]
+}

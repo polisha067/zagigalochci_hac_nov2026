@@ -1,0 +1,19 @@
+{
+  "route": {
+    "origin": "Москва",
+    "destination": "Кемерово"
+  },
+  "rail_reference": {
+    "url": "https://www.railcontinent.ru/tarify/railway/",
+    "tariff_date": "2026-11-06",
+    "status": "published_reference",
+    "weight_band_kg": [
+      10000,
+      14999
+    ],
+    "service": "Сборная перевозка, без температурного режима",
+    "rail_rub_per_kg": 11.2,
+    "rail_published_days": 10,
+    "scope": "Строка ж/д для Кемерово; состав всей цепочки и налоговая база требуют сверки"
+  }
+}

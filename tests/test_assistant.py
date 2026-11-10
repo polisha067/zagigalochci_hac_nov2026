@@ -442,6 +442,64 @@ class AssistantApiTests(unittest.TestCase):
         self.assertNotIn("max_delivery_hours", data["missing_fields"])
         self.assertNotIn("schedule", data["pending"]["arguments"])
 
+    def test_fesco_calculation_uses_stated_deadline_and_readiness_time(self):
+        self.connect_ollama(self.domain_reply(
+            "calculate_russia", origin="Владивосток", destination="Петропавловск-Камчатский", allowed_modes=["sea"],
+            cargoes=[{"name": "Мука", "weight_tonnes": 10, "volume_m3": 20, "packaging": "bags", "splittable": True,
+                      "max_delivery_hours": 120, "max_piece_tonnes": 0.025, "max_piece_dimensions_m": [0.5, 0.4, 0.2]}],
+            schedule={"mode": "once", "ready_at": "2026-11-10T12:00:00+10:00"},
+        ))
+        response = self.client.post("/assistant/chat", json={"message": (
+            "Рассчитай доставку Владивосток → Петропавловск-Камчатский морем. "
+            "Груз готов 10 ноября 2026 года в 08:00 по Владивостоку, срок 14 дней."
+        )})
+        self.assertEqual(response.status_code, 200, response.text)
+        data = response.json()["calculation"]
+        self.assertEqual(data["request"]["max_delivery_hours"], 336)
+        self.assertEqual(data["request"]["schedule"]["ready_at"], "2026-11-10T08:00:00+10:00")
+        self.assertIsNotNone(data["recommendation"])
+        self.assertIn("fesco-fpkl:2639PK", str(data["candidates"]))
+
+    def test_river_calculation_keeps_explicit_cargo_properties(self):
+        params = json.loads((BACKEND_DIR / "examples/river-request.json").read_bytes())
+        params.pop("engine")
+        cargo = params["cargoes"][0]
+        cargo["handling_profile"] = cargo.pop("properties")["handling_profile"]
+        self.connect_ollama(self.domain_reply("calculate_network", **params))
+        response = self.client.post("/assistant/chat", json={"message": (
+            "Рассчитай речную перевозку Красноярск → Дудинка. Груз сухой, твёрдый, неопасный, "
+            "температурный режим не нужен."
+        )})
+        self.assertEqual(response.status_code, 200, response.text)
+        data = response.json()["calculation"]
+        winner = next(row for row in data["candidates"] if row["id"] == data["recommendation"])
+        self.assertEqual(winner["total_cost_rub"], 166_200)
+
+    def test_corridor_hypotheses_and_forecast_run_backend_formulas(self):
+        self.connect_ollama(
+            self.domain_reply("compare_corridor_hypotheses", origin="Москва", destination="Санкт-Петербург", year=2030),
+            self.domain_reply("calculate_corridor_forecast", origin="Москва", destination="Санкт-Петербург", start_year=2030,
+                              granularity="month"),
+        )
+        comparison = self.client.post("/assistant/chat", json={
+            "message": "Проверь обе гипотезы для направления Москва — Санкт-Петербург на 2030 год.",
+        })
+        self.assertEqual(comparison.status_code, 200, comparison.text)
+        body = comparison.json()
+        self.assertEqual(body["tool"], "compare_corridor_hypotheses")
+        self.assertIn("синтетические", body["reply"])
+        self.assertEqual(len(body["result"]["rows"]), 3)
+        self.assertIn("hypothesis_supported", body["result"]["rows"][1])
+        self.assertEqual(len(body["sources"]), 3)
+        forecast = self.client.post("/assistant/chat", json={
+            "message": "Рассчитай прогноз грузопотока Москва — Санкт-Петербург по месяцам 2030 года.",
+        })
+        self.assertEqual(forecast.status_code, 200, forecast.text)
+        series = forecast.json()["result"]
+        self.assertEqual(len(series["rows"]), 12)
+        self.assertEqual(series["details"]["volume_status"], "synthetic")
+        self.assertEqual(series["details"]["forecast_tonnes"], body["result"]["details"]["forecast_tonnes"])
+
     def test_tool_clarifications_preserve_parameters_and_pilot_draft(self):
         self.connect_ollama(
             self.domain_reply("lookup_chukotavia_schedule", origin="Анадырь", destination="Провидения"),

@@ -117,4 +117,4 @@ class RiverApiTests(unittest.TestCase):
             self.assertEqual(r.json()['candidates'][0]['total_cost_rub'],166200)
         self.assertEqual(self.client.get('/network/options',params={'network_id':'unknown'}).status_code,422)
         self.client.cookies.clear()
-        self.assertEqual(self.client.get('/network/options',params={'network_id':p['network_id']}).status_code,401)
+        self.assertEqual(self.client.get('/network/options',params={'network_id':p['network_id']}).status_code,200)

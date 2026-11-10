@@ -167,6 +167,30 @@ class AuthTests(unittest.TestCase):
             self.assertIn("Secure", response.headers["set-cookie"])
             self.assertEqual(client.get("/auth/me").status_code, 200)
 
+    def test_password_reset_changes_password_and_revokes_sessions(self):
+        self.register()
+        email = self.account["email"]
+        request = self.client.post("/auth/forgot-password", json={"email": email.upper()})
+        self.assertEqual(request.status_code, 202, request.text)
+        unknown = self.client.post("/auth/forgot-password", json={"email": "missing@example.com"})
+        self.assertEqual(unknown.status_code, 202)
+        self.assertEqual(
+            {k: v for k, v in request.json().items() if k != "verification_id"},
+            {k: v for k, v in unknown.json().items() if k != "verification_id"},
+        )
+        self.assertEqual(len(list((self.settings.database_path.parent / "outbox").glob("*.eml"))), 2)
+        self.assertEqual(self.client.post("/auth/forgot-password", json={"email": email}).status_code, 429)
+        code = self.last_code(email)
+        wrong_code = "000000" if code != "000000" else "000001"
+        reset = {"verification_id": request.json()["verification_id"],
+                 "code": code, "new_password": "updated-password-2026"}
+        self.assertEqual(self.client.post("/auth/reset-password", json=dict(reset, code=wrong_code)).status_code, 400)
+        self.assertEqual(self.client.post("/auth/reset-password", json=reset).status_code, 204)
+        self.assertEqual(self.client.get("/auth/me").status_code, 401)
+        self.assertEqual(self.client.post("/auth/reset-password", json=reset).status_code, 400)
+        login = {"email": email, "password": self.account["password"]}
+        self.assertEqual(self.client.post("/auth/login", json=login).status_code, 401)
+        self.assertEqual(self.client.post("/auth/login", json=dict(login, password=reset["new_password"])).status_code, 200)
 
 if __name__ == "__main__":
     unittest.main()

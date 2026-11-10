@@ -1,0 +1,360 @@
+{
+  "route": {
+    "origin": "Москва",
+    "destination": "Кемерово"
+  },
+  "cargo": "Условный сухой груз в коробках",
+  "volume_status": "synthetic",
+  "volume_scope": "Один условный грузоотправитель",
+  "generator": {
+    "seed": 42,
+    "initial_monthly_tonnes": 80,
+    "monthly_increment_tonnes": 0.7,
+    "seasonal_factors": [
+      0.85,
+      0.9,
+      0.98,
+      1.0,
+      1.03,
+      1.05,
+      0.95,
+      0.97,
+      1.06,
+      1.08,
+      1.1,
+      1.03
+    ],
+    "noise_multiplier_range": [
+      0.94,
+      1.06
+    ]
+  },
+  "monthly_history": [
+    {
+      "month": "2021-01",
+      "tonnes": 69.1,
+      "split": "train"
+    },
+    {
+      "month": "2021-02",
+      "tonnes": 68.5,
+      "split": "train"
+    },
+    {
+      "month": "2021-03",
+      "tonnes": 77.6,
+      "split": "train"
+    },
+    {
+      "month": "2021-04",
+      "tonnes": 79.4,
+      "split": "train"
+    },
+    {
+      "month": "2021-05",
+      "tonnes": 87.7,
+      "split": "train"
+    },
+    {
+      "month": "2021-06",
+      "tonnes": 89.5,
+      "split": "train"
+    },
+    {
+      "month": "2021-07",
+      "tonnes": 83.8,
+      "split": "train"
+    },
+    {
+      "month": "2021-08",
+      "tonnes": 78.3,
+      "split": "train"
+    },
+    {
+      "month": "2021-09",
+      "tonnes": 89.9,
+      "split": "train"
+    },
+    {
+      "month": "2021-10",
+      "tonnes": 87.9,
+      "split": "train"
+    },
+    {
+      "month": "2021-11",
+      "tonnes": 92.5,
+      "split": "train"
+    },
+    {
+      "month": "2021-12",
+      "tonnes": 90.4,
+      "split": "train"
+    },
+    {
+      "month": "2022-01",
+      "tonnes": 70.9,
+      "split": "train"
+    },
+    {
+      "month": "2022-02",
+      "tonnes": 77.3,
+      "split": "train"
+    },
+    {
+      "month": "2022-03",
+      "tonnes": 89.6,
+      "split": "train"
+    },
+    {
+      "month": "2022-04",
+      "tonnes": 91.0,
+      "split": "train"
+    },
+    {
+      "month": "2022-05",
+      "tonnes": 90.8,
+      "split": "train"
+    },
+    {
+      "month": "2022-06",
+      "tonnes": 97.5,
+      "split": "train"
+    },
+    {
+      "month": "2022-07",
+      "tonnes": 91.2,
+      "split": "train"
+    },
+    {
+      "month": "2022-08",
+      "tonnes": 85.1,
+      "split": "train"
+    },
+    {
+      "month": "2022-09",
+      "tonnes": 103.3,
+      "split": "train"
+    },
+    {
+      "month": "2022-10",
+      "tonnes": 104.7,
+      "split": "train"
+    },
+    {
+      "month": "2022-11",
+      "tonnes": 102.9,
+      "split": "train"
+    },
+    {
+      "month": "2022-12",
+      "tonnes": 94.9,
+      "split": "train"
+    },
+    {
+      "month": "2023-01",
+      "tonnes": 86.8,
+      "split": "train"
+    },
+    {
+      "month": "2023-02",
+      "tonnes": 86.0,
+      "split": "train"
+    },
+    {
+      "month": "2023-03",
+      "tonnes": 91.5,
+      "split": "train"
+    },
+    {
+      "month": "2023-04",
+      "tonnes": 94.1,
+      "split": "train"
+    },
+    {
+      "month": "2023-05",
+      "tonnes": 106.9,
+      "split": "train"
+    },
+    {
+      "month": "2023-06",
+      "tonnes": 106.6,
+      "split": "train"
+    },
+    {
+      "month": "2023-07",
+      "tonnes": 99.5,
+      "split": "train"
+    },
+    {
+      "month": "2023-08",
+      "tonnes": 101.4,
+      "split": "train"
+    },
+    {
+      "month": "2023-09",
+      "tonnes": 109.0,
+      "split": "train"
+    },
+    {
+      "month": "2023-10",
+      "tonnes": 117.7,
+      "split": "train"
+    },
+    {
+      "month": "2023-11",
+      "tonnes": 112.5,
+      "split": "train"
+    },
+    {
+      "month": "2023-12",
+      "tonnes": 108.3,
+      "split": "train"
+    },
+    {
+      "month": "2024-01",
+      "tonnes": 93.0,
+      "split": "train"
+    },
+    {
+      "month": "2024-02",
+      "tonnes": 96.7,
+      "split": "train"
+    },
+    {
+      "month": "2024-03",
+      "tonnes": 109.0,
+      "split": "train"
+    },
+    {
+      "month": "2024-04",
+      "tonnes": 108.3,
+      "split": "train"
+    },
+    {
+      "month": "2024-05",
+      "tonnes": 114.0,
+      "split": "train"
+    },
+    {
+      "month": "2024-06",
+      "tonnes": 107.9,
+      "split": "train"
+    },
+    {
+      "month": "2024-07",
+      "tonnes": 100.5,
+      "split": "train"
+    },
+    {
+      "month": "2024-08",
+      "tonnes": 104.1,
+      "split": "train"
+    },
+    {
+      "month": "2024-09",
+      "tonnes": 111.5,
+      "split": "train"
+    },
+    {
+      "month": "2024-10",
+      "tonnes": 116.6,
+      "split": "train"
+    },
+    {
+      "month": "2024-11",
+      "tonnes": 117.5,
+      "split": "train"
+    },
+    {
+      "month": "2024-12",
+      "tonnes": 113.2,
+      "split": "train"
+    },
+    {
+      "month": "2025-01",
+      "tonnes": 98.1,
+      "split": "holdout"
+    },
+    {
+      "month": "2025-02",
+      "tonnes": 101.2,
+      "split": "holdout"
+    },
+    {
+      "month": "2025-03",
+      "tonnes": 110.9,
+      "split": "holdout"
+    },
+    {
+      "month": "2025-04",
+      "tonnes": 111.7,
+      "split": "holdout"
+    },
+    {
+      "month": "2025-05",
+      "tonnes": 116.5,
+      "split": "holdout"
+    },
+    {
+      "month": "2025-06",
+      "tonnes": 129.4,
+      "split": "holdout"
+    },
+    {
+      "month": "2025-07",
+      "tonnes": 113.9,
+      "split": "holdout"
+    },
+    {
+      "month": "2025-08",
+      "tonnes": 116.5,
+      "split": "holdout"
+    },
+    {
+      "month": "2025-09",
+      "tonnes": 121.4,
+      "split": "holdout"
+    },
+    {
+      "month": "2025-10",
+      "tonnes": 133.1,
+      "split": "holdout"
+    },
+    {
+      "month": "2025-11",
+      "tonnes": 127.3,
+      "split": "holdout"
+    },
+    {
+      "month": "2025-12",
+      "tonnes": 123.1,
+      "split": "holdout"
+    }
+  ],
+  "tariff_references": [
+    {
+      "url": "https://www.railcontinent.ru/tarify/railway/",
+      "tariff_date": "2026-11-06",
+      "status": "published_reference",
+      "weight_band_kg": [
+        10000,
+        14999
+      ],
+      "service": "Сборная перевозка, без температурного режима",
+      "rail_rub_per_kg": 11.2,
+      "rail_published_days": 10,
+      "scope": "Строка ж/д для Кемерово; состав всей цепочки и налоговая база требуют сверки"
+    },
+    {
+      "url": "https://help.ati.su/average-rate",
+      "status": "source_identified_rate_pending",
+      "spot_road_rub_per_vehicle": null
+    }
+  ],
+  "missing_for_comparison": [
+    "Сопоставимая ставка ATI.SU и её параметры",
+    "Договорная ставка и оплачиваемый минимум",
+    "Состав тарифа ж/д, подвоз, перевалка и развоз",
+    "График отправок, время накопления и предельный срок"
+  ]
+}

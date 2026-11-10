@@ -9,6 +9,8 @@ from typing import Annotated, Literal, Optional
 
 from pydantic import Field, StrictBool, StrictInt, model_validator
 
+from backend.a1_corridors import MAIN_DEADLINE_DAYS, compare_corridor, pilot_reference
+from backend.a1_forecast import Granularity, MAX_FORECAST_YEAR, MIN_FORECAST_YEAR, forecast_route, load_routes
 from backend.calculation_models import InputModel, Text
 from backend.network.asop import load_snapshot
 from backend.network.cargo import normalized_name
@@ -63,6 +65,25 @@ class LookupLimit(InputModel):
 class CityPair(InputModel):
     origin: Text
     destination: Text
+
+
+A1Year = Annotated[StrictInt, Field(ge=MIN_FORECAST_YEAR, le=MAX_FORECAST_YEAR)]
+
+
+class CorridorComparisonQuery(CityPair):
+    year: A1Year
+
+
+class CorridorForecastQuery(CityPair):
+    start_year: A1Year
+    end_year: Optional[A1Year] = None
+    granularity: Granularity = "year"
+
+    @model_validator(mode="after")
+    def ordered_years(self):
+        if self.end_year is not None and self.end_year < self.start_year:
+            raise ValueError("Конечный год должен быть не раньше начального")
+        return self
 
 
 class AirScheduleQuery(CityPair):
@@ -150,6 +171,65 @@ def _information(dataset_id, title, rows, lines, assumptions, sources, **details
             rows=rows, assumptions=assumptions, details=details,
         ),
     )
+
+
+A1_DATASET = "route-benchmark-v2"
+A1_MANIFEST = "backend/data_sources/a1_forecast/route-benchmark-v2/manifest.json"
+A1_RAIL_REFERENCE = "backend/data_sources/a1_forecast/kemerovo-reference.json"
+A1_VOLUME_NOTE = "Месячные объёмы синтетические. Это сценарий для одного условного грузоотправителя."
+A1_SCHEMES = {
+    "spot_road": "Разовые автозаказы",
+    "contract_road": "Авторейсы по договору",
+    "road_rail_road": "Авто → ж/д → авто",
+}
+
+
+def _corridor_input(query):
+    routes, manifest = load_routes()
+    requested = normalized_name(query.origin), normalized_name(query.destination)
+    route = next((r for r in routes if requested == (normalized_name(r["origin"]), normalized_name(r["destination"]))), None)
+    sources = [source_ref({}, A1_MANIFEST, title="Сценарный ряд объёмов на 12 коридорах"),
+               source_ref({"url": manifest["source_url"]}, CONNECTIVITY_PATH, title="Точно: расстояния и время поездок")]
+    return route, sources
+
+
+def corridor_forecast(query: CorridorForecastQuery):
+    route, sources = _corridor_input(query)
+    if route is None:
+        return _information(A1_DATASET, "Для этого направления в проекте нет ряда объёмов.", [], [], [], sources)
+    result = forecast_route(route["route_id"], query.start_year, query.end_year or query.start_year, query.granularity)
+    title = (f"{route['origin']} → {route['destination']}, {result['start_year']}–{result['end_year']}. "
+             f"Сценарный объём — {number(result['forecast_tonnes'])} т.")
+    return _information(A1_DATASET, title, result["periods"], [], [A1_VOLUME_NOTE], sources,
+                        route_id=route["route_id"], forecast_tonnes=result["forecast_tonnes"], volume_status="synthetic")
+
+
+def corridor_comparison(query: CorridorComparisonQuery):
+    route, sources = _corridor_input(query)
+    if route is None:
+        return _information(A1_DATASET, "Для этого направления нет расчёта двух гипотез. Доступны 12 опорных коридоров.",
+                            [], [], [], sources)
+    pilot = pilot_reference()
+    rail = pilot["rail_reference"]
+    sources.append(source_ref({"url": rail["url"], "date": rail["tariff_date"]}, A1_RAIL_REFERENCE,
+                              title="Рейл Континент: опубликованная ставка по Кемерово как ориентир"))
+    result = compare_corridor(route, pilot["connectivity"], rail, query.year)
+    rows, lines = [], []
+    for scheme, data in result["annual"].items():
+        verdict = "База сравнения" if scheme == "spot_road" else (
+            "Гипотеза подтвердилась" if data["hypothesis_supported"] else "Гипотеза не подтвердилась")
+        cost = f"{number(data['cost_rub'])} ₽" if data["cost_rub"] is not None else "цена не рассчитана"
+        feasibility = "в срок" if data["feasible"] else "весь объём в срок не доставлен"
+        rows.append({"scheme": A1_SCHEMES[scheme], "verdict": verdict, **data})
+        lines.append(f"{A1_SCHEMES[scheme]} — {cost}, {feasibility}. {verdict}.")
+    title = (f"{route['origin']} → {route['destination']}, {query.year}: {number(result['forecast_tonnes'])} т "
+             f"за год, лимит {MAIN_DEADLINE_DAYS} дней на доставку партии.")
+    return _information(A1_DATASET, title, rows, lines, [
+        A1_VOLUME_NOTE,
+        "Тарифы и операции сценарные. Опубликованная ж/д ставка по Кемерово используется как ориентир для масштабирования.",
+        "Гипотеза засчитывается, когда схема и разовое авто доставляют весь объём в срок, а схема обходится дешевле разовых заказов.",
+    ], sources, route_id=route["route_id"], year=query.year, volume_status="synthetic",
+        forecast_tonnes=result["forecast_tonnes"], sensitivity=result["sensitivity"], connectivity=route["connectivity_reference"])
 
 
 def air_schedule(query, data):

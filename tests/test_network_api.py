@@ -20,8 +20,8 @@ class NetworkApiTests(unittest.TestCase):
         self.assertEqual(len(sources['entries']),31)
         self.client.cookies.clear()
         for path in ('/network/options','/network/sources'):
-            self.assertEqual(self.client.get(path).status_code,401)
-        self.assertEqual(self.client.post('/network/calculations',json=self.payload()).status_code,401)
+            self.assertEqual(self.client.get(path).status_code,200)
+        self.assertEqual(self.client.post('/network/calculations',json=self.payload()).status_code,200)
 
     def test_new_endpoint_and_compatible_dispatch(self):
         outputs=[]

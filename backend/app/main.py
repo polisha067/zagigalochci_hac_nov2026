@@ -9,11 +9,12 @@ import uuid
 from typing import Literal, Optional, Union
 
 import httpx
-from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response
+from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Query, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pwdlib import PasswordHash
+from starlette.concurrency import run_in_threadpool
 
 from .assistant.ollama_client import OllamaClient
 from .assistant.planner import DeliveryPlanner
@@ -29,8 +30,10 @@ from .assistant.service import (
 from .config import Settings
 from .database import Database
 from .mailer import MailDeliveryError, Mailer
-from .schemas import Credentials, ErrorResponse, RegisterRequest, ResendRequest, UserResponse, VerificationRequired, VerifyEmailRequest
+from .password_reset import reset_password, send_reset_code
+from .schemas import Credentials, EmailRequest, PasswordResetRequested, ResetPasswordRequest, ErrorResponse, RegisterRequest, ResendRequest, UserResponse, VerificationResponse, VerificationRequired, VerifyEmailRequest
 from .verification import VerificationProblem, VerificationService
+from backend.a1_forecast import Granularity, MAX_FORECAST_YEAR, MIN_FORECAST_YEAR, forecast_options, forecast_route
 from backend.calculation_models import CalculationRequest, CalculationResponse, MAX_SHIPMENTS
 from backend.transport_calculator import catalog_cities, compare_transport, load_catalog
 from backend.network.models import NetworkRequest, NetworkResponse
@@ -55,20 +58,24 @@ def public_user(row):
     return {key: row[key] for key in ("id", "email", "name", "created_at", "email_verified_at")}
 
 
-def require_user(request: Request):
-    """Подключать через Depends к будущим личным расчётам."""
+def optional_user(request: Request):
     settings = request.app.state.settings
     token = request.cookies.get(settings.cookie_name)
     if not token:
-        raise error(401, "not_authenticated", "Сначала войдите в аккаунт")
+        return None
     with request.app.state.database.connect() as connection:
         row = connection.execute(
             "SELECT u.* FROM users u JOIN sessions s ON s.user_id = u.id WHERE s.token_hash = ? AND s.expires_at > ? AND u.email_verified_at IS NOT NULL",
             (digest(token), int(time.time())),
         ).fetchone()
-    if row is None:
-        raise error(401, "not_authenticated", "Сессия недействительна или истекла. Войдите снова")
-    return public_user(row)
+    return public_user(row) if row is not None else None
+
+
+def require_user(request: Request):
+    user = optional_user(request)
+    if user is None:
+        raise error(401, "not_authenticated", "Войдите в аккаунт")
+    return user
 
 
 def create_app(settings=None, *, assistant_planner: Optional[TurnPlanner] = None):
@@ -177,7 +184,7 @@ def create_app(settings=None, *, assistant_planner: Optional[TurnPlanner] = None
 
     def limit_attempts(request, action):
         ip = request.client.host if request.client else "unknown"
-        limit = {"login": settings.login_limit, "register": settings.register_limit, "verify": settings.verify_limit, "resend": settings.resend_limit}[action]
+        limit = {"login": settings.login_limit, "register": settings.register_limit, "verify": settings.verify_limit, "resend": settings.resend_limit, "password-reset-request": settings.resend_limit, "password-reset-confirm": settings.verify_limit}[action]
         retry = database.consume_attempt(action + ":" + digest(ip), int(time.time()), settings.rate_window_seconds, limit)
         if retry:
             raise error(429, "too_many_attempts", "Слишком много попыток. Попробуйте позже", {"Retry-After": str(retry)})
@@ -213,7 +220,7 @@ def create_app(settings=None, *, assistant_planner: Optional[TurnPlanner] = None
         limit_attempts(request, "resend")
         return app.state.verification.resend(payload.verification_id)
 
-    @app.post("/auth/verify-email", response_model=UserResponse, tags=["Авторизация"])
+    @app.post("/auth/verify-email", response_model=VerificationResponse, tags=["Авторизация"])
     def verify_email(payload: VerifyEmailRequest, request: Request, response: Response):
         limit_attempts(request, "verify")
         with database.connect() as connection:
@@ -235,7 +242,7 @@ def create_app(settings=None, *, assistant_planner: Optional[TurnPlanner] = None
         if failure:
             raise failure
         set_cookie(response, token)
-        return {"user": public_user(user)}
+        return {"user": public_user(user), "account_created": pending["existing_user_id"] is None}
 
     @app.post("/auth/login", response_model=Union[UserResponse, VerificationRequired], responses={202: {"model": VerificationRequired}}, tags=["Авторизация"])
     def login(payload: Credentials, request: Request, response: Response):
@@ -255,9 +262,39 @@ def create_app(settings=None, *, assistant_planner: Optional[TurnPlanner] = None
             # Старые аккаунты проходят подтверждение после проверки своего пароля.
             return app.state.verification.issue(row["email"], row["name"], row["password_hash"], row["id"])
         with database.connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            current = connection.execute("SELECT password_hash FROM users WHERE id = ?", (row["id"],)).fetchone()
+            if current is None or current["password_hash"] != stored_hash:
+                raise error(401, "invalid_credentials", "Неверная почта или пароль")
             token = new_session(connection, request, row["id"])
         set_cookie(response, token)
         return {"user": public_user(row)}
+
+    @app.post("/auth/forgot-password", response_model=PasswordResetRequested, status_code=202, tags=["Авторизация"])
+    def forgot_password(payload: EmailRequest, request: Request, background: BackgroundTasks):
+        limit_attempts(request, "password-reset-request")
+        email = str(payload.email)
+        now = int(time.time())
+        bucket = "password-reset:" + digest(email)
+        for suffix, window, limit in (
+            (":cooldown", settings.verification_cooldown_seconds, 1),
+            (":hour", 3600, settings.verification_email_limit),
+        ):
+            retry = database.consume_attempt(bucket + suffix, now, window, limit)
+            if retry:
+                raise error(429, "too_many_attempts", "Подождите перед повторным запросом кода", {"Retry-After": str(retry)})
+        verification_id = secrets.token_urlsafe(32)
+        background.add_task(send_reset_code, app.state.verification, email, verification_id,
+                            now + settings.verification_ttl_seconds)
+        return {"verification_id": verification_id, "expires_in": settings.verification_ttl_seconds,
+                "resend_after": settings.verification_cooldown_seconds}
+
+    @app.post("/auth/reset-password", status_code=204, tags=["Авторизация"])
+    def confirm_password_reset(payload: ResetPasswordRequest, request: Request):
+        limit_attempts(request, "password-reset-confirm")
+        reset_password(app.state.verification, app.state.password_hash, payload.verification_id,
+                       payload.code, payload.new_password.get_secret_value())
+        return Response(status_code=204)
 
     @app.get("/auth/me", response_model=UserResponse, tags=["Авторизация"])
     def me(user=Depends(require_user)):
@@ -273,8 +310,62 @@ def create_app(settings=None, *, assistant_planner: Optional[TurnPlanner] = None
         response.delete_cookie(settings.cookie_name, path="/", httponly=True, secure=settings.cookie_secure, samesite="lax")
         return response
 
+    @app.get("/auth/history", tags=["История"])
+    def history(user=Depends(require_user)):
+        with database.connect() as connection:
+            rows = connection.execute(
+                "SELECT payload FROM calculation_history WHERE user_id = ?", (user["id"],)
+            ).fetchall()
+        return {"entries": [json.loads(row["payload"]) for row in rows]}
+
+    def store_snapshot(user_id, snapshot_id, payload):
+        with database.connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            exists = connection.execute(
+                "SELECT 1 FROM calculation_history WHERE user_id = ? AND snapshot_id = ?",
+                (user_id, snapshot_id),
+            ).fetchone()
+            if exists:
+                return
+            usage = connection.execute(
+                "SELECT COUNT(*), COALESCE(SUM(length(CAST(payload AS BLOB))), 0) "
+                "FROM calculation_history WHERE user_id = ?", (user_id,),
+            ).fetchone()
+            if usage[0] >= 100 or usage[1] + len(payload) > 16_000_000:
+                raise error(409, "history_full", "Достигнут лимит истории аккаунта")
+            connection.execute(
+                "INSERT INTO calculation_history VALUES (?, ?, ?)",
+                (user_id, snapshot_id, payload.decode("utf-8")),
+            )
+
+    @app.post("/auth/history", status_code=204, tags=["История"])
+    async def save_history(request: Request, user=Depends(require_user)):
+        body = bytearray()
+        async for chunk in request.stream():
+            if len(body) + len(chunk) > 2_000_000:
+                raise error(413, "snapshot_too_large", "Расчёт слишком велик для истории аккаунта")
+            body.extend(chunk)
+        try:
+            envelope = json.loads(body)
+            if envelope["account_id"] != user["id"]:
+                raise error(409, "history_account_changed", "Аккаунт изменился. Обновите страницу.")
+            snapshot = envelope["snapshot"]
+            snapshot_id = snapshot["id"]
+            if str(uuid.UUID(snapshot_id)) != snapshot_id:
+                raise ValueError()
+            created_at = datetime.fromisoformat(snapshot["createdAt"].replace("Z", "+00:00"))
+            if created_at.tzinfo is None or any(
+                not isinstance(snapshot.get(key), dict) for key in ("result", "draft", "cargoNames")
+            ):
+                raise ValueError()
+            payload = json.dumps(snapshot, ensure_ascii=False, allow_nan=False, separators=(",", ":")).encode("utf-8")
+        except (ValueError, KeyError, TypeError, AttributeError, RecursionError):
+            raise error(422, "invalid_snapshot", "Неверный формат записи истории")
+        await run_in_threadpool(store_snapshot, user["id"], snapshot_id, payload)
+        return Response(status_code=204)
+
     @app.get("/calculation-options", tags=["Расчёты"])
-    def calculation_options(user=Depends(require_user)):
+    def calculation_options():
         catalog = app.state.calculation_catalog
         return {
             "schema_version": "0.2", "dataset_id": catalog["id"], "data_status": catalog.get("status", "unspecified"),
@@ -288,8 +379,13 @@ def create_app(settings=None, *, assistant_planner: Optional[TurnPlanner] = None
             "network_engine": {"engine":"network","endpoint":"/network/calculations","options":"/network/options","categories":[{"id":key,"name":name} for key,name in CATEGORIES]},
         }
 
-    def calculation_limit(user):
-        retry = database.consume_attempt("calculate:" + user["id"], int(time.time()), 60, 30)
+    def calculation_limit(request: Request, user):
+        if user:
+            bucket = "calculate:" + user["id"]
+        else:
+            host = request.client.host if request.client else "unknown"
+            bucket = "calculate:guest:" + digest(host)
+        retry = database.consume_attempt(bucket, int(time.time()), 60, 30)
         if retry:
             raise error(429, "too_many_attempts", "Не более 30 расчётов в минуту", {"Retry-After": str(retry)})
 
@@ -299,8 +395,8 @@ def create_app(settings=None, *, assistant_planner: Optional[TurnPlanner] = None
             raise error(422, "unknown_network", "Неизвестный network_id: выберите сеть в /network/options")
         return graph
 
-    def calculate_for_user(payload, user):
-        calculation_limit(user)
+    def calculate_for_user(request, payload, user):
+        calculation_limit(request, user)
         try:
             if isinstance(payload, PipelineRequest):
                 return calculate_pipeline(payload)
@@ -313,14 +409,14 @@ def create_app(settings=None, *, assistant_planner: Optional[TurnPlanner] = None
             raise error(422, "calculation_error", str(exc))
 
     @app.post("/calculations", response_model=Union[NetworkResponse, CalculationResponse, ChukotaviaResponse, RussiaResponse, PipelineResponse], tags=["Расчёты"])
-    def calculate(payload: Union[NetworkRequest, CalculationRequest, ChukotaviaRequest, RussiaRequest, PipelineRequest], user=Depends(require_user)):
-        return calculate_for_user(payload, user)
+    def calculate(request: Request, payload: Union[NetworkRequest, CalculationRequest, ChukotaviaRequest, RussiaRequest, PipelineRequest], user=Depends(optional_user)):
+        return calculate_for_user(request, payload, user)
 
     @app.post(
         "/assistant/chat", response_model=ChatResponse, tags=["Ассистент"],
         responses={502: {"model": ErrorResponse}},
     )
-    def assistant_chat(payload: ChatRequest, user=Depends(require_user)):
+    def assistant_chat(request: Request, payload: ChatRequest, user=Depends(require_user)):
         retry = database.consume_attempt("assistant:" + user["id"], int(time.time()), 60, 30)
         if retry:
             raise error(429, "too_many_attempts", "Не более 30 сообщений в минуту", {"Retry-After": str(retry)})
@@ -329,7 +425,7 @@ def create_app(settings=None, *, assistant_planner: Optional[TurnPlanner] = None
                 payload,
                 plan_turn=app.state.assistant_planner,
                 dataset_id=app.state.calculation_catalog["id"],
-                calculate=lambda request: calculate_for_user(request, user),
+                calculate=lambda calculation: calculate_for_user(request, calculation, user),
                 aviation=app.state.chukotavia,
                 forecast=app.state.regional_forecast,
                 networks=app.state.networks,
@@ -346,15 +442,15 @@ def create_app(settings=None, *, assistant_planner: Optional[TurnPlanner] = None
             raise RequestValidationError(exc.fields) from exc
 
     @app.post("/network/calculations",response_model=NetworkResponse,tags=["Сеть и цепочки"])
-    def network_calculate(payload: NetworkRequest,user=Depends(require_user)):
-        calculation_limit(user)
+    def network_calculate(request: Request, payload: NetworkRequest,user=Depends(optional_user)):
+        calculation_limit(request, user)
         try:
             return calculate_network(payload,selected_network(payload.network_id))
         except ValueError as exc:
             raise error(422,"calculation_error",str(exc))
 
     @app.get("/network/options",tags=["Сеть и цепочки"])
-    def network_options(network_id: Optional[str] = None, user=Depends(require_user)):
+    def network_options(network_id: Optional[str] = None):
         graph=selected_network(network_id) if network_id else app.state.network
         return {"schema_version":"0.3","network_id":graph.catalog.id,"fingerprint":graph.fingerprint,"coverage":graph.catalog.coverage,
                 "available_networks":[{"id":n.catalog.id,"coverage":n.catalog.coverage} for n in app.state.networks.values()],
@@ -370,46 +466,68 @@ def create_app(settings=None, *, assistant_planner: Optional[TurnPlanner] = None
                 "observations":coverage(settings.database_path.parent/"network-observations.sqlite3")}
 
     @app.get("/network/russia/options", tags=["Общая сеть России"])
-    def russia_options(query: str = Query(default="", max_length=100), offset: int = Query(default=0, ge=0), limit: int = Query(default=50, ge=1, le=250), user=Depends(require_user)):
+    def russia_options(query: str = Query(default="", max_length=100), offset: int = Query(default=0, ge=0), limit: int = Query(default=50, ge=1, le=250)):
         return load_russia().options(query, offset, limit)
 
     @app.get("/network/russia/hubs", tags=["Общая сеть России"])
-    def russia_hubs(settlement: str = Query(max_length=100), user=Depends(require_user)):
+    def russia_hubs(settlement: str = Query(max_length=100)):
         network=load_russia();identifier=network.resolve(settlement)
         if identifier is None:raise error(422,"unknown_settlement","Выберите населённый пункт из справочника")
         return {"settlement":network.settlements[identifier],"hubs":[h for h in network.hubs.values() if h['settlement_id']==identifier],"automatic_hub_selection":True}
 
     @app.get("/network/pipeline/options", tags=["Трубопровод"])
-    def pipeline_options(user=Depends(require_user)):
+    def pipeline_options():
         return load_russia().pipeline
 
     @app.post("/network/pipeline/calculations", response_model=PipelineResponse, tags=["Трубопровод"])
-    def pipeline_calculate(payload: PipelineRequest, user=Depends(require_user)):
-        calculation_limit(user)
+    def pipeline_calculate(request: Request, payload: PipelineRequest, user=Depends(optional_user)):
+        calculation_limit(request, user)
         try:
             return calculate_pipeline(payload)
         except ValueError as exc:
             raise error(422,"calculation_error",str(exc))
 
+    @app.get("/network/forecast/options", tags=["Прогноз"])
+    def get_forecast_options():
+        return forecast_options()
+
+    @app.get("/network/forecast", tags=["Прогноз"])
+    def get_forecast(
+        route_id: str = Query(min_length=1, max_length=100),
+        start_year: int = Query(ge=MIN_FORECAST_YEAR, le=MAX_FORECAST_YEAR),
+        end_year: int = Query(ge=MIN_FORECAST_YEAR, le=MAX_FORECAST_YEAR),
+        granularity: Granularity = "year",
+    ):
+        try:
+            return forecast_route(route_id, start_year, end_year, granularity)
+        except ValueError as exc:
+            if start_year <= end_year:
+                raise
+            raise error(422, "invalid_forecast_period", str(exc)) from exc
+        except KeyError as exc:
+            if exc.args != (route_id,):
+                raise
+            raise error(404, "forecast_route_not_found", "Для этого направления нет ряда объёмов") from exc
+
     @app.get("/network/russia/reference-ports", tags=["Общая сеть России"])
-    def reference_ports(user=Depends(require_user)):
+    def reference_ports():
         return {"ports":load_russia().reference_ports,"operational_services_inferred":False}
 
     @app.post("/network/russia/calculations", response_model=RussiaResponse, tags=["Общая сеть России"])
-    def russia_calculate(payload: RussiaRequest, user=Depends(require_user)):
-        calculation_limit(user)
+    def russia_calculate(request: Request, payload: RussiaRequest, user=Depends(optional_user)):
+        calculation_limit(request, user)
         try:
             return load_russia().calculate(payload)
         except ValueError as exc:
             raise error(422,"calculation_error",str(exc))
 
     @app.get("/network/aviation/options", tags=["Авиация"])
-    def aviation_options(user=Depends(require_user)):
+    def aviation_options():
         return app.state.chukotavia.options()
 
     @app.post("/network/aviation/calculations", response_model=ChukotaviaResponse, tags=["Авиация"])
-    def aviation_calculate(payload: ChukotaviaRequest, user=Depends(require_user)):
-        calculation_limit(user)
+    def aviation_calculate(request: Request, payload: ChukotaviaRequest, user=Depends(optional_user)):
+        calculation_limit(request, user)
         try:
             return calculate_chukotavia(payload, app.state.chukotavia)
         except ValueError as exc:
@@ -422,12 +540,11 @@ def create_app(settings=None, *, assistant_planner: Optional[TurnPlanner] = None
         period_kind: Literal["year", "Q1"] = "year",
         source_file_id: Optional[str] = None,
         include_flagged: bool = False,
-        user=Depends(require_user),
     ):
         return read_asop(settings.database_path.parent / "network-observations.sqlite3", metric, year, period_kind, source_file_id, include_flagged)
 
     @app.get("/network/sources",tags=["Сеть и цепочки"])
-    def network_sources(user=Depends(require_user)):
+    def network_sources():
         return json.loads((Path(__file__).resolve().parents[1]/"data_sources/registry.json").read_text(encoding="utf-8"))
 
     return app

@@ -118,8 +118,8 @@ class AviationApiTests(unittest.TestCase):
         self.assertEqual(self.client.post('/network/aviation/calculations',json=p,headers={'Origin':'https://foreign.example'}).status_code,403)
         self.assertEqual(self.client.post('/network/aviation/calculations',content='{}',headers={'Content-Type':'text/plain'}).status_code,415)
         self.client.cookies.clear()
-        self.assertEqual(self.client.get('/network/aviation/options').status_code,401)
-        self.assertEqual(self.client.post('/network/aviation/calculations',json=p).status_code,401)
+        self.assertEqual(self.client.get('/network/aviation/options').status_code,200)
+        self.assertEqual(self.client.post('/network/aviation/calculations',json=p).status_code,200)
 
     def test_options_and_input_errors(self):
         o=self.client.get('/network/aviation/options').json()

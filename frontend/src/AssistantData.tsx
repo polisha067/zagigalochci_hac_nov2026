@@ -66,6 +66,8 @@ const referenceColumns: Record<string, [string, string][]> = {
   lookup_rosmorport: [["name", "Порт"], ["basin", "Бассейн"], ["navigation_text", "Навигация"]],
   lookup_asop: [["category_name", "Категория"], ["source_value", "Подпись диаграммы"], ["value_tonnes", "Объём, т"]],
   lookup_transport_strategy: [["scenario", "Сценарий"], ["mode", "Транспорт"], ["year", "Год"], ["value_million_tonnes", "Объём, млн т"]],
+  calculate_corridor_forecast: [["period", "Период"], ["forecast_tonnes", "Сценарный объём, т"]],
+  compare_corridor_hypotheses: [["scheme", "Схема"], ["cost_rub", "Сценарная стоимость, ₽"], ["worst_delivery_hours", "Макс. срок, ч"], ["cost_difference_vs_spot_rub", "Экономия к базе, ₽"], ["verdict", "Итог"]],
   rank_regional_forecast: [["region", "Регион"], ["base_tonnes", "База, т"], ["forecast_tonnes", "Прогноз, т"], ["growth_tonnes", "Рост, т"], ["growth_percent", "Рост, %"]],
 };
 const valueLabels: Record<string, string> = {

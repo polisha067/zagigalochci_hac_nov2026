@@ -95,4 +95,4 @@ class AsopApiTests(unittest.TestCase):
         self.assertEqual(self.client.get('/network/statistics/asop?period_kind=month').status_code,422)
         self.assertEqual(self.client.get('/network/options').json()['observations']['sources'][0]['files'],27)
         self.client.cookies.clear()
-        self.assertEqual(self.client.get('/network/statistics/asop').status_code,401)
+        self.assertEqual(self.client.get('/network/statistics/asop').status_code,200)

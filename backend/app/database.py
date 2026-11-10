@@ -34,10 +34,23 @@ class Database:
                     expires_at INTEGER NOT NULL
                 );
                 CREATE INDEX IF NOT EXISTS sessions_expiry ON sessions(expires_at);
+                CREATE TABLE IF NOT EXISTS calculation_history (
+                    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    snapshot_id TEXT NOT NULL,
+                    payload TEXT NOT NULL,
+                    PRIMARY KEY (user_id, snapshot_id)
+                );
                 CREATE TABLE IF NOT EXISTS auth_limits (
                     bucket TEXT PRIMARY KEY,
                     count INTEGER NOT NULL,
                     expires_at INTEGER NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS password_resets (
+                    verification_id TEXT PRIMARY KEY,
+                    user_id TEXT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+                    code_hash TEXT NOT NULL,
+                    expires_at INTEGER NOT NULL,
+                    attempts INTEGER NOT NULL DEFAULT 0
                 );
                 CREATE TABLE IF NOT EXISTS pending_registrations (
                     verification_id TEXT PRIMARY KEY,

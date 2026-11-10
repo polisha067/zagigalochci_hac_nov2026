@@ -30,7 +30,8 @@ READINESS_DATE = re.compile(r"\bготов(?:а|о)?\s+(\d{1,2})\s+(" + "|".join
                             re.IGNORECASE)
 DEADLINE_DURATION = r"(?P<amount>\d{1,4}(?:[.,]\d{1,2})?)\s*(?P<unit>ч|час(?:а|ов)?|день|дня|дней|сутки|суток|недел(?:я|и|ь|ю)|год(?:а|ов)?|лет)"
 SHORT_DEADLINE = re.compile(r"\s*(?:(?:до|за|не более)\s+)?" + DEADLINE_DURATION + r"[.!]?\s*", re.IGNORECASE)
-STATED_DEADLINE = re.compile(r"\b(?:доставить за|срок (?:доставки )?до|не дольше)\s+" + DEADLINE_DURATION + r"\b", re.IGNORECASE)
+STATED_DEADLINE = re.compile(r"\b(?:доставить за|срок(?: доставки)?(?: до)?|не дольше)\s+" + DEADLINE_DURATION + r"\b", re.IGNORECASE)
+MENTIONED_DURATIONS = re.compile(r"\b" + DEADLINE_DURATION + r"\b", re.IGNORECASE)
 SHIPMENT_TOOLS = ("calculate_russia", "calculate_network", "calculate_chukotavia")
 ONE_SHIPMENT = re.compile(r"(?:разово|разовая отправка|(?:одна|1) отправка(?: груза)?|одним рейсом)[.!]?", re.IGNORECASE)
 WEEKLY_FREQUENCY = re.compile(r"(?<!не )\b(\d{1,3}|один|два|три|четыре|пять|шесть|семь|восемь|девять|десять)\s+раз(?:а)?\s+в неделю\b", re.IGNORECASE)
@@ -40,6 +41,7 @@ RUSSIAN_COUNTS = {word: value for value, forms in enumerate((
     "шесть шести", "семь семи", "восемь восьми", "девять девяти", "десять десяти",
 ), 1) for word in forms.split()}
 MOSCOW_READY_TIME = re.compile(r"\s*(?:года\s+)?в\s+(\d{1,2}):(\d{2})\s+по\s+(?:москве|мск)\b", re.IGNORECASE)
+READY_CLOCK = re.compile(r"\s*(?:года\s+)?в\s+([01]?\d|2[0-3]):([0-5]\d)\b", re.IGNORECASE)
 RAIL_ROUTE = re.compile(r"\bпо\s+(?:железной\s+дороге|ж\s*/?\s*д)\b", re.IGNORECASE)
 RAIL_MENTION = re.compile(r"\b(?:ж\s*/?\s*д|железнодорож\w*|железно\w*\s+дорог\w*)\b", re.IGNORECASE)
 ROAD_MENTION = re.compile(r"\b(?:авто\w*|машин\w*|фур\w*)\b", re.IGNORECASE)
@@ -88,6 +90,10 @@ ROUTER_PROMPT = """Классифицируй запрос о грузопере
 - lookup_rosmorport: справочные характеристики, услуги и навигация порта.
 - lookup_asop: статистика морских портов и грузооборота АСОП.
 - lookup_transport_strategy: общероссийские макросценарии Транспортной стратегии.
+- compare_corridor_hypotheses: «Проверь обе гипотезы для Москвы → Санкт-Петербурга на 2030 год»:
+  сравни разовые автозаказы, договорное авто и авто → ж/д → авто на сценарном грузопотоке.
+- calculate_corridor_forecast: «Рассчитай прогноз грузопотока из Москвы в Ростов-на-Дону на 2030 год»:
+  прогноз объёма на конкретном направлении, а не расчёт доставки заданной партии.
 - rank_regional_forecast: прогноз или рейтинг отдельных регионов по виду транспорта и году.
 - help: приветствие, вопросы о возможностях и вопросы вне темы.
 """
@@ -170,6 +176,10 @@ TOOL_PROMPTS = {
     "calculate_network": NETWORK_PROMPT + """
 Выбери network_id и идентификаторы origin_hub_id и destination_hub_id по данному справочнику хабов.
 Для речной перевозки Красноярск → Дудинка требуется required_modes=["river"].
+Обычный сухой твёрдый неопасный груз без температурного режима, например книги в коробках,
+имеет properties={"phase":"solid","hazardous":false,"handling_profile":"dry_general",
+"temperature_control_required":false}, если пользователь указал эти свойства.
+Не передавай handling_profile вне properties. Не заполняй group_sizes, если не просят объединять несколько отправок.
 capacity_basis относится ко всему расчёту и находится рядом с cargoes, а не внутри грузовой позиции.
 Пример формы результата:
 {"capacity_basis":"mass_and_volume","cost_basis":"including_vat","cargoes":[{"name":"Сухой груз","weight_tonnes":10,"volume_m3":20,"packaging":"boxes"}]}
@@ -208,6 +218,8 @@ temperature_control_required=false. Передавай эти флаги, есл
 Для обоих сценариев вызови инструмент один раз и пропусти scenario.
 Пример для автоперевозок на 2030 год по обоим сценариям: {"year":2030,"mode":"road"}.
 """,
+    "calculate_corridor_forecast": "Один год передавай в start_year. По месяцам → granularity=month, по кварталам → quarter.",
+    "compare_corridor_hypotheses": "Передай origin, destination и year. Пункты в именительном падеже.",
     "rank_regional_forecast": "Абсолютный рост — metric=tonnes. Используй percent только если явно просят рост в процентах.",
 }
 
@@ -299,7 +311,12 @@ def _keep_explicit_readiness_date(arguments, message):
     if not stated or not isinstance(value, str) or not re.match(r"\d{4}-\d{2}-\d{2}T", value):
         return arguments
     day, month, year = stated.groups()
-    ready_at = f"{year}-{MONTH_NAMES.index(month.casefold()) + 1:02d}-{int(day):02d}{value[10:]}"
+    date_part = f"{year}-{MONTH_NAMES.index(month.casefold()) + 1:02d}-{int(day):02d}"
+    clock = READY_CLOCK.match(message, stated.end())
+    if clock and re.match(r"T\d{2}:\d{2}", value[10:]):
+        ready_at = f"{date_part}T{int(clock[1]):02d}:{clock[2]}{value[16:]}"
+    else:
+        ready_at = date_part + value[10:]
     return dict(arguments, schedule=dict(schedule, ready_at=ready_at))
 
 
@@ -307,6 +324,29 @@ def _deadline_hours(match):
     unit = match["unit"].casefold()
     factor = 1 if unit.startswith("ч") else 24 if unit.startswith(("д", "с")) else 168 if unit.startswith("н") else 8760
     return float(match["amount"].replace(",", ".")) * factor
+
+
+def _has_single_duration(message):
+    durations = (match for match in MENTIONED_DURATIONS.finditer(message)
+                 if not (re.fullmatch(r"20\d{2}", match["amount"]) and _key(match["unit"]).startswith("год")))
+    return sum(1 for _ in durations) == 1
+
+
+def _keep_explicit_river_cargo(arguments, message):
+    cargoes = arguments.get("cargoes")
+    if (arguments.get("network_id") != "river-krasnoyarsk-dudinka-scenario-v1"
+            or not isinstance(cargoes, list) or len(cargoes) != 1 or not isinstance(cargoes[0], dict)):
+        return
+    cargo = cargoes[0]
+    profile = cargo.pop("handling_profile", None)
+    words = _key(message)
+    if all(re.search(pattern, words) for pattern in (
+        r"\bсух\w+", r"\bтверд\w+", r"\bнеопасн\w+", r"\bтемпературный режим не нужен\b",
+    )):
+        cargo.setdefault("properties", {"phase": "solid", "hazardous": False,
+                                        "handling_profile": "dry_general", "temperature_control_required": False})
+    elif profile and isinstance(cargo.get("properties"), dict):
+        cargo["properties"].setdefault("handling_profile", profile)
 
 
 def _russian_count(value):
@@ -433,8 +473,14 @@ class DeliveryPlanner:
                 raise InvalidAssistantTurn
             if selected in SHIPMENT_TOOLS:
                 arguments = _keep_explicit_readiness_date(arguments, request.message)
+                if selected == "calculate_network":
+                    _keep_explicit_river_cargo(arguments, request.message)
                 if duration := STATED_DEADLINE.search(request.message):
                     arguments["max_delivery_hours"] = _deadline_hours(duration)
+                    cargoes = arguments.get("cargoes")
+                    if (isinstance(cargoes, list) and len(cargoes) == 1 and isinstance(cargoes[0], dict)
+                            and _has_single_duration(request.message)):
+                        cargoes[0].pop("max_delivery_hours", None)
             if selected in ("calculate_russia", "calculate_network") and arguments.get("capacity_basis") == "mass_only":
                 previous_mass_only = pending and pending.arguments.get("capacity_basis") == "mass_only"
                 if not previous_mass_only and not MASS_ONLY.search(request.message):
