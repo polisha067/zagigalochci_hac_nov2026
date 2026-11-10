@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 import re
 from typing import Literal, Optional
@@ -32,6 +32,14 @@ DEADLINE_DURATION = r"(?P<amount>\d{1,4}(?:[.,]\d{1,2})?)\s*(?P<unit>ч|час(?
 SHORT_DEADLINE = re.compile(r"\s*(?:(?:до|за|не более)\s+)?" + DEADLINE_DURATION + r"[.!]?\s*", re.IGNORECASE)
 STATED_DEADLINE = re.compile(r"\b(?:доставить за|срок (?:доставки )?до|не дольше)\s+" + DEADLINE_DURATION + r"\b", re.IGNORECASE)
 SHIPMENT_TOOLS = ("calculate_russia", "calculate_network", "calculate_chukotavia")
+ONE_SHIPMENT = re.compile(r"(?:разово|разовая отправка|(?:одна|1) отправка(?: груза)?|одним рейсом)[.!]?", re.IGNORECASE)
+WEEKLY_FREQUENCY = re.compile(r"(?<!не )\b(\d{1,3}|один|два|три|четыре|пять|шесть|семь|восемь|девять|десять)\s+раз(?:а)?\s+в неделю\b", re.IGNORECASE)
+WEEKLY_PERIOD = re.compile(r"\b(?:в течение|на протяжении)\s+(\d{1,3}|одной|двух|тр[её]х|четыр[её]х|пяти|шести|семи|восьми|девяти|десяти)\s+недел(?:и|ь)\b", re.IGNORECASE)
+RUSSIAN_COUNTS = {word: value for value, forms in enumerate((
+    "один одной", "два двух", "три трех", "четыре четырех", "пять пяти",
+    "шесть шести", "семь семи", "восемь восьми", "девять девяти", "десять десяти",
+), 1) for word in forms.split()}
+MOSCOW_READY_TIME = re.compile(r"\s*(?:года\s+)?в\s+(\d{1,2}):(\d{2})\s+по\s+(?:москве|мск)\b", re.IGNORECASE)
 RAIL_ROUTE = re.compile(r"\bпо\s+(?:железной\s+дороге|ж\s*/?\s*д)\b", re.IGNORECASE)
 RAIL_MENTION = re.compile(r"\b(?:ж\s*/?\s*д|железнодорож\w*|железно\w*\s+дорог\w*)\b", re.IGNORECASE)
 ROAD_MENTION = re.compile(r"\b(?:авто\w*|машин\w*|фур\w*)\b", re.IGNORECASE)
@@ -128,6 +136,8 @@ SHIPMENT_PROMPT = """
 "schedule":{"mode":"once","ready_at":"2026-11-09T08:00:00+03:00"}.
 Не заполняй расписание выдуманными датами или временем. Для регулярного периода передай
 mode=regular, start_at, end_at и frequency (count, every, unit).
+«Одна отправка груза» означает mode=once, даже если прежний график регулярный.
+«Два раза в неделю» означает frequency={"count":2,"every":1,"unit":"week"}.
 Год сам по себе не задаёт дату готовности или частоту. Не выбирай регулярный график
 без явного указания, что отправки повторяются.
 Вес всей позиции в weight_tonnes, например 100 кг = 0.1 т. Объём в volume_m3, срок в часах.
@@ -299,6 +309,36 @@ def _deadline_hours(match):
     return float(match["amount"].replace(",", ".")) * factor
 
 
+def _russian_count(value):
+    return int(value) if value.isdecimal() else RUSSIAN_COUNTS[_key(value)]
+
+
+def _weekly_schedule(message, schedule, zone):
+    counts = WEEKLY_FREQUENCY.findall(message)
+    if len(counts) != 1:
+        return None
+    current = schedule if isinstance(schedule, dict) else {}
+    result = {key: current[key] for key in ("start_at", "end_at") if key in current}
+    result.update(mode="regular", frequency={"count": _russian_count(counts[0]), "every": 1, "unit": "week"})
+    stated = READINESS_DATE.search(message)
+    clock = MOSCOW_READY_TIME.match(message, stated.end()) if stated else None
+    if stated and clock:
+        day, month, year = stated.groups()
+        try:
+            result["start_at"] = datetime(int(year), MONTH_NAMES.index(month.casefold()) + 1, int(day),
+                                          int(clock[1]), int(clock[2]), tzinfo=zone).isoformat()
+        except ValueError:
+            result.pop("start_at", None)
+    period = WEEKLY_PERIOD.search(message)
+    if period and isinstance(result.get("start_at"), str):
+        try:
+            start = datetime.fromisoformat(result["start_at"])
+            result["end_at"] = (start + timedelta(weeks=_russian_count(period[1]))).isoformat()
+        except (ValueError, OverflowError):
+            result.pop("end_at", None)
+    return result
+
+
 class DeliveryPlanner:
     def __init__(self, client: OllamaClient, catalog: dict, aviation: ChukotaviaData, networks=None):
         self.client = client
@@ -316,8 +356,16 @@ class DeliveryPlanner:
         start_new = NEW_DELIVERY.match(request.message) is not None
         previous = None if start_new else request.draft
         pending = None if start_new else request.pending
-        if pending and pending.tool in SHIPMENT_TOOLS and "max_delivery_hours" in pending.missing_fields:
-            if duration := SHORT_DEADLINE.fullmatch(request.message):
+        if pending and pending.tool in SHIPMENT_TOOLS:
+            if ONE_SHIPMENT.fullmatch(request.message.strip()):
+                old = pending.arguments.get("schedule")
+                schedule = {"mode": "once"}
+                if isinstance(old, dict) and old.get("mode") in ("once", "regular"):
+                    ready_at = old.get("ready_at") if old["mode"] == "once" else old.get("start_at")
+                    if isinstance(ready_at, str):
+                        schedule["ready_at"] = ready_at
+                return ToolState(tool=pending.tool, arguments=dict(pending.arguments, schedule=schedule))
+            if "max_delivery_hours" in pending.missing_fields and (duration := SHORT_DEADLINE.fullmatch(request.message)):
                 arguments = dict(pending.arguments, max_delivery_hours=_deadline_hours(duration))
                 return ToolState(tool=pending.tool, arguments=arguments)
         route_input = {
@@ -396,6 +444,10 @@ class DeliveryPlanner:
                     arguments = {key: value for key, value in arguments.items()
                                  if key not in ROUTE_ARGUMENTS or key not in pending.arguments}
                 arguments = merge_arguments(pending.arguments, arguments)
+            if selected in SHIPMENT_TOOLS:
+                schedule = _weekly_schedule(request.message, arguments.get("schedule"), self.zone)
+                if schedule is not None:
+                    arguments["schedule"] = schedule
             if selected == "calculate_russia" and rail_only:
                 arguments["allowed_modes"] = ["rail"]
             elif selected == "calculate_russia" and compare_road_rail:

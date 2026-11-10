@@ -9,6 +9,7 @@ from unittest.mock import Mock, patch
 
 import httpx
 from fastapi.testclient import TestClient
+from pydantic import TypeAdapter
 
 from tests import BACKEND_DIR
 
@@ -19,6 +20,8 @@ from backend.app.assistant.service import handle_chat
 from backend.app.assistant.tools import DOMAIN_TOOL_NAMES
 from backend.app.config import Settings
 from backend.app.main import create_app, digest
+from backend.calculation_models import Schedule
+from backend.schedule import build_schedule
 
 
 class AssistantServiceTests(unittest.TestCase):
@@ -374,6 +377,46 @@ class AssistantApiTests(unittest.TestCase):
         self.assertEqual(result["calculation"]["request"]["origin"], "Брянск")
         self.assertEqual(result["calculation"]["request"]["destination"], "Москва")
         self.assertEqual(result["calculation"]["request"]["schedule"]["ready_at"], "2026-11-12T08:00:00+03:00")
+
+    def test_russia_weekly_frequency_is_kept_when_ollama_omits_it(self):
+        self.connect_ollama(self.domain_reply(
+            "calculate_russia", origin="Москва", destination="Брянск", allowed_modes=["road"],
+            cargoes=[{"name": "Мука", "weight_tonnes": 10, "packaging": "bags", "volume_m3": 20, "splittable": True}],
+            schedule={"mode": "regular", "start_at": "2026-11-10T08:00:00+03:00"},
+        ))
+        response = self.client.post("/assistant/chat", json={"message": (
+            "Из Москвы в Брянск. Отправляем по 10 т два раза в неделю в течение четырёх недель, всего 8 отправок. "
+            "Первая партия будет готова 12 ноября 2026 года в 8:00 по Москве. "
+            "Мука в мешках, объём одной партии 20 м³. Партию можно разделить."
+        )})
+        self.assertEqual(response.status_code, 200, response.text)
+        data = response.json()
+        self.assertEqual(data["missing_fields"], ["max_delivery_hours"])
+        schedule = data["pending"]["arguments"]["schedule"]
+        self.assertEqual(schedule, {
+            "mode": "regular", "start_at": "2026-11-12T08:00:00+03:00", "end_at": "2026-12-10T08:00:00+03:00",
+            "frequency": {"count": 2, "every": 1, "unit": "week"},
+        })
+        events, _, _ = build_schedule(TypeAdapter(Schedule).validate_python(schedule))
+        self.assertEqual(len(events), 8)
+
+    def test_one_shipment_replaces_pending_regular_schedule(self):
+        handler = self.connect_ollama(self.domain_reply(
+            "calculate_russia", origin="Москва", destination="Брянск", allowed_modes=["road"],
+            cargoes=[{"name": "Мука", "weight_tonnes": 80, "packaging": "bags", "volume_m3": 160, "splittable": True}],
+            schedule={"mode": "regular", "start_at": "2026-11-12T08:00:00+03:00", "end_at": "2026-12-10T08:00:00+03:00"},
+        ))
+        first = self.client.post("/assistant/chat", json={"message": "Как лучше отправить муку из Москвы в Брянск?"})
+        self.assertEqual(first.status_code, 200, first.text)
+        self.assertIn("schedule.frequency", first.json()["missing_fields"])
+        response = self.client.post("/assistant/chat", json={
+            "message": "одна отправка груза", "pending": first.json()["pending"],
+        })
+        self.assertEqual(response.status_code, 200, response.text)
+        data = response.json()
+        self.assertEqual(data["missing_fields"], ["max_delivery_hours"])
+        self.assertEqual(data["pending"]["arguments"]["schedule"], {"mode": "once", "ready_at": "2026-11-12T08:00:00+03:00"})
+        self.assertEqual(handler.call_count, 2)
 
     def test_russia_transport_in_2030_explains_coverage_before_asking_for_dates(self):
         self.connect_ollama(
