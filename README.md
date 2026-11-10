@@ -6,17 +6,18 @@
 
 ## С чего начать
 
-- **[Запуск бэкенда и карта документации](backend/README.md)** — установка, сервер, основные методы.
-- [Запуск фронтенда](frontend/README.md) · [Контракт ассистента](backend/ASSISTANT.md).
-- **[Актуальный расчёт, API и формулы](backend/RUSSIA_NETWORK.md)** — основной контракт `engine: "russia"` для фронта и ИИ-ассистента.
-- [Регистрация, почта и вход](backend/AUTH.md) · [Настройка отправки писем](backend/MAIL.md).
-- [Реальные данные, допущения и пробелы](backend/data_sources/README.md).
-- [Запрос расчёта](backend/examples/russia-request.json) · [Ответ](backend/examples/russia-response.json) · [Клиент для фронта](backend/examples/russia-client.js).
-- [Размещение и обновление сервиса](deploy/README.md).
+- **[Карта документации](docs/README.md)** — все руководства и ссылки на код и данные
+- [Запуск бэкенда](docs/backend/README.md) — установка, сервер, основные методы
+- [Запуск фронтенда](docs/frontend/README.md) · [Контракт ассистента](docs/assistant/ASSISTANT.md)
+- **[Актуальный расчёт, API и формулы](docs/calculations/RUSSIA_NETWORK.md)** — основной контракт `engine: "russia"` для фронта и ИИ-ассистента
+- [Регистрация, почта и вход](docs/backend/auth/AUTH.md) · [Настройка отправки писем](docs/backend/auth/MAIL.md)
+- [Реальные данные, допущения и пробелы](docs/data/README.md)
+- [Запрос расчёта](backend/examples/russia-request.json) · [Ответ](backend/examples/russia-response.json) · [Клиент для фронта](backend/examples/russia-client.js)
+- [Размещение и обновление сервиса](docs/deployment/README.md)
 
 Активные сетевые движки находятся в `backend/network`, снимки — в
 `backend/data_sources`, а проверки бэкенда и API — в `tests`. Из корня
-репозитория тесты запускаются командой `python -m unittest discover -s tests -t .`.
+репозитория тесты запускаются командой `python -m unittest discover -s tests -t .`
 
 ## Что означает результат
 
@@ -24,7 +25,7 @@
 Это покрытие исходных данных, а не всех населённых пунктов и коммерческих услуг РФ.
 Недостающие грузовые параметры заданы явно отмеченными сценарными значениями.
 Неполный тариф не выдаётся за полную стоимость; доступность перевозки не бронируется.
-Прогноз спроса по историческим поставкам и история пользовательских расчётов пока не реализованы.
+[Прогноз по опорным коридорам](docs/calculations/a1/README.md) строится на синтетических объёмах.
 
 Предыдущие контракты сохранены для совместимости; их назначение описано в
-[архиве прототипов](backend/legacy/README.md). Новый фронт использует контракт `russia`.
+[архиве прототипов](docs/legacy/README.md). Новый фронт использует контракт `russia`

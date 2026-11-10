@@ -25,7 +25,7 @@ export interface NetworkCalculation {
   request: { origin_hub_id: string; destination_hub_id: string; cost_basis: string };
   shipments: number;
   total_volume_tonnes: number;
-  candidates: Pick<Candidate, "id" | "modes" | "status" | "total_cost_rub" | "max_delivery_hours" | "issues">[];
+  candidates: Pick<Candidate, "id" | "service_ids" | "modes" | "status" | "total_cost_rub" | "max_delivery_hours" | "issues">[];
   recommendation: string | null;
 }
 export interface AirCalculation {
@@ -71,3 +71,48 @@ export type AssistantReply = ReplyBase & (
   | { kind: "information"; calculation: null; result: ReferenceResult | null }
   | { kind: "clarification"; calculation: AssistantCalculation | null; result: null }
 );
+
+export interface CorridorScheme {
+  scheme: string;
+  verdict: string;
+  feasible: boolean;
+  cost_rub: number | null;
+  rub_per_tonne: number | null;
+  worst_delivery_hours: number | null;
+  cost_difference_vs_spot_rub?: number | null;
+}
+
+export interface CorridorReport {
+  kind: "corridor";
+  origin: string;
+  destination: string;
+  year: number;
+  deadlineDays: number;
+  forecastTonnes: number;
+  schemes: CorridorScheme[];
+  assumptions: string[];
+  sources: AssistantSource[];
+}
+
+function isCorridorScheme(row: Record<string, unknown>): row is Record<string, unknown> & CorridorScheme {
+  return typeof row.scheme === "string" && typeof row.verdict === "string" &&
+    typeof row.feasible === "boolean" && [row.cost_rub, row.rub_per_tonne, row.worst_delivery_hours]
+      .every((value) => value === null || typeof value === "number") &&
+    (row.cost_difference_vs_spot_rub == null || typeof row.cost_difference_vs_spot_rub === "number");
+}
+
+export function getCorridorReport(response: AssistantReply): CorridorReport | null {
+  if (response.kind !== "information" || response.tool !== "compare_corridor_hypotheses" ||
+      response.result?.status !== "available") return null;
+
+  const { details, rows, assumptions } = response.result;
+  const { origin, destination, year, deadline_days, forecast_tonnes } = details;
+  if (typeof origin !== "string" || typeof destination !== "string" || typeof year !== "number" ||
+      typeof deadline_days !== "number" || typeof forecast_tonnes !== "number" ||
+      rows.length !== 3 || !rows.every(isCorridorScheme)) return null;
+
+  return {
+    kind: "corridor", origin, destination, year, deadlineDays: deadline_days,
+    forecastTonnes: forecast_tonnes, schemes: rows, assumptions, sources: response.sources,
+  };
+}

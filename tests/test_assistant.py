@@ -119,7 +119,7 @@ class AssistantApiTests(unittest.TestCase):
     def test_information_retains_draft_and_returns_source(self):
         self.planner.return_value = InformationTurn(
             reply="Расчёт учитывает накопление и перевалку.",
-            sources=[{"title": "Методика", "path": "backend/CALCULATIONS.md", "section": "Ж/д"}],
+            sources=[{"title": "Методика", "path": "docs/calculations/pilot/CALCULATIONS.md", "section": "Ж/д"}],
         )
         draft = self.draft.model_dump(mode="json")
         response = self.client.post("/assistant/chat", json={"message": "Откуда формула?", "draft": draft})
@@ -127,7 +127,7 @@ class AssistantApiTests(unittest.TestCase):
         result = response.json()
         self.assertEqual(result["kind"], "information")
         self.assertEqual(result["draft"], draft)
-        self.assertEqual(result["sources"][0]["path"], "backend/CALCULATIONS.md")
+        self.assertEqual(result["sources"][0]["path"], "docs/calculations/pilot/CALCULATIONS.md")
         self.assertEqual(result["missing_fields"], [])
         self.assertIsNone(result["calculation"])
 
@@ -475,6 +475,53 @@ class AssistantApiTests(unittest.TestCase):
         winner = next(row for row in data["candidates"] if row["id"] == data["recommendation"])
         self.assertEqual(winner["total_cost_rub"], 166_200)
 
+    def test_river_calculation_explains_expired_snapshot_without_extrapolating(self):
+        params = json.loads((BACKEND_DIR / "examples/river-request.json").read_bytes())
+        params.pop("engine")
+        params["schedule"]["ready_at"] = "2030-06-08T08:00:00+07:00"
+        params["cargoes"][0].update(weight_tonnes=25, volume_m3=40)
+        reverse = dict(params, origin_hub_id=params["destination_hub_id"], destination_hub_id=params["origin_hub_id"])
+        self.connect_ollama(self.domain_reply("calculate_network", **params), self.domain_reply("calculate_network", **reverse))
+        response = self.client.post("/assistant/chat", json={
+            "message": "Рассчитай речную перевозку 25 т книг Красноярск → Дудинка на 8 июня 2030 года.",
+        })
+        self.assertEqual(response.status_code, 200, response.text)
+        body = response.json()
+        self.assertIn("Красноярск → Дудинка", body["reply"])
+        self.assertIn("только навигацию 2026 года", body["reply"])
+        self.assertIn("цену и срок рассчитать нельзя", body["reply"])
+        self.assertIsNone(body["calculation"]["recommendation"])
+        self.assertEqual(len(body["calculation"]["candidates"]), 2)
+        for candidate in body["calculation"]["candidates"]:
+            self.assertIsNone(candidate["total_cost_rub"])
+            self.assertEqual(candidate["issues"][0]["code"], "expired_evidence")
+        response = self.client.post("/assistant/chat", json={
+            "message": "Рассчитай речную перевозку 25 т книг Дудинка → Красноярск на 8 июня 2030 года.",
+        })
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertIn("Дудинка → Красноярск", response.json()["reply"])
+
+    def test_river_request_to_another_city_does_not_substitute_destination(self):
+        handler = self.connect_ollama()
+        for message in ("Рассчитай речную перевозку Красноярск → Брянск.",
+                        "Можно доставить книги по реке из Красноярска в Брянск?"):
+            with self.subTest(message=message):
+                response = self.client.post("/assistant/chat", json={"message": message})
+                self.assertEqual(response.status_code, 200, response.text)
+                body = response.json()
+                self.assertIn("нет речного маршрута Красноярск → Брянск", body["reply"])
+                self.assertIsNone(body["calculation"])
+        handler.assert_not_called()
+
+    def test_city_pair_without_mode_uses_general_calculator(self):
+        self.connect_ollama(self.domain_reply("calculate_russia", origin="Красноярск", destination="Дудинка"),
+                            route_tool="calculate_network")
+        response = self.client.post("/assistant/chat", json={"message": "Рассчитай перевозку Красноярск → Брянск."})
+        self.assertEqual(response.status_code, 200, response.text)
+        body = response.json()
+        self.assertEqual(body["tool"], "calculate_russia")
+        self.assertEqual(body["pending"]["arguments"]["destination"], "Брянск")
+
     def test_corridor_hypotheses_and_forecast_run_backend_formulas(self):
         self.connect_ollama(
             self.domain_reply("compare_corridor_hypotheses", origin="Москва", destination="Санкт-Петербург", year=2030),
@@ -487,6 +534,9 @@ class AssistantApiTests(unittest.TestCase):
         self.assertEqual(comparison.status_code, 200, comparison.text)
         body = comparison.json()
         self.assertEqual(body["tool"], "compare_corridor_hypotheses")
+        self.assertEqual(body["result"]["details"]["origin"], "Москва")
+        self.assertEqual(body["result"]["details"]["destination"], "Санкт-Петербург")
+        self.assertEqual(body["result"]["details"]["deadline_days"], 14)
         self.assertIn("синтетические", body["reply"])
         self.assertEqual(len(body["result"]["rows"]), 3)
         self.assertIn("hypothesis_supported", body["result"]["rows"][1])

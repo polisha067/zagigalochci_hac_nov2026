@@ -7,11 +7,13 @@ from zoneinfo import ZoneInfo
 from pydantic import BaseModel, Field, model_validator
 
 from backend.calculation_models import InputModel
+from backend.network.cargo import normalized_name
 from backend.network.chukotavia import ChukotaviaData
+from backend.network.russia import load_russia
 from backend.transport_calculator import catalog_cities
 
 from .ollama_client import OllamaClient
-from .references import StrategyQuery
+from .references import RIVER_PATH, StrategyQuery, source_ref
 from .schemas import ChatRequest, ClarificationTurn, DeliveryDraft, DeliveryTurn, InformationTurn, ReplyText, ToolState
 from .service import InvalidAssistantTurn
 from .tools import CALCULATIONS, DOMAIN_TOOLS, merge_arguments, tool_definition
@@ -21,6 +23,8 @@ PILOT_ZONE = "Europe/Moscow"
 TOOL_NAME = "compare_delivery"
 NEW_DELIVERY = re.compile(r"^(?:новый расч[её]т|новая перевозка|начни новый расч[её]т)\b", re.IGNORECASE)
 ROUTE_IN_MESSAGE = re.compile(r"→|\b(?:из|от)\s+[^.!?]{1,100}\s+(?:в|до)\s+", re.IGNORECASE)
+ARROW_ROUTE = re.compile(r"([^,.!?→]+)→([^,.!?→]+)")
+TEXT_ROUTE = re.compile(r"\b(?:из|от)\s+([^,.!?→]+?)\s+(?:в|до)\s+([^,.!?→]+)", re.IGNORECASE)
 ROUTE_CHANGE = re.compile(r"\b(?:поменя\w*|замен\w*|вместо|маршрут\w*|(?:теперь|а если)\s+(?:из|в|до))\b", re.IGNORECASE)
 ROUTE_ARGUMENTS = ("origin", "destination", "origin_hub_id", "destination_hub_id", "route_id", "network_id")
 MASS_ONLY = re.compile(r"\b(?:по\s+(?:одной\s+)?(?:массе|весу)|только\s+(?:массу|вес)|без\s+(?:уч[её]та\s+)?объ[её]ма)\b", re.IGNORECASE)
@@ -45,6 +49,8 @@ READY_CLOCK = re.compile(r"\s*(?:года\s+)?в\s+([01]?\d|2[0-3]):([0-5]\d)\b"
 RAIL_ROUTE = re.compile(r"\bпо\s+(?:железной\s+дороге|ж\s*/?\s*д)\b", re.IGNORECASE)
 RAIL_MENTION = re.compile(r"\b(?:ж\s*/?\s*д|железнодорож\w*|железно\w*\s+дорог\w*)\b", re.IGNORECASE)
 ROAD_MENTION = re.compile(r"\b(?:авто\w*|машин\w*|фур\w*)\b", re.IGNORECASE)
+RIVER_MENTION = re.compile(r"\b(?:речн\w*|по реке|рекой)\b", re.IGNORECASE)
+OTHER_THAN_RIVER = re.compile(r"\b(?:авиа\w*|самол[её]т\w*|морск\w*|морем|трубопровод\w*)\b", re.IGNORECASE)
 OTHER_MODES = re.compile(r"\b(?:авиа\w*|самол[её]т\w*|морск\w*|речн\w*|трубопровод\w*)\b", re.IGNORECASE)
 OTHER_TRANSPORT = re.compile(
     r"\b(?:авто\w*|машин\w*|фур\w*|авиа\w*|самол[её]т\w*|морск\w*|речн\w*|трубопровод\w*)\b"
@@ -73,6 +79,7 @@ ROUTER_PROMPT = """Классифицируй запрос о грузопере
   между городами пилота. «10 т муки из Москвы в Брянск» — compare_delivery.
 - calculate_network: расчёт по хабам или по речной сети. Для расчёта речной перевозки
   Красноярск ↔ Дудинка выбирай calculate_network даже при наличии пилотного черновика.
+  Для других городов не подставляй хабы речного снимка. Выбирай calculate_russia.
 - calculate_russia: расчёт по общей сети России, вне пилота, несколько грузов или остановок.
   «Рассчитай доставку из Москвы в Брянск по железной дороге» — calculate_russia.
   «Как доставить 10 т муки из Брянска в Москву, покажи варианты и скажи какой выгоднее» —
@@ -302,6 +309,34 @@ def _key(value):
     return value.casefold().replace("ё", "е")
 
 
+def _stated_city_pair(message):
+    if message.count("→") > 1:
+        return None
+    match = ARROW_ROUTE.search(message) or TEXT_ROUTE.search(message)
+    if not match:
+        return None
+    network = load_russia()
+
+    def resolve(words, *, from_end=False):
+        tokens = re.findall(r"[\w-]+", words)
+        for size in range(min(len(tokens), 6), 0, -1):
+            value = " ".join(tokens[-size:] if from_end else tokens[:size]).casefold()
+            # Common oblique forms used after «из» and «в», checked against the city catalogue.
+            variants = [value]
+            if value.endswith("а"):
+                variants.append(value[:-1])
+            if value.endswith(("у", "ы")):
+                variants.append(value[:-1] + "а")
+            for variant in variants:
+                if identifier := network.resolve(variant):
+                    return network.settlements[identifier]["name"]
+        return None
+
+    origin = resolve(match[1], from_end=True)
+    destination = resolve(match[2])
+    return (origin, destination) if origin and destination else None
+
+
 def _keep_explicit_readiness_date(arguments, message):
     schedule = arguments.get("schedule")
     if not isinstance(schedule, dict) or schedule.get("mode") != "once":
@@ -391,6 +426,26 @@ class DeliveryPlanner:
             key: {hub.id: f"{hub.city}, {hub.name}" for hub in graph.hubs.values()}
             for key, graph in (networks or {}).items()
         }
+        self.river_links = {}
+        for key, graph in (networks or {}).items():
+            for service in graph.services.values():
+                if service.mode != "river" or service.available is False:
+                    continue
+                origin, destination = graph.hubs[service.from_hub], graph.hubs[service.to_hub]
+                cities = normalized_name(origin.city), normalized_name(destination.city)
+                self.river_links.setdefault(cities, set()).add((key, origin.id, destination.id))
+
+    def _has_river_path(self, origin, destination):
+        visited = set()
+        remaining = [origin]
+        while remaining:
+            city = remaining.pop()
+            if city == destination:
+                return True
+            if city not in visited:
+                visited.add(city)
+                remaining.extend(end for start, end in self.river_links if start == city)
+        return False
 
     def __call__(self, request: ChatRequest):
         start_new = NEW_DELIVERY.match(request.message) is not None
@@ -408,6 +463,23 @@ class DeliveryPlanner:
             if "max_delivery_hours" in pending.missing_fields and (duration := SHORT_DEADLINE.fullmatch(request.message)):
                 arguments = dict(pending.arguments, max_delivery_hours=_deadline_hours(duration))
                 return ToolState(tool=pending.tool, arguments=arguments)
+        river_mentioned = RIVER_MENTION.search(request.message)
+        cities = _stated_city_pair(request.message) if river_mentioned or "→" in request.message else None
+        river_only = (cities and river_mentioned
+                      and not any(pattern.search(request.message) for pattern in (ROAD_MENTION, RAIL_MENTION, OTHER_THAN_RIVER))
+                      and not re.search(r"\b(?:не|без|кроме)\s+(?:по реке|рекой|речн\w*)\b", request.message, re.IGNORECASE))
+        river_hubs = None
+        if river_only:
+            pair = tuple(map(normalized_name, cities))
+            links = self.river_links.get(pair, set())
+            if len(links) == 1:
+                river_hubs = next(iter(links))
+            elif not self._has_river_path(*pair):
+                return InformationTurn(
+                    reply=(f"В данных проекта нет речного маршрута {cities[0]} → {cities[1]}. "
+                           "Могу проверить варианты с авто или ж/д по этому же направлению."),
+                    sources=[source_ref({}, RIVER_PATH, title="Речной снимок проекта")],
+                )
         route_input = {
             "message": request.message,
             "pilot_cities": self.cities,
@@ -419,6 +491,8 @@ class DeliveryPlanner:
             {"role": "user", "content": json.dumps(route_input, ensure_ascii=False)},
         ], [], response_schema=ROUTE_SCHEMA)
         selected = RouteChoice.model_validate_json(route.content).tool
+        if selected == "help" and cities and request.message.strip().rstrip(".!?") == " → ".join(cities):
+            selected = "calculate_russia"
         if selected == "help":
             return InformationTurn(reply=INFORMATION_REPLY)
         resume_pilot = selected == "resume_pilot"
@@ -436,6 +510,18 @@ class DeliveryPlanner:
             pending = None
         if selected not in TOOLS:
             raise InvalidAssistantTurn
+
+        if river_only and selected in (TOOL_NAME, "calculate_network", "calculate_russia"):
+            selected = "calculate_network" if river_hubs else "calculate_russia"
+            pending = None
+        elif cities and selected == TOOL_NAME and not set(cities).issubset(self.cities):
+            selected = "calculate_russia"
+            pending = None
+        elif cities and selected == "calculate_network" and not any(
+            identifier in request.message for key, hubs in self.networks.items() for identifier in (key, *hubs)
+        ):
+            selected = "calculate_russia"
+            pending = None
 
         rail_only = RAIL_ROUTE.search(request.message) and not OTHER_TRANSPORT.search(request.message)
         compare_road_rail = (
@@ -471,6 +557,13 @@ class DeliveryPlanner:
         if selected != TOOL_NAME:
             if "engine" in arguments:
                 raise InvalidAssistantTurn
+            if river_hubs and selected == "calculate_network":
+                network_id, origin, destination = river_hubs
+                arguments.update(network_id=network_id, origin_hub_id=origin, destination_hub_id=destination)
+            elif cities and selected == "calculate_russia":
+                arguments.update(origin=cities[0], destination=cities[1])
+                if river_only:
+                    arguments["allowed_modes"] = ["river"]
             if selected in SHIPMENT_TOOLS:
                 arguments = _keep_explicit_readiness_date(arguments, request.message)
                 if selected == "calculate_network":

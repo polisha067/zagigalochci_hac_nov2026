@@ -48,11 +48,16 @@ function CalculationData({ result }: { result: Exclude<AssistantCalculation, Das
   }
   return <ReportTable
     columns={["Схема", "Статус", `Сценарная стоимость ${vat(result.request.cost_basis)}`, "Макс. срок, ч"]}
-    rows={result.candidates.map((candidate) => [
-      candidateName(candidate),
-      candidate.id === result.recommendation ? "Рекомендация" : statusNames[candidate.status],
-      rubles(candidate.total_cost_rub), hours(candidate.max_delivery_hours),
-    ])}
+    rows={result.candidates.map((candidate) => {
+      const container = candidate.service_ids.length === 1
+        ? /^river-(20|40)-(?:up|down)$/.exec(candidate.service_ids[0])
+        : null;
+      return [
+        container ? `Река · контейнер ${container[1]} футов` : candidateName(candidate),
+        candidate.id === result.recommendation ? "Рекомендация" : statusNames[candidate.status],
+        rubles(candidate.total_cost_rub), hours(candidate.max_delivery_hours),
+      ];
+    })}
   />;
 }
 

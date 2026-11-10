@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import { errorText, post } from "./api";
-import { hasDashboard, type AssistantDraft, type AssistantReply, type AssistantSource, type DashboardCalculation, type PendingTool } from "./assistantApi";
+import { getCorridorReport, hasDashboard, type AssistantDraft, type AssistantReply, type AssistantSource, type CorridorReport, type DashboardCalculation, type PendingTool } from "./assistantApi";
 import { AssistantData } from "./AssistantData";
 import { num, snapshotRoute, totalVolume, type Snapshot } from "./model";
 
@@ -31,7 +31,7 @@ export function ReplyText({ text }: { text: string }) {
 
 export function Assistant({ snapshot, onResult }: {
   snapshot: Snapshot | null;
-  onResult: (result: DashboardCalculation) => void;
+  onResult: (result: DashboardCalculation | CorridorReport) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
@@ -76,7 +76,12 @@ export function Assistant({ snapshot, onResult }: {
       setDraft(response.draft);
       setPending(response.pending);
       setMessage("");
-      if (response.kind === "calculation" && hasDashboard(response.calculation)) onResult(response.calculation);
+      if (response.kind === "calculation" && hasDashboard(response.calculation)) {
+        onResult(response.calculation);
+      } else {
+        const report = getCorridorReport(response);
+        if (report) onResult(report);
+      }
     } catch (failure) {
       if (!controller.signal.aborted) setError(errorText(failure));
     } finally {

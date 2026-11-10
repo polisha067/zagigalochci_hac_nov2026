@@ -1,5 +1,7 @@
 """Render engine results without asking the language model to restate numbers"""
 
+from datetime import datetime, timedelta
+
 from backend.network.chukotavia import ChukotaviaResponse
 from backend.network.models import NetworkResponse
 from backend.network.pipeline import PipelineResponse
@@ -10,11 +12,42 @@ from .references import AIR_PATH, MODE_LABELS, PIPELINE_PATH, RIVER_PATH, number
 VAT = {"including_vat": "с НДС", "excluding_vat": "без НДС"}
 
 
+def _expired_river_summary(result):
+    if not isinstance(result, NetworkResponse):
+        return None
+    if not result.candidates or not all(
+        any(issue["code"] == "expired_evidence" for issue in row["issues"])
+        for row in result.candidates
+    ):
+        return None
+
+    data = snapshot(RIVER_PATH)
+    if result.network_id != data["id"]:
+        return None
+    hubs = {hub["id"]: hub["city"] for hub in data["hubs"]}
+    origin = hubs.get(result.request.get("origin_hub_id"))
+    destination = hubs.get(result.request.get("destination_hub_id"))
+    direction = f" для маршрута {origin} → {destination}" if origin and destination else ""
+    services = {identifier for row in result.candidates for identifier in row["service_ids"]}
+    evidence = [service["evidence"] for service in data["services"] if service["id"] in services]
+    if not evidence:
+        return None
+    start = min(datetime.fromisoformat(item["valid_from"]) for item in evidence)
+    end = max(datetime.fromisoformat(item["valid_until"]) for item in evidence) - timedelta(microseconds=1)
+    if start.year == end.year:
+        period = f"только навигацию {start.year} года"
+    else:
+        period = f"период с {start:%d.%m.%Y} по {end:%d.%m.%Y}"
+    return (f"Речной снимок{direction} покрывает {period}. "
+            "Для выбранных дат в снимке нет действующих условий перевозки, поэтому цену и срок рассчитать нельзя. "
+            "Для сравнения контейнеров по этому снимку укажите дату в пределах этой навигации.")
+
+
 def calculation_sources(result, engine):
     path = {
         "pilot": "backend/examples/catalog.json",
-        "network": RIVER_PATH if getattr(result, "network_id", "").startswith("river-") else "backend/NETWORK.md",
-        "russia": "backend/RUSSIA_NETWORK.md",
+        "network": RIVER_PATH if getattr(result, "network_id", "").startswith("river-") else "docs/calculations/network/NETWORK.md",
+        "russia": "docs/calculations/RUSSIA_NETWORK.md",
         "chukotavia": AIR_PATH,
         "pipeline": PIPELINE_PATH,
     }[engine]
@@ -85,7 +118,11 @@ def engine_summary(result):
                      f"{number(chosen['total_cost_rub'])} ₽ {VAT[result.request['cost_basis']]}, "
                      f"максимальный срок {number(chosen['max_delivery_hours'])} ч.")
     else:
+        if coverage := _expired_river_summary(result):
+            return coverage
         lines.append("Среди рассчитанных вариантов подходящая схема не определена.")
+        reasons = dict.fromkeys(issue["message"] for row in result.candidates for issue in row["issues"])
+        lines.extend(f"Причина: {message.rstrip('.')}." for message in list(reasons)[:3])
     partial = next((row["published_tariff_estimate"] for row in result.candidates
                     if "published_tariff_estimate" in row), None)
     if partial:

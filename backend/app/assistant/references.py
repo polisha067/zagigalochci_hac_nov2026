@@ -228,7 +228,8 @@ def corridor_comparison(query: CorridorComparisonQuery):
         A1_VOLUME_NOTE,
         "Тарифы и операции сценарные. Опубликованная ж/д ставка по Кемерово используется как ориентир для масштабирования.",
         "Гипотеза засчитывается, когда схема и разовое авто доставляют весь объём в срок, а схема обходится дешевле разовых заказов.",
-    ], sources, route_id=route["route_id"], year=query.year, volume_status="synthetic",
+    ], sources, route_id=route["route_id"], origin=route["origin"], destination=route["destination"],
+        year=query.year, deadline_days=MAIN_DEADLINE_DAYS, volume_status="synthetic",
         forecast_tonnes=result["forecast_tonnes"], sensitivity=result["sensitivity"], connectivity=route["connectivity_reference"])
 
 
@@ -533,7 +534,7 @@ def regional_forecast(query: ForecastQuery, dataset):
         sources = [DocumentSource(title=dataset.title, url=dataset.source_url)]
         assumptions = [forecast.method]
     else:
-        sources = [source_ref({}, "backend/data_sources/README.md", title="Перечень снимков проекта")]
+        sources = [source_ref({}, "docs/data/README.md", title="Перечень снимков проекта")]
         assumptions = ["Транспортная стратегия содержит общероссийские макросценарии."]
     return InformationTurn(
         reply="\n".join([forecast_reply(forecast), *(assumptions if status == "unavailable" else [])]),
