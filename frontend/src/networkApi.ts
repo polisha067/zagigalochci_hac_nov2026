@@ -25,6 +25,13 @@ export interface SettlementPage {
   limit: number;
   settlements: Settlement[];
   coverage: Coverage;
+  delivery_forecast?: ForecastOptions;
+}
+export interface ForecastOptions {
+  min_year: number;
+  max_year: number;
+  base_year: number;
+  scenario_modes: Mode[];
 }
 export interface NetworkOptions {
   cargo_types: { id: string; name: string; aliases: string[] }[];
@@ -38,6 +45,7 @@ export interface NetworkOptions {
 export interface Options extends NetworkOptions {
   settlements: Settlement[];
   coverage: Coverage;
+  delivery_forecast?: ForecastOptions;
 }
 export interface CargoProperties {
   phase: "solid" | "liquid" | "gas";
@@ -73,8 +81,9 @@ export interface CalculationRequest {
   destination: string;
   stops: Stop[];
   cargoes: CargoItem[];
-  schedule: Schedule;
-  max_delivery_hours: number;
+  schedule: Schedule | null;
+  max_delivery_hours: number | null;
+  target_year?: number;
   capacity_basis: "mass_only" | "mass_and_volume";
   cost_basis: "including_vat" | "excluding_vat";
   data_policy: "allow_assumptions" | "verified_only";
@@ -112,14 +121,25 @@ export interface Step {
   volume_m3?: number;
   units?: number;
   wait_hours?: number;
+  duration_hours?: number;
+  schedule_status?: "scenario" | "snapshot";
+  departure_offset_hours?: number;
+  arrival_offset_hours?: number;
+  start_offset_hours?: number;
+  end_offset_hours?: number;
   batch?: number;
   [key: string]: unknown;
 }
 export interface CostItem {
   kind: string;
   object_id?: string;
-  amount_rub: number;
+  amount_rub: number | null;
   at?: string;
+  offset_hours?: number;
+  base_amount_rub?: number;
+  pricing?: { category: string; basis: string; quantity: number; rate_rub: number; base_year: number; source_ids: string[] };
+  index_factors?: { year: number; factor: number; source_id: string; kind: string }[];
+  index_proxy?: boolean;
   batch?: number;
   [key: string]: unknown;
 }
@@ -128,8 +148,10 @@ export interface Delivery {
   cargo_id: string;
   shipment: number;
   weight_tonnes: number;
-  ready_at: string;
-  delivered_at: string;
+  ready_at?: string;
+  delivered_at?: string;
+  ready_offset_hours?: number;
+  delivered_offset_hours?: number;
   delivery_hours: number;
   hub_id?: string;
 }
@@ -166,6 +188,15 @@ export interface Candidate {
   }[];
   stop_actions: (Stop & { hub_id: string; settlement_id?: string })[];
   booking_confirmed?: boolean;
+  forecast_price?: {
+    base_rub: number | null;
+    base_year: number | null;
+    lower_rub: number | null;
+    upper_rub: number | null;
+    known_subtotal_rub: number | null;
+    range_status: "available" | "not_calibrated" | "incomplete";
+    long_term: boolean;
+  };
   published_tariff_estimate?: {
     amount_excluding_vat_rub: number;
     missing_components: string[];
@@ -217,4 +248,11 @@ export interface Calculation {
     services: number;
     transfers: number;
   } | null;
+  forecast?: {
+    target_year: number;
+    base_year: number;
+    date_precision: "year" | "date";
+    alternative: { id: string; difference_rub: number; difference_hours: number; ranges_overlap: boolean | null } | null;
+    assumptions: string[];
+  };
 }

@@ -77,6 +77,7 @@ function Workspace({
           ...catalog,
           settlements: locations.settlements,
           coverage: locations.coverage,
+          delivery_forecast: locations.delivery_forecast,
         }),
       )
       .catch((e) => {

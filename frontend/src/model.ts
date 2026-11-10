@@ -3,12 +3,14 @@ import type {
   CalculationRequest,
   CargoItem,
   FrequencyUnit,
+  ForecastOptions,
   Mode,
   Options,
   Schedule,
   Settlement,
 } from "./networkApi";
 import type { Snapshot as LegacySnapshot } from "./legacyModel";
+import { money } from "./legacyModel";
 export { num, money, hours, date } from "./legacyModel";
 export const modeNames: Record<Mode, string> = {
   road: "Авто",
@@ -82,6 +84,7 @@ export interface Draft {
   start: string;
   dates: string[];
   days: string;
+  forecastYear?: string;
   capacityBasis: "mass_only" | "mass_and_volume";
   costBasis: "including_vat" | "excluding_vat";
   dataPolicy: "allow_assumptions" | "verified_only";
@@ -309,7 +312,20 @@ function positive(value: string, label: string, maximum = 1000000) {
     );
   return n;
 }
-export function buildRequest(d: Draft): CalculationRequest {
+export function selectedForecastYear(d: Draft, options?: ForecastOptions): number | undefined {
+  if (!options) return undefined;
+  const date = d.scheduleMode === "explicit" ? d.dates.reduce((last, value) => value > last ? value : last, "") : d.start;
+  const year = Number(d.forecastYear || date?.slice(0, 4));
+  return year >= options.min_year ? year : undefined;
+}
+
+export function forecastMoney(value: number | null | undefined, longTerm = false) {
+  if (value == null) return money(value);
+  const step = longTerm ? 1000 : 100;
+  return value >= step ? money(Math.round(value / step) * step) : money(value);
+}
+
+export function buildRequest(d: Draft, forecastOptions?: ForecastOptions): CalculationRequest {
   const points = [
     { id: "first", city: d.origin },
     ...d.stops,
@@ -410,10 +426,13 @@ export function buildRequest(d: Draft): CalculationRequest {
       "Нужна погрузка в начале маршрута и выгрузка в конечном пункте.",
     );
   if (!d.modes.length) throw new Error("Выберите хотя бы один вид транспорта.");
-  const schedule = buildSchedule(d);
-  scheduleEvents(schedule);
+  const year = selectedForecastYear(d, forecastOptions);
+  if (year && forecastOptions && year > forecastOptions.max_year)
+    throw new Error(`Прогноз по текущим данным доступен до ${forecastOptions.max_year} года.`);
+  const schedule = year && d.scheduleMode === "once" && !d.start ? null : buildSchedule(d);
+  if (schedule) scheduleEvents(schedule);
   const max_delivery_hours =
-    positive(d.days, "Максимальный срок, дней", 3650) * 24;
+    year && !d.days ? null : positive(d.days, "Максимальный срок, дней", 3650) * 24;
   return {
     engine: "russia",
     origin: d.origin!.id,
@@ -442,13 +461,14 @@ export function buildRequest(d: Draft): CalculationRequest {
     cargoes,
     schedule,
     max_delivery_hours,
+    ...(year ? { target_year: year } : {}),
     capacity_basis: d.capacityBasis,
     cost_basis: d.costBasis,
     data_policy: d.dataPolicy,
     allowed_modes: d.modes,
     ...(d.massBasis ? { mass_basis: d.massBasis } : {}),
     max_candidates: 8,
-    max_legs: 12,
+    max_legs: year ? 8 : 12,
   };
 }
 export function editableDraft(s: Snapshot, options?: Options): Draft {

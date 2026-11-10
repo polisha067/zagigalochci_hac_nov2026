@@ -23,6 +23,7 @@ import {
   num,
   packagingNames,
   scheduleEvents,
+  selectedForecastYear,
   unitNames,
   type Cargo,
   type Draft,
@@ -72,11 +73,15 @@ export function ConditionsForm({
     ...draft.stops,
     { id: "last", city: draft.destination },
   ];
+  const forecastOptions = options.delivery_forecast;
+  const forecastYear = selectedForecastYear(draft, forecastOptions);
   const preview = useMemo(() => {
+    if (forecastYear && draft.scheduleMode === "once" && !draft.start)
+      return { count: 1, error: "" };
     try {
-      return { events: scheduleEvents(buildSchedule(draft)), error: "" };
+      return { count: scheduleEvents(buildSchedule(draft)).length, error: "" };
     } catch (e) {
-      return { events: [], error: errorText(e) };
+      return { count: 0, error: errorText(e) };
     }
   }, [
     draft.scheduleMode,
@@ -87,14 +92,15 @@ export function ConditionsForm({
     draft.period,
     draft.periodUnit,
     draft.dates,
+    forecastYear,
   ]);
   const weight = draft.cargo.reduce((sum, c) => sum + Number(c.weight), 0);
   const volumeReady =
-    preview.events.length > 0 && draft.cargo.every((c) => Number(c.weight) > 0);
+    preview.count > 0 && draft.cargo.every((c) => Number(c.weight) > 0);
   const complete =
     points.every((p) => p.city) &&
     draft.cargo.every((c) => c.name.trim() && Number(c.weight) > 0) &&
-    Number(draft.days) > 0;
+    (Number(draft.days) > 0 || Boolean(forecastYear && !draft.days));
   function removeStop(id: string) {
     setDraft((d) => ({
       ...d,
@@ -114,9 +120,9 @@ export function ConditionsForm({
     const controller = new AbortController();
     inFlight.current = controller;
     try {
-      const payload = buildRequest(draft);
+      const payload = buildRequest(draft, forecastOptions);
       const result = await post<Calculation>(
-        "/network/russia/calculations",
+        payload.target_year ? "/network/russia/forecasts" : "/network/russia/calculations",
         payload,
         controller.signal,
       );
@@ -510,6 +516,26 @@ export function ConditionsForm({
             </section>
             <section>
               <h2>График отправок</h2>
+              {forecastOptions && (
+                <label className="schedule-field">
+                  Год прогноза
+                  <select
+                    value={draft.forecastYear ?? ""}
+                    onChange={(e) => {
+                      const year = e.target.value;
+                      update(year
+                        ? { forecastYear: year, scheduleMode: "once", start: "", capacityBasis: "mass_and_volume" }
+                        : { forecastYear: "", start: draft.start || initial.start });
+                    }}
+                  >
+                    <option value="">По дате отправки</option>
+                    {Array.from({ length: forecastOptions.max_year - forecastOptions.min_year + 1 }, (_, index) => {
+                      const year = forecastOptions.min_year + index;
+                      return <option key={year} value={year}>{year}</option>;
+                    })}
+                  </select>
+                </label>
+              )}
               <div className="toggle schedule-toggle">
                 {(["once", "regular", "explicit"] as const).map((mode, i) => (
                   <button
@@ -524,7 +550,7 @@ export function ConditionsForm({
               </div>
               {draft.scheduleMode !== "explicit" && (
                 <label className="schedule-field">
-                  Начало, МСК
+                  {forecastYear && draft.scheduleMode === "once" ? "Дата, МСК (необязательно)" : "Начало, МСК"}
                   <input
                     type="datetime-local"
                     min="2000-01-01T00:00"
@@ -780,7 +806,7 @@ export function ConditionsForm({
               className={`volume${volumeReady ? "" : " volume-empty"}`}
               aria-live="polite"
             >
-              {volumeReady ? num(weight * preview.events.length, 6) : "—"}{" "}
+              {volumeReady ? num(weight * preview.count, 6) : "—"}{" "}
               <small>т</small>
             </div>
             <p className="period">
@@ -790,7 +816,7 @@ export function ConditionsForm({
             </p>
             <div className="summary">
               <span>Отправок</span>
-              <b>{preview.events.length || "—"}</b>
+              <b>{preview.count || "—"}</b>
               <span>Партия</span>
               <b>{weight > 0 ? num(weight, 6) + " т" : "—"}</b>
             </div>

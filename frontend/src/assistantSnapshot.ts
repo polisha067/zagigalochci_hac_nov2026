@@ -39,7 +39,8 @@ export function assistantSnapshot(result: DashboardCalculation, options: Options
     result,
     draft: {
       ...emptyDraft(),
-      ...scheduleDraft(request.schedule),
+      ...(request.schedule ? scheduleDraft(request.schedule) : { scheduleMode: "once", start: "" }),
+      forecastYear: result.forecast ? String(result.forecast.target_year) : undefined,
       origin: settlement(request.origin, 0),
       destination: settlement(request.destination, stops.length + 1),
       stops,
@@ -66,7 +67,7 @@ export function assistantSnapshot(result: DashboardCalculation, options: Options
         cargoHours: field(cargo.max_delivery_hours),
         shelfHours: field(cargo.shelf_life_hours),
       })),
-      days: String(request.max_delivery_hours / 24),
+      days: request.max_delivery_hours == null ? "" : String(request.max_delivery_hours / 24),
       capacityBasis: request.capacity_basis,
       costBasis: request.cost_basis,
       dataPolicy: request.data_policy,

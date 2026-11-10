@@ -2,7 +2,7 @@ import { useEffect, useId, useState } from "react";
 import { StreetRouteMap } from "./StreetRouteMap";
 import { request } from "./api";
 import countriesUrl from "./assets/natural-earth-countries.json?url";
-import { candidateName, hours, money } from "./model";
+import { candidateName, forecastMoney, hours, money } from "./model";
 import type { Candidate, Settlement, SettlementPage } from "./networkApi";
 
 type Hub = Candidate["route_hubs"][number];
@@ -188,7 +188,9 @@ export function RouteMap({ candidates, recommendation, opened, onOpen }: {
             className={candidate.id === recommendation ? "recommended" : undefined}>
             <b>{index + 1} · {candidateName(candidate)}</b>
             {candidate.id === recommendation && <small>Рекомендуем</small>}
-            <span>{money(candidate.complete ? candidate.total_cost_rub : null)} · {hours(candidate.max_delivery_hours)}</span>
+            <span>{candidate.forecast_price
+              ? forecastMoney(candidate.complete ? candidate.total_cost_rub : null, candidate.forecast_price.long_term)
+              : money(candidate.complete ? candidate.total_cost_rub : null)} · {hours(candidate.max_delivery_hours)}</span>
           </button>
         ))}
       </div>

@@ -14,6 +14,7 @@ import {
   candidateName,
   cargoLabel,
   date,
+  forecastMoney,
   hours,
   isNetwork,
   modeNames,
@@ -45,16 +46,29 @@ const kindName = (kind: string) =>
   kindNames[kind] || (kind.includes("storage") ? "Хранение" : kind);
 const completePrice = (c: Candidate) =>
   c.status === "feasible" && c.complete && c.total_cost_rub != null;
-const candidateStatus = (c: Candidate, limit: number) =>
+const candidateStatus = (c: Candidate, limit: number | null) =>
   c.status === "insufficient_data"
     ? "Недостаточно данных"
     : c.status === "infeasible"
-      ? c.max_delivery_hours != null && c.max_delivery_hours > limit
+      ? (limit != null && c.max_delivery_hours != null && c.max_delivery_hours > limit) ||
+        c.issues.some(({ code }) => code.endsWith("_deadline"))
         ? "Превышен срок"
         : "Есть ограничение"
       : c.complete
         ? "Соответствует условиям"
         : "Неполный расчёт";
+const candidatePrice = (c: Candidate) => {
+  const value = completePrice(c) ? c.total_cost_rub : null;
+  return c.forecast_price ? forecastMoney(value, c.forecast_price.long_term) : money(value);
+};
+const budgetRange = (c: Candidate) => {
+  const budget = c.forecast_price;
+  if (!budget || budget.lower_rub == null || budget.upper_rub == null)
+    return budget?.range_status === "not_calibrated" ? "Диапазон не откалиброван" : "—";
+  return `${forecastMoney(budget.lower_rub, budget.long_term)} – ${forecastMoney(budget.upper_rub, budget.long_term)}`;
+};
+const displayedTime = (moment?: string, offset?: number) =>
+  moment ? date(moment, true) : offset == null ? "—" : `+${hours(offset)}`;
 function Issues({ c }: { c: Candidate }) {
   return (
     <>
@@ -139,6 +153,7 @@ function Sources({ r, ids }: { r: Calculation; ids?: string[] }) {
 function Conditions({ snapshot }: { snapshot: NetworkSnapshot }) {
   const r = snapshot.result,
     request = r.request;
+  const schedule = request.schedule;
   return (
     <details className="conditions-summary ticket-shadow">
       <summary>
@@ -147,7 +162,7 @@ function Conditions({ snapshot }: { snapshot: NetworkSnapshot }) {
         <span>
           {num(totalVolume(r), 6)} т · {r.shipments} отправок
         </span>
-        <span>Лимит {hours(request.max_delivery_hours)}</span>
+        <span>{request.max_delivery_hours == null ? "Без лимита срока" : `Лимит ${hours(request.max_delivery_hours)}`}</span>
         <span className="chevron" aria-hidden="true">
           ⌄
         </span>
@@ -156,7 +171,7 @@ function Conditions({ snapshot }: { snapshot: NetworkSnapshot }) {
         <div className="facts">
           <div>
             <small>График</small>
-            <b>{scheduleName(request.schedule)}</b>
+            <b>{schedule ? scheduleName(schedule) : `Разовая отправка в ${r.forecast?.target_year} году`}</b>
           </div>
           <div>
             <small>Виды транспорта</small>
@@ -228,25 +243,25 @@ function Conditions({ snapshot }: { snapshot: NetworkSnapshot }) {
             </tbody>
           </table>
         </div>
-        {request.schedule.mode === "regular" ? (
+        {schedule?.mode === "regular" ? (
           <p className="muted">
-            Период, МСК: {date(request.schedule.start_at, true)} —{" "}
-            {date(request.schedule.end_at, true)}. Конец периода не включается.
+            Период, МСК: {date(schedule.start_at, true)} —{" "}
+            {date(schedule.end_at, true)}. Конец периода не включается.
           </p>
-        ) : request.schedule.mode === "once" ? (
+        ) : schedule?.mode === "once" ? (
           <p className="muted">
-            Готовность, МСК: {date(request.schedule.ready_at, true)}.
+            Готовность, МСК: {date(schedule.ready_at, true)}.
           </p>
-        ) : (
+        ) : schedule?.mode === "explicit" ? (
           <details>
             <summary>Выбранные даты, МСК</summary>
             <ul>
-              {request.schedule.ready_at.map((value) => (
+              {schedule.ready_at.map((value) => (
                 <li key={value}>{date(value, true)}</li>
               ))}
             </ul>
           </details>
-        )}
+        ) : null}
         {request.stops.length > 0 && (
           <div className="table-scroll">
             <table className="detail-table">
@@ -304,6 +319,7 @@ function CandidateReport({
   base?: Candidate;
 }) {
   const r = snapshot.result;
+  const yearOnly = r.forecast?.date_precision === "year";
   const batches = [...new Set(c.steps.map((s) => s.batch ?? 0))];
   const [batch, setBatch] = useState(String(batches[0] ?? 0));
   const steps = c.steps.filter(
@@ -312,12 +328,14 @@ function CandidateReport({
   const hub = (id?: string) =>
     c.route_hubs.find((h) => h.id === id)?.name || id || "—";
   const costGroups = new Map<string, number>();
-  for (const item of c.cost_items)
+  for (const item of c.cost_items) {
+    if (item.amount_rub == null) continue;
     costGroups.set(
       item.kind,
       (costGroups.get(item.kind) || 0) + item.amount_rub,
     );
-  const sum = c.cost_items.reduce((n, item) => n + item.amount_rub, 0);
+  }
+  const sum = c.cost_items.reduce((n, item) => n + (item.amount_rub ?? 0), 0);
   const cargo = (id: string) =>
     r.request.cargoes.find((cargo) => cargo.id === id)?.name || id;
   return (
@@ -354,10 +372,10 @@ function CandidateReport({
         <div className="report-total">
           <div>
             <small>
-              За весь период ·{" "}
+              {r.forecast ? `Оценка на ${r.forecast.target_year} год` : "За весь период"} ·{" "}
               {r.request.cost_basis === "including_vat" ? "с НДС" : "без НДС"}
             </small>
-            <strong>{money(completePrice(c) ? c.total_cost_rub : null)}</strong>
+            <strong>{candidatePrice(c)}</strong>
           </div>
           <div>
             <small>За тонну</small>
@@ -372,7 +390,7 @@ function CandidateReport({
             Максимальный срок <b>{hours(c.max_delivery_hours)}</b>
             <span className="muted">
               {" "}
-              при лимите {hours(r.request.max_delivery_hours)}
+              {r.request.max_delivery_hours != null ? `при лимите ${hours(r.request.max_delivery_hours)}` : "без заданного лимита"}
             </span>
           </p>
           <p>
@@ -380,6 +398,13 @@ function CandidateReport({
             <b>{num(totalVolume(r), 6)} т</b>
           </p>
         </div>
+        {c.forecast_price && (
+          <p className="table-note">
+            {c.forecast_price.base_rub != null && <>База в ценах {c.forecast_price.base_year} года · <b>{money(c.forecast_price.base_rub)}</b> · </>}
+            Диапазон бюджета · <b>{budgetRange(c)}</b>
+            {c.forecast_price.long_term && " · Долгосрочный сценарий"}
+          </p>
+        )}
         <p className="table-note">
           {c.evidence_levels.includes("synthetic") ||
           c.evidence_levels.includes("assumption")
@@ -407,7 +432,7 @@ function CandidateReport({
                     ? "Итого по ответу сервера"
                     : "Сумма учтённых строк"}
                 </span>
-                <b>{money(completePrice(c) ? c.total_cost_rub : sum)}</b>
+                <b>{money(completePrice(c) ? c.total_cost_rub : costGroups.size ? sum : null)}</b>
               </div>
             </div>
             {completePrice(c) && Math.abs(sum - c.total_cost_rub!) < 0.011 && (
@@ -417,15 +442,16 @@ function CandidateReport({
               </p>
             )}
             <details className="ledger-details">
-              <summary>Все начисления по датам ({c.cost_items.length})</summary>
+              <summary>{r.forecast ? "Начисления и индексы" : "Все начисления по датам"} ({c.cost_items.length})</summary>
               <div className="table-scroll">
                 <table className="detail-table">
                   <thead>
                     <tr>
                       <th>Компонент</th>
                       <th>Партия</th>
-                      <th>Дата, МСК</th>
-                      <th>Сумма</th>
+                      <th>{yearOnly ? "От готовности" : "Дата, МСК"}</th>
+                      {r.forecast && <><th>База</th><th>Индексы по годам</th></>}
+                      <th>{r.forecast ? "Оценка" : "Сумма"}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -433,7 +459,16 @@ function CandidateReport({
                       <tr key={i}>
                         <th>{kindName(item.kind)}</th>
                         <td>{item.batch == null ? "—" : item.batch + 1}</td>
-                        <td>{item.at ? date(item.at, true) : "—"}</td>
+                        <td>{displayedTime(item.at, item.offset_hours)}</td>
+                        {r.forecast && <>
+                          <td>{money(item.base_amount_rub)}{item.pricing && ` · ${item.pricing.base_year}`}</td>
+                          <td>
+                            {item.index_factors?.length ? item.index_factors.map((factor) => (
+                              <div key={factor.year}>{factor.year} · ×{num(factor.factor, 4)}</div>
+                            )) : item.amount_rub == null ? "Нет индекса" : "Действующая ставка"}
+                            {item.index_proxy && <small>Сводный индекс, приближение</small>}
+                          </td>
+                        </>}
                         <td>{money(item.amount_rub)}</td>
                       </tr>
                     ))}
@@ -480,8 +515,8 @@ function CandidateReport({
               )}
             </div>
             <p className="table-note">
-              Группа консолидации: {num(c.group_size)} отправок. Времена указаны
-              по Москве.
+              Группа консолидации: {num(c.group_size)} отправок.{" "}
+              {yearOnly ? "Время отсчитывается от готовности груза." : "Времена указаны по Москве."}
             </p>
             <ol className="route-timeline">
               {steps.map((s, i) => (
@@ -500,13 +535,10 @@ function CandidateReport({
                       : hub(s.hub_id)}
                   </p>
                   <p className="muted">
-                    {s.departure_at || s.start_at
-                      ? date((s.departure_at || s.start_at)!, true)
-                      : "—"}{" "}
-                    →{" "}
-                    {s.arrival_at || s.end_at
-                      ? date((s.arrival_at || s.end_at)!, true)
-                      : "—"}
+                    {displayedTime(s.departure_at || s.start_at, s.departure_offset_hours ?? s.start_offset_hours)}
+                    {" → "}
+                    {displayedTime(s.arrival_at || s.end_at, s.arrival_offset_hours ?? s.end_offset_hours)}
+                    {s.schedule_status === "scenario" && " · сценарный срок"}
                   </p>
                   {s.kind === "transport" && (
                     <p className="table-note">
@@ -530,8 +562,8 @@ function CandidateReport({
                     <th>Груз</th>
                     <th>Отправка</th>
                     <th>Масса, т</th>
-                    <th>Готовность, МСК</th>
-                    <th>Доставлено, МСК</th>
+                    <th>{yearOnly ? "Готовность" : "Готовность, МСК"}</th>
+                    <th>{yearOnly ? "Доставка от начала" : "Доставлено, МСК"}</th>
                     <th>Срок</th>
                   </tr>
                 </thead>
@@ -541,8 +573,8 @@ function CandidateReport({
                       <th>{cargo(item.cargo_id)}</th>
                       <td>{item.shipment + 1}</td>
                       <td>{num(item.weight_tonnes, 6)}</td>
-                      <td>{date(item.ready_at, true)}</td>
-                      <td>{date(item.delivered_at, true)}</td>
+                      <td>{displayedTime(item.ready_at, item.ready_offset_hours)}</td>
+                      <td>{displayedTime(item.delivered_at, item.delivered_offset_hours)}</td>
                       <td>{hours(item.delivery_hours)}</td>
                     </tr>
                   ))}
@@ -661,6 +693,8 @@ function NetworkResults({
       c.modes.includes(filter as keyof typeof modeNames),
   );
   const selected = candidates.find((c) => c.id === opened);
+  const alternative = r.forecast?.alternative;
+  const alternativeCandidate = r.candidates.find((c) => c.id === alternative?.id);
   const base = r.candidates
     .filter((c) => completePrice(c) && c.modes.every((m) => m === "road"))
     .sort((a, b) => a.total_cost_rub! - b.total_cost_rub!)[0];
@@ -684,11 +718,16 @@ function NetworkResults({
   }, [opened, filter]);
   const rows = [
     {
-      label: "Стоимость за период",
+      label: r.forecast ? `Оценка на ${r.forecast.target_year} год` : "Стоимость за период",
       value: (c: Candidate) => (
-        <strong>{money(completePrice(c) ? c.total_cost_rub : null)}</strong>
+        <strong>{candidatePrice(c)}</strong>
       ),
     },
+    ...(r.forecast ? [
+      { label: "Диапазон бюджета", value: budgetRange },
+      { label: "Базовая стоимость", value: (c: Candidate) => c.forecast_price?.base_rub == null
+          ? "—" : `${money(c.forecast_price.base_rub)} · ${c.forecast_price.base_year}` },
+    ] : []),
     {
       label: "За тонну",
       value: (c: Candidate) =>
@@ -700,6 +739,7 @@ function NetworkResults({
         <>
           {hours(c.max_delivery_hours)}
           {c.max_delivery_hours != null &&
+            r.request.max_delivery_hours != null &&
             c.max_delivery_hours > r.request.max_delivery_hours && (
               <small className="over-limit">
                 +{hours(c.max_delivery_hours - r.request.max_delivery_hours)}
@@ -743,8 +783,8 @@ function NetworkResults({
         <div>
           <h1>{saved ? "Сохранённый расчёт" : "Результат расчёта"}</h1>
           <p className="muted">
-            {saved ? date(snapshot.createdAt, true) + " · " : ""}Сценарный
-            расчёт ·{" "}
+            {saved ? date(snapshot.createdAt, true) + " · " : ""}
+            {r.forecast ? `Сценарный прогноз · ${r.forecast.target_year} год` : "Сценарный расчёт"} ·{" "}
             {r.request.cost_basis === "including_vat" ? "с НДС" : "без НДС"}
           </p>
         </div>
@@ -773,6 +813,18 @@ function NetworkResults({
           <p>
             Показаны найденные варианты в пределах поиска. Глобально самый
             дешёвый маршрут не гарантируется.
+          </p>
+        </div>
+      )}
+      {alternative && alternativeCandidate && (
+        <div className="notice">
+          <b>Запасной вариант · {candidateName(alternativeCandidate)}</b>
+          <p>
+            {alternative.difference_rub ? `${money(alternative.difference_rub)} дороже` : "Та же цена"} ·{" "}
+            {alternative.difference_hours
+              ? `${hours(Math.abs(alternative.difference_hours))} ${alternative.difference_hours < 0 ? "быстрее" : "дольше"}`
+              : "Тот же срок"}
+            {alternative.ranges_overlap && " · Диапазоны пересекаются"}
           </p>
         </div>
       )}
