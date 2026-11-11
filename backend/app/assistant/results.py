@@ -81,8 +81,35 @@ def forecast_summary(result):
     forecast = result.forecast
     rows = result.candidates
     chosen = next((row for row in rows if row["id"] == result.recommendation), None)
-    header = f"{result.request['origin']} → {result.request['destination']}, {forecast['target_year']} год"
+    request = result.request
+    route = " → ".join([request["origin"], *(stop["settlement"] for stop in request["stops"]), request["destination"]])
+    header = f"{route}, {forecast['target_year']} год"
+    schedule = request.get("schedule")
+    if schedule and schedule.get("mode") == "once":
+        header += f", готовность {schedule['ready_at']}"
+    cargo_lines = []
+    for cargo in request["cargoes"]:
+        pieces = [cargo.get("name") or cargo["cargo_type"], f"{number(cargo['weight_tonnes'])} т"]
+        if cargo.get("volume_m3") is not None:
+            pieces.append(f"{number(cargo['volume_m3'])} м³")
+        if cargo.get("max_piece_tonnes"):
+            pieces.append(f"до {number(cargo['max_piece_tonnes'] * 1000)} кг на место")
+        if cargo.get("splittable"):
+            pieces.append("делимая партия")
+        cargo_lines.append(", ".join(pieces))
+    if request.get("max_delivery_hours"):
+        cargo_lines.append(f"Срок до {number(request['max_delivery_hours'])} ч")
+    header = "\n".join([header, *cargo_lines])
     if chosen is None:
+        for cargo in result.request.get("cargoes", []):
+            bounds = (cargo.get("properties") or {}).get("required_temperature_c") or cargo.get("temperature_c")
+            if bounds is not None:
+                low, high = bounds
+                return "\n\n".join([
+                    header,
+                    f"В данных проекта нет варианта с полной ценой и подтверждённым режимом от {low:+g} до {high:+g} °C.",
+                    "Для сравнения нужны ставки на перевозку с таким температурным режимом и подтверждение условий обработки на всём маршруте.",
+                ])
         return "\n\n".join([
             header,
             "Для этого маршрута и условий не удалось рассчитать полную стоимость ни одного варианта.",
@@ -123,8 +150,10 @@ def forecast_summary(result):
         lines.append(f"Другой вариант — {name(other)}, около {price(other['total_cost_rub'], other)}, {duration(other)}.")
         if alternative["ranges_overlap"]:
             lines.append("Диапазоны цен пересекаются. Фактическая цена может поменять порядок вариантов.")
-    lines.append("Цена рассчитана по ставкам проекта с учётом того, как менялись тарифы по данным Росстата. "
+    lines.append("Сценарный прогноз использует базовые ставки проекта и индексы грузовых тарифов. "
                  "Перед отправкой уточните цену и срок у перевозчика.")
+    if forecast["date_precision"] == "year":
+        lines.append("Срок сценарный. Для проверки рейсов нужна дата отправки.")
     return "\n\n".join(lines)
 
 

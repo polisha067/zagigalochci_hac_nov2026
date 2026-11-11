@@ -45,6 +45,21 @@ class Database:
                     count INTEGER NOT NULL,
                     expires_at INTEGER NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS assistant_dialogs (
+                    user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+                    revision INTEGER NOT NULL,
+                    state TEXT NOT NULL,
+                    active_turn TEXT,
+                    active_until INTEGER
+                );
+                CREATE TABLE IF NOT EXISTS assistant_turns (
+                    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    turn_id TEXT NOT NULL,
+                    message TEXT NOT NULL,
+                    revision INTEGER NOT NULL,
+                    response TEXT NOT NULL,
+                    PRIMARY KEY (user_id, turn_id)
+                );
                 CREATE TABLE IF NOT EXISTS password_resets (
                     verification_id TEXT PRIMARY KEY,
                     user_id TEXT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,

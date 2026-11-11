@@ -114,7 +114,11 @@ class RussiaResponse(InputModel):
 
 
 def digest(data):
-    return hashlib.sha256(json.dumps(data,ensure_ascii=False,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+    fragments = json.JSONEncoder(ensure_ascii=False, sort_keys=True, separators=(',', ':')).iterencode(data)
+    checksum = hashlib.sha256()
+    while chunk := ''.join(itertools.islice(fragments, 8192)):
+        checksum.update(chunk.encode())
+    return checksum.hexdigest()
 
 
 class RussiaNetwork:

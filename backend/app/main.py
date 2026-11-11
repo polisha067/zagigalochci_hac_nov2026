@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 import hashlib
 import json
+import logging
 from pathlib import Path
 import secrets
 import time
@@ -17,6 +18,9 @@ from pwdlib import PasswordHash
 from starlette.concurrency import run_in_threadpool
 
 from .assistant.ollama_client import OllamaClient
+from .assistant.dialog import known_conditions, process_dialog, settlement_names
+from .assistant.dialog_models import DialogReply, DialogRequest, DialogState
+from .assistant.dialog_store import DialogConflict, dialog_turn, read_dialog
 from .assistant.planner import DeliveryPlanner
 from .assistant.regional_forecast import load_regional_forecast
 from .assistant.schemas import ChatRequest, ChatResponse
@@ -25,6 +29,7 @@ from .assistant.service import (
     InvalidAssistantTurn,
     InvalidDeliveryDraft,
     TurnPlanner,
+    _handle_tool,
     handle_chat,
 )
 from .config import Settings
@@ -451,6 +456,61 @@ def create_app(settings=None, *, assistant_planner: Optional[TurnPlanner] = None
             ) from exc
         except InvalidDeliveryDraft as exc:
             raise RequestValidationError(exc.fields) from exc
+
+    @app.get("/assistant/dialog", response_model=DialogReply, tags=["Ассистент"])
+    def get_assistant_dialog(user=Depends(require_user)):
+        saved = read_dialog(database, user["id"])
+        state = DialogState.model_validate(saved.state)
+        scenarios = state.current.scenarios
+        return DialogReply(revision=saved.revision, known=known_conditions(state.current),
+                           scenarios=scenarios, settlement_names=settlement_names(row.answer for row in scenarios))
+
+    @app.post("/assistant/dialog", response_model=DialogReply, tags=["Ассистент"])
+    def send_assistant_dialog(request: Request, payload: DialogRequest, user=Depends(require_user)):
+        try:
+            with dialog_turn(database, user["id"], payload) as turn:
+                if turn.replay is not None:
+                    return DialogReply.model_validate(turn.replay)
+                retry = database.consume_attempt("assistant:" + user["id"], int(time.time()), 60, 30)
+                if retry:
+                    raise error(429, "too_many_attempts", "Не более 30 сообщений в минуту", {"Retry-After": str(retry)})
+                planner = app.state.assistant_planner
+                if not isinstance(planner, DeliveryPlanner):
+                    raise AssistantUnavailable
+                state = DialogState.model_validate(turn.state)
+
+                def calculate_timed(calculation):
+                    started = time.perf_counter()
+                    try:
+                        return calculate_for_user(request, calculation, user)
+                    finally:
+                        logging.getLogger("uvicorn.error").debug(
+                            "assistant engine=%s elapsed_ms=%.0f", calculation.engine,
+                            (time.perf_counter() - started) * 1000,
+                        )
+
+                def run_tool(draft, message):
+                    return _handle_tool(
+                        draft, ChatRequest(message=message),
+                        calculate_timed,
+                        app.state.chukotavia, app.state.regional_forecast, app.state.networks,
+                    )
+
+                reply = process_dialog(planner, payload.message, state, turn.revision + 1, run_tool)
+                turn.state = state.model_dump(mode="json")
+                turn.response = reply.model_dump(mode="json")
+            return reply
+        except DialogConflict as exc:
+            messages = {
+                "assistant_in_progress": "Сообщение ещё обрабатывается. Повторите запрос через несколько секунд.",
+                "assistant_revision_conflict": "Условия изменились в другой вкладке. Сверьте их и повторите сообщение.",
+                "assistant_turn_reused": "Для изменённого сообщения требуется новый запрос.",
+            }
+            raise error(409, exc.code, messages[exc.code]) from exc
+        except AssistantUnavailable as exc:
+            raise error(503, "assistant_unavailable", "Ассистент недоступен. Условия сохранены. Попробуйте позже или воспользуйтесь формой.") from exc
+        except InvalidAssistantTurn as exc:
+            raise error(502, "assistant_invalid_response", "Не удалось обработать сообщение. Условия сохранены. Попробуйте отправить его ещё раз.") from exc
 
     @app.post("/network/calculations",response_model=NetworkResponse,tags=["Сеть и цепочки"])
     def network_calculate(request: Request, payload: NetworkRequest,user=Depends(optional_user)):

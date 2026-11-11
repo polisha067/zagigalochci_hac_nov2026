@@ -137,6 +137,7 @@ class ClarificationReply(ReplyBase):
 class CalculationReply(ReplyBase):
     kind: Literal["calculation"]
     calculation: EngineResult
+    conditional: bool = False
 
 
 class InformationReply(ReplyBase):

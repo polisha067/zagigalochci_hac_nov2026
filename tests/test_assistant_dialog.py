@@ -1,0 +1,315 @@
+import json
+import unittest
+from uuid import uuid4
+from unittest.mock import Mock
+
+from backend.app.assistant.dialog_models import DialogRequest
+from backend.app.assistant.dialog_store import dialog_turn
+from backend.app.assistant.ollama_client import OllamaMessage
+from backend.app.assistant.planner import DeliveryPlanner
+from backend.app.assistant.service import AssistantUnavailable
+from backend.network.russia import load_russia
+from tests import test_assistant
+
+
+class AssistantDialogTests(unittest.TestCase):
+    def setUp(self):
+        case = test_assistant.AssistantApiTests()
+        self.addCleanup(case.doCleanups)
+        case.setUp()
+        self.client = case.client
+        self.app = case.app.state
+        self.revision = 0
+        self.model = Mock()
+        self.app.assistant_planner = DeliveryPlanner(self.model, self.app.calculation_catalog, self.app.chukotavia, self.app.networks)
+
+    def send(self, message, action=None, changes=None, *, evidence=None, turn_id=None, revision=None, status=200):
+        if action:
+            values = changes or {}
+
+            def paths(row, path=""):
+                if isinstance(row, list) and all(isinstance(item, dict) for item in row):
+                    return [item for i, value in enumerate(row) for item in paths(value, f"{path}.{i}")]
+                if isinstance(row, dict):
+                    return [item for key, value in row.items()
+                            for item in paths(value, f"{path}.{key}" if path else key)]
+                return [path]
+
+            self.model.chat.side_effect = None
+            self.model.chat.return_value = OllamaMessage(content=json.dumps({
+                "action": action, "changes": values,
+                "evidence": evidence if evidence is not None else [{"path": path, "quote": message} for path in paths(values)],
+            }))
+        previous_calls = self.model.chat.call_count
+        response = self.client.post("/assistant/dialog", json={
+            "message": message, "turn_id": str(turn_id or uuid4()),
+            "revision": self.revision if revision is None else revision,
+        })
+        self.assertEqual(response.status_code, status, response.text)
+        if action:
+            self.assertEqual(self.model.chat.call_count - previous_calls, 1)
+        data = response.json()
+        if status == 200:
+            self.revision = data["revision"]
+        return data
+
+    def flour(self, *, destination="Нижний Новгород"):
+        return self.send(
+            f"10 т муки из Москвы в {destination} в 2030 году, делимые мешки, 20 м³.",
+            "new", {"origin": "Москва", "destination": destination, "target_year": 2030,
+                    "cargoes": [{"name": "Мука", "weight_tonnes": 10, "volume_m3": 20,
+                                 "splittable": True, "packaging": "bags"}]},
+        )
+
+    def test_partial_quote_clarification_year_and_form_parity(self):
+        first = self.send(
+            "Сколько стоит перевезти 100 тонн муки из Москвы в Новосибирск в 2030 году?",
+            "new", {"target_year": 2030, "cargoes": [{"name": "Мука", "weight_tonnes": 100}],
+                    "stops": [{"operation": "add", "city": "Москва"}, {"operation": "add", "city": "Новосибирск"}]},
+        )
+        self.assertEqual(set(first["answer"]["missing_fields"]), {"cargoes.0.packaging", "cargoes.0.splittable", "cargoes.0.volume_m3"})
+        complete = self.send(
+            "В мешках по 25 кг, 130 м³, партию можно разделить.", "update",
+            {"cargoes": [{"packaging": "bags", "weight_tonnes": 0.025, "volume_m3": 130,
+                          "splittable": True, "properties": {"handling_profile": "dry_general"}}]},
+            evidence=[{"path": f"cargoes.0.{field}", "quote": quote} for field, quote in (
+                ("packaging", "В мешках"), ("weight_tonnes", "25 кг"), ("splittable", "партию можно разделить"),
+                ("properties.handling_profile", "В мешках"),
+            )],
+        )
+        self.assertEqual(complete["answer"]["kind"], "calculation")
+        result = complete["answer"]["calculation"]
+        cargo = result["request"]["cargoes"][0]
+        self.assertEqual((cargo["weight_tonnes"], cargo["volume_m3"], cargo["max_piece_tonnes"]), (100, 130, 0.025))
+        self.assertIsNone(cargo["properties"])
+        self.assertIsNotNone(complete["selected_candidate"])
+        calls = self.model.chat.call_count
+        changed = self.send("А если в 2028 году?")
+        self.assertEqual(self.model.chat.call_count, calls)
+        alternate = changed["answer"]["calculation"]
+        self.assertEqual(alternate["request"], result["request"] | {"target_year": 2028})
+        self.assertNotEqual(alternate["candidates"][0]["total_cost_rub"], result["candidates"][0]["total_cost_rub"])
+        self.assertEqual(self.client.post("/network/russia/forecasts", json=alternate["request"]).json(), alternate)
+
+    def test_separate_quotes_catalogue_and_typo(self):
+        self.flour()
+        for origin, spoken, destination, name, genitive, packaging in (
+            ("Екатеринбург", "Екатеренбурга", "Москва", "Офисная бумага", "офисной бумаги", "boxes"),
+            ("Санкт-Петербург", "Санкт-Петербурга", "Москва", "Сахар", "сахара", "bags"),
+            ("Москва", "Москвы", "Казань", "Рис", "риса", "bags"),
+        ):
+            pack = "Коробки" if packaging == "boxes" else "Мешки"
+            reply = self.send(
+                f"Сколко стоит перевезти 100 тонн {genitive} из {spoken} в {destination} в 2030 году? {pack}, 120 м³, делимая партия.",
+                "update", {"origin": origin, "destination": destination, "target_year": 2030,
+                           "cargoes": [{"name": name, "packaging": packaging, "splittable": True}]},
+            )
+            result = reply["answer"]["calculation"]
+            self.assertEqual((result["request"]["origin"], result["request"]["destination"]), (origin, destination))
+            cargo, = result["request"]["cargoes"]
+            self.assertEqual((cargo["name"], cargo["weight_tonnes"], cargo["volume_m3"]), (name, 100, 120))
+            self.assertIsNone(cargo["max_piece_tonnes"])
+            self.assertIsNotNone(result["recommendation"])
+
+    def test_unknown_cargo_requests_properties_and_mass_only_skips_volume(self):
+        request = self.send(
+            "100 тонн книг из Москвы в Красноярск в 2030 году, делимые коробки.", "new",
+            {"origin": "Москва", "destination": "Красноярск", "target_year": 2030,
+             "cargoes": [{"name": "Книги", "packaging": "boxes", "splittable": True}]},
+        )
+        fields = request["answer"]["missing_fields"]
+        self.assertIn("cargoes.0.properties.phase", fields)
+        self.assertIn("cargoes.0.volume_m3", fields)
+        complete = self.send(
+            "Сухой твёрдый неопасный груз без особых условий и температурного режима. Посчитай только по массе.", "update",
+            {"capacity_basis": "mass_only", "cargoes": [{"properties": {"phase": "solid", "hazardous": False,
+                                       "handling_profile": "dry_general", "temperature_control_required": False}}]},
+        )
+        self.assertEqual(complete["answer"]["kind"], "calculation")
+        self.assertEqual(complete["answer"]["calculation"]["request"]["capacity_basis"], "mass_only")
+
+    def test_cargo_clarification_keeps_route_when_model_says_new(self):
+        self.flour(destination="Красноярск")
+        self.send("Через Екатеринбург и Новосибирск.", "update",
+                  {"stops": [{"operation": "add", "city": city} for city in ("Екатеринбург", "Новосибирск")]})
+        self.send("А если в 2028 году?")
+        pending = self.send("А если повезём карандаши вместо муки?", "update", {"cargoes": [{"name": "Карандаши"}]})
+        self.assertIn("cargoes.0.properties.handling_profile", pending["answer"]["missing_fields"])
+        completed = self.send(
+            "Везём 100 тонн карандашей в коробках, общий объём 120 м³. Партию можно разделить. "
+            "Груз сухой, твёрдый и неопасный, без особых условий и температурного режима.",
+            "new", {"cargoes": [{"name": "Карандаши"}]},
+        )
+        self.assertEqual(completed["answer"]["kind"], "calculation")
+        request = completed["answer"]["calculation"]["request"]
+        self.assertEqual((request["origin"], request["destination"], request["target_year"]), ("Москва", "Красноярск", 2028))
+        self.assertEqual([stop["settlement"] for stop in request["stops"]], ["Екатеринбург", "Новосибирск"])
+        cargo, = request["cargoes"]
+        self.assertEqual((cargo["name"], cargo["weight_tonnes"], cargo["volume_m3"]), ("Карандаши", 100, 120))
+
+    def test_full_shipment_is_recovered_when_model_omits_cargo(self):
+        for message, name, weight, volume in (
+            ("Новый арсчет. Москва → Екатеринбург → Новосибирск → Красноярск, 2028 год. "
+             "Везём 100 тонн карандашей в коробках, общий объём 120 м³. Партию можно разделить. "
+             "Груз сухой, твёрдый и неопасный, без особых условий и температурного режима.",
+             "карандаш", 100, 120),
+            ("Новый расчёт: Москва → Екатеринбург → Новосибирск → Красноярск, 2028 год. "
+             "Перевезти 10 т муки в мешках, 20 м³, партия делимая.", "мук", 10, 20),
+        ):
+            with self.subTest(message=message):
+                response = self.send(message, "clarify", evidence=[])
+                self.assertEqual(response["answer"]["kind"], "calculation", response["answer"]["reply"])
+                request = response["answer"]["calculation"]["request"]
+                self.assertEqual((request["origin"], request["destination"], request["target_year"]),
+                                 ("Москва", "Красноярск", 2028))
+                self.assertEqual([stop["settlement"] for stop in request["stops"]], ["Екатеринбург", "Новосибирск"])
+                cargo, = request["cargoes"]
+                self.assertTrue(cargo["name"].lower().startswith(name))
+                self.assertEqual((cargo["weight_tonnes"], cargo["volume_m3"], cargo["splittable"]), (weight, volume, True))
+
+    def test_dated_estimate_uses_form_defaults_and_horizon(self):
+        reply = self.send(
+            "Офисная бумага, 8 т, 12 м³, делимые коробки, из Москвы в Санкт-Петербург. Груз готов 20 ноября 2026 года.",
+            "new", {"origin": "Москва", "destination": "Санкт-Петербург",
+                    "cargoes": [{"name": "Офисная бумага", "packaging": "boxes", "splittable": True, "volume_m3": 12}]},
+        )
+        self.assertEqual(reply["answer"]["missing_fields"], ["schedule.ready_at"])
+        self.assertIn("Дата готовности — 2026-11-20", reply["known"])
+        reply = self.send("В 10:00 МСК")
+        result = reply["answer"]["calculation"]
+        self.assertEqual(reply["answer"]["tool"], "calculate_russia")
+        self.assertIsNone(result["request"]["max_delivery_hours"])
+        form = self.client.post("/calculations", json=result["request"] | {"max_delivery_hours": 90 * 24})
+        self.assertEqual(form.status_code, 200, form.text)
+        self.assertEqual(form.json() | {"request": result["request"]}, result)
+        ambiguous = self.send("А если в 2028 году?")
+        self.assertEqual(ambiguous["answer"]["missing_fields"], ["schedule.ready_at"])
+        year_only = self.send("Без даты.")
+        self.assertEqual(year_only["answer"]["calculation"]["forecast"]["target_year"], 2028)
+
+    def test_visit_only_stop_with_city_typo_preserves_current_shipment(self):
+        original = self.send(
+            "100 т муки из Москвы в Красноярск в 2032 году, делимые мешки, 20 м³.",
+            "new", {"origin": "Москва", "destination": "Красноярск", "target_year": 2032,
+                    "cargoes": [{"name": "Мука", "weight_tonnes": 100, "volume_m3": 20,
+                                 "splittable": True, "packaging": "bags"}]},
+        )["answer"]["calculation"]["request"]
+        calls = self.model.chat.call_count
+        updated = self.send("а если с остановкой в екатеренбурге без погрузки и выгрузки")
+        self.assertEqual(self.model.chat.call_count, calls)
+        request = updated["answer"]["calculation"]["request"]
+        stop, = request["stops"]
+        self.assertEqual(stop["settlement"], "Екатеринбург")
+        self.assertEqual(stop["action"], "visit")
+        self.assertEqual(stop["pickup_cargo_ids"], [])
+        self.assertEqual(stop["delivery_cargo_ids"], [])
+        self.assertEqual(request, original | {"stops": [stop]})
+
+    def test_free_form_stop_even_when_model_asks_to_clarify(self):
+        for message, city in (
+            ("а остановку через брянск добавь", "Брянск"),
+            ("по пути заедем в Казань", "Казань"),
+        ):
+            with self.subTest(message=message):
+                self.flour()
+                answer = self.send(message, "clarify")["answer"]
+                self.assertEqual(answer["kind"], "calculation")
+                stop, = answer["calculation"]["request"]["stops"]
+                self.assertEqual((stop["settlement"], stop["action"]), (city, "visit"))
+
+    def test_stop_survives_year_change_and_comparison(self):
+        self.flour()
+        stopped = self.send("Через Владимир, остановка на 2 часа.", "update",
+                            {"stops": [{"operation": "add", "city": "Владимир", "dwell_hours": 2}]})
+        self.assertEqual(stopped["answer"]["kind"], "calculation")
+        original = stopped["answer"]["calculation"]
+        stop, = original["request"]["stops"]
+        self.assertEqual((stop["settlement"], stop["action"], stop["dwell_hours"]), ("Владимир", "visit", 2))
+        self.assertIn("Владимир", stopped["settlement_names"].values())
+        updated = self.send("А если в 2028 году?")
+        self.assertEqual(updated["answer"]["calculation"]["request"]["stops"], [stop])
+        compared = self.send("Сравни 2028 и 2030 годы")
+        self.assertIn("2028 год", compared["known"])
+        for year, row in zip((2028, 2030), compared["scenarios"]):
+            result = row["answer"]["calculation"]
+            self.assertEqual(result["forecast"]["target_year"], year)
+            self.assertEqual(result["request"]["stops"], [stop])
+        form_request = original["request"] | {"stops": [stop | {"settlement": load_russia().resolve("Владимир")}]}
+        self.assertEqual(self.client.post("/network/russia/forecasts", json=form_request).json(), original)
+
+    def test_stop_edits_keep_order_and_prompt_for_missing_anchor(self):
+        self.flour(destination="Уфа")
+        for message, edits, expected in (
+            ("Через Владимир и Казань.", [{"operation": "add", "city": "Владимир"}, {"operation": "add", "city": "Казань"}], "Владимир → Казань"),
+            ("Вместо Казани через Нижний Новгород.", [{"operation": "replace", "city": "Казань", "replacement": "Нижний Новгород"}], "Владимир → Нижний Новгород"),
+            ("Переставь Владимир после Нижнего Новгорода.", [{"operation": "move", "city": "Владимир", "after": "Нижний Новгород"}], "Нижний Новгород → Владимир"),
+            ("Убери Владимир.", [{"operation": "remove", "city": "Владимир"}], "Нижний Новгород"),
+        ):
+            result = self.send(message, "update", {"stops": edits})
+            self.assertIn("Через " + expected, result["known"])
+        answer = self.send("Добавь Казань.", "update", {"stops": [{"operation": "add", "city": "Казань"}]})
+        self.assertEqual(answer["answer"]["missing_fields"], ["stops"])
+        self.assertIn("Через Нижний Новгород", answer["known"])
+        placed = self.send("После Нижнего Новгорода.")
+        self.assertIn("Через Нижний Новгород → Казань", placed["known"])
+
+    def test_stop_delivery_positions_and_missing_volume(self):
+        shipment = {"origin": "Москва", "destination": "Уфа", "target_year": 2030,
+                    "stops": [{"operation": "add", "city": "Казань", "action": "delivery"}],
+                    "cargoes": [
+                        {"name": "Мука", "weight_tonnes": 4, "packaging": "bags", "splittable": True, "delivery_at": "Казань"},
+                        {"name": "Мука", "weight_tonnes": 6, "volume_m3": 12, "packaging": "bags", "splittable": True},
+                    ]}
+        first = self.send(
+            "Москва → Казань → Уфа, в Казани выгрузить 4 т муки, в Уфе — 6 т (12 м³), делимые мешки, 2030 год.",
+            "new", shipment,
+        )
+        self.assertEqual(first["answer"]["missing_fields"], ["cargoes.0.volume_m3"])
+        complete = self.send("Для Казани 8 м³.", "update", {"cargoes": [{"id": "cargo-1", "volume_m3": 8}]})
+        result = complete["answer"]["calculation"]
+        self.assertEqual([cargo["volume_m3"] for cargo in result["request"]["cargoes"]], [8, 12])
+        self.assertEqual(result["request"]["stops"][0]["delivery_cargo_ids"], ["cargo-1"])
+        asked = self.send("Убери остановку в Казани.", "update", {"stops": [{"operation": "remove", "city": "Казань"}]})
+        self.assertEqual(asked["answer"]["missing_fields"], ["cargoes.0.delivery_at"])
+        removed = self.send("Выгрузи эту позицию в Уфе.", "update",
+                            {"cargoes": [{"id": "cargo-1", "delivery_at": "Уфа"}]})
+        self.assertEqual(removed["answer"]["calculation"]["request"]["stops"], [])
+
+    def test_failure_replay_revision_and_unsupported(self):
+        first = self.flour()
+        self.model.chat.return_value = OllamaMessage(content="{bad json")
+        invalid = self.send("Поменяй объём")
+        self.assertEqual(invalid["answer"]["kind"], "clarification")
+        self.assertEqual(invalid["known"], first["known"])
+        failed_id = uuid4()
+        self.model.chat.side_effect = AssistantUnavailable
+        self.send("Объём 25 м³", turn_id=failed_id, status=503)
+        self.assertEqual(self.client.get("/assistant/dialog").json()["revision"], invalid["revision"])
+        updated = self.send("Объём 25 м³", "update", {"cargoes": [{"volume_m3": 25}]}, turn_id=failed_id)
+        self.assertEqual(self.send("Объём 25 м³", turn_id=failed_id, revision=invalid["revision"]), updated)
+        self.assertEqual(self.send("Иное сообщение", revision=invalid["revision"], status=409)["error"]["code"], "assistant_revision_conflict")
+        self.assertEqual(self.send("Иное сообщение", turn_id=failed_id, status=409)["error"]["code"], "assistant_turn_reused")
+        unsupported = self.send("Как вырастет объём грузоперевозок в Москве в 2030 году?", "unsupported")
+        self.assertIsNone(unsupported["answer"]["calculation"])
+        self.assertEqual(unsupported["known"], updated["known"])
+
+    def test_storage_accepts_previous_format_and_rejects_concurrent_turn(self):
+        saved = self.flour()
+        db = self.app.database
+        with db.connect() as connection:
+            row = connection.execute("SELECT state FROM assistant_dialogs WHERE user_id = ?", ("chat-test",)).fetchone()
+            state = json.loads(row["state"])
+            state["lookup"] = {"tool": "lookup_connectivity", "arguments": {}}
+            state["comparison"] = [{"target_year": 2028}]
+            state["current"]["options"]["budget_rub"] = 100000
+            connection.execute("UPDATE assistant_dialogs SET state = ? WHERE user_id = ?", (json.dumps(state), "chat-test"))
+        self.assertEqual(self.client.get("/assistant/dialog").json()["known"], saved["known"])
+        request = DialogRequest(message="Проверка", turn_id=uuid4(), revision=self.revision)
+        with self.assertRaisesRegex(RuntimeError, "cancel"):
+            with dialog_turn(db, "chat-test", request):
+                blocked = self.send("Другое сообщение", status=409)
+                self.assertEqual(blocked["error"]["code"], "assistant_in_progress")
+                raise RuntimeError("cancel")
+        self.client.cookies.clear()
+        self.assertEqual(self.client.get("/assistant/dialog").status_code, 401)
+        self.send("Привет", status=401)

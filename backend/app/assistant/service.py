@@ -87,7 +87,7 @@ FIELD_LABELS = {
 SCHEDULE_QUESTION = ("когда груз будет готов к отправке. Если отправок несколько, "
                      "укажите даты или период и частоту")
 SHIPMENT_YEAR = re.compile(
-    r"\b(?:в|на)\s+(20\d{2})(?:\s+год(?:у|е)?)?\b(?!\s*(?:кг|т|тонн\w*|час\w*|руб\w*)\b)",
+    r"\b(?:в|на|к)\s+(20\d{2})(?:\s+год(?:у|е)?)?\b(?!\s*(?:кг|т|тонн\w*|час\w*|руб\w*)\b)",
     re.IGNORECASE,
 )
 RUSSIA_FIRST_YEAR = int(RUSSIA_START[:4])
@@ -214,20 +214,56 @@ def _validation_questions(error):
     return fields
 
 
-def _cargo_questions(engine, arguments, networks):
+CARGO_PROPERTY_FIELDS = ("phase", "hazardous", "handling_profile", "temperature_control_required")
+
+
+def _cargo_catalogue(engine, arguments, networks):
+    if engine == "russia":
+        return load_russia().cargo_types
+    if engine != "network":
+        return {}
+    network_id = arguments.get("network_id", "synthetic-network-v1")
+    graph = (networks or {}).get(network_id) if isinstance(network_id, str) else None
+    return {key: cargo.model_dump() for key, cargo in graph.catalog.cargo_types.items()} if graph else {}
+
+
+def _catalogue_cargo_names(catalogue):
+    names = {}
+    for identifier, cargo in catalogue.items():
+        for name in (identifier, cargo["name"], *cargo["aliases"]):
+            names.setdefault(normalized_name(name), set()).add(identifier)
+    return names
+
+
+def _complete_cargo_properties(arguments, catalogue, names):
+    cargoes = arguments.get("cargoes")
+    if not isinstance(cargoes, list):
+        return arguments
+    completed = []
+    for cargo in cargoes:
+        if not isinstance(cargo, dict) or not isinstance(cargo.get("properties"), dict):
+            completed.append(cargo)
+            continue
+        props = {field: value for field, value in cargo["properties"].items() if value is not None}
+        name = cargo.get("name") or cargo.get("cargo_type")
+        matches = names.get(normalized_name(name), set()) if isinstance(name, str) else set()
+        if len(matches) == 1:
+            known = catalogue[next(iter(matches))]
+            defaults = {field: known[field] for field in CARGO_PROPERTY_FIELDS if field in known}
+            defaults["temperature_control_required"] = bool(known.get("required_temperature_c") or cargo.get("temperature_c"))
+            props = defaults | props
+            if props["temperature_control_required"] and known.get("required_temperature_c") and not cargo.get("temperature_c"):
+                props.setdefault("required_temperature_c", known["required_temperature_c"])
+        if props.get("temperature_control_required") is True and props.get("required_temperature_c") is None and cargo.get("temperature_c"):
+            props["required_temperature_c"] = cargo["temperature_c"]
+        completed.append(cargo | {"properties": props})
+    return arguments | {"cargoes": completed}
+
+
+def _cargo_questions(engine, arguments, known_names):
     cargoes = arguments.get("cargoes")
     if engine not in ("russia", "network") or not isinstance(cargoes, list):
         return {}
-    if engine == "russia":
-        catalogue = load_russia().cargo_types
-    else:
-        network_id = arguments.get("network_id", "synthetic-network-v1")
-        graph = networks.get(network_id) if isinstance(network_id, str) else None
-        catalogue = {key: cargo.model_dump() for key, cargo in graph.catalog.cargo_types.items()} if graph else {}
-    known_names = {
-        normalized_name(name) for key, cargo in catalogue.items()
-        for name in (key, cargo["name"], *cargo["aliases"])
-    }
     fields = {}
     for index, cargo in enumerate(cargoes):
         if not isinstance(cargo, dict):
@@ -240,8 +276,15 @@ def _cargo_questions(engine, arguments, networks):
             missing.append("volume_m3")
         name = cargo.get("name") or cargo.get("cargo_type")
         properties = cargo.get("properties")
-        if isinstance(name, str) and known_names and normalized_name(name) not in known_names and properties is None:
-            missing.extend(f"properties.{field}" for field in ("phase", "hazardous", "handling_profile", "temperature_control_required"))
+        if isinstance(name, str) and known_names and normalized_name(name) not in known_names:
+            missing_properties = [field for field in CARGO_PROPERTY_FIELDS
+                                  if not isinstance(properties, dict) or properties.get(field) is None]
+            if len(missing_properties) == len(CARGO_PROPERTY_FIELDS):
+                label = (f"опишите свойства груза «{name}». Для обычной партии достаточно написать "
+                         "«сухой неопасный груз без особых условий и температурного режима»")
+                fields.update({f"{prefix}.properties.{field}": label for field in missing_properties})
+            else:
+                missing.extend(f"properties.{field}" for field in missing_properties)
         if isinstance(properties, dict) and properties.get("temperature_control_required") is True and properties.get("required_temperature_c") is None:
             missing.append("properties.required_temperature_c")
         for field in missing:
@@ -310,6 +353,7 @@ def _handle_tool(turn, request, calculate, aviation, forecast, networks):
     fields = {}
     introduction = ""
     engine = None
+    known_names = {}
     try:
         if name in CALCULATIONS:
             engine, _, response_model, _ = CALCULATIONS[name]
@@ -319,6 +363,9 @@ def _handle_tool(turn, request, calculate, aviation, forecast, networks):
                 turn = turn.model_copy(update={"arguments": arguments})
                 introduction = (f"Для {year} года в проекте нет тарифов и расписаний для расчёта этого маршрута. "
                                 f"Могу сравнить варианты на дату в {RUSSIA_YEARS} году.\n\n")
+            catalogue = _cargo_catalogue(engine, arguments, networks)
+            known_names = _catalogue_cargo_names(catalogue)
+            arguments = _complete_cargo_properties(arguments, catalogue, known_names)
             payload = calculation_request(name, arguments)
         elif name in REFERENCES:
             model, handler, dependency, _ = REFERENCES[name]
@@ -330,7 +377,7 @@ def _handle_tool(turn, request, calculate, aviation, forecast, networks):
     except ToolQuestion as exc:
         return _clarification_reply(turn, dict.fromkeys(exc.fields), context, message=str(exc))
 
-    fields.update(_cargo_questions(engine, arguments, networks))
+    fields.update(_cargo_questions(engine, arguments, known_names))
     if engine == "pipeline" and not arguments.get("route_id"):
         for field in ("origin", "destination"):
             if not arguments.get(field):

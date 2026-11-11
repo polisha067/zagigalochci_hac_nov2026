@@ -39,6 +39,7 @@ REFERENCES = {
     "lookup_chukotavia_schedule": (refs.AirScheduleQuery, refs.air_schedule, "aviation", "Плановые рейсы ЧукотАВИА по направлению и календарной дате вылета в местном времени."),
     "lookup_connectivity": (refs.ConnectivityQuery, refs.connectivity, None, "Исходные наблюдения связности городов: расстояние и время поездок по видам транспорта."),
     "lookup_fesco_voyages": (refs.FescoQuery, refs.fesco, None, "Опубликованные календарные даты отхода и прибытия FESCO из PDF. date_from и date_to включительно."),
+    "lookup_fesco_reefer_tariff": (refs.FescoReeferQuery, refs.fesco_reefer_tariff, None, "Опубликованная ставка FESCO на рефконтейнер грузоотправителя между Владивостоком и Петропавловском-Камчатским. Это часть цены, не прогноз и не бронь."),
     "lookup_river_scenario": (refs.RiverQuery, refs.river, None, "Компонентные ставки, условная навигация и вместимость речной схемы Красноярск ↔ Дудинка."),
     "lookup_pipeline_reference": (refs.PipelineReferenceQuery, refs.pipeline_reference, None, "Справка о трубопроводных ставках, операциях, диспетчеризации или справочной длине, без расчёта партии."),
     "lookup_rosmorport": (refs.PortQuery, refs.ports, None, "Справочник Росморпорта по названию или бассейну: навигация, характеристики, сборы, расположение и услуги."),
@@ -99,7 +100,7 @@ def _prepare_arguments(engine, arguments):
             {"id": f"cargo-{index}", **item} if isinstance(item, dict) else item
             for index, item in enumerate(payload["cargoes"], 1)
         ]
-        if river:
+        if engine in ("network", "russia"):
             for cargo in payload["cargoes"]:
                 props = cargo.get("properties") if isinstance(cargo, dict) else None
                 if (isinstance(props, dict) and props.get("phase") == "solid" and props.get("hazardous") is False

@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field, model_validator
 from backend.calculation_models import InputModel
 from backend.network.cargo import normalized_name
 from backend.network.chukotavia import ChukotaviaData
+from backend.network.models import CargoProperties
 from backend.network.russia import load_russia
 from backend.transport_calculator import catalog_cities
 
@@ -28,6 +29,10 @@ ARROW_ROUTE = re.compile(r"([^,.!?→]+)→([^,.!?→]+)")
 TEXT_ROUTE = re.compile(r"\b(?:из|от)\s+([^,.!?→]+?)\s+(?:в|до)\s+([^,.!?→]+)", re.IGNORECASE)
 ROUTE_CHANGE = re.compile(r"\b(?:поменя\w*|замен\w*|вместо|маршрут\w*|(?:теперь|а если)\s+(?:из|в|до))\b", re.IGNORECASE)
 ROUTE_ARGUMENTS = ("origin", "destination", "origin_hub_id", "destination_hub_id", "route_id", "network_id")
+CELSIUS_RANGE = re.compile(
+    r"\bот\s+([+−-]?\d{1,3}(?:[.,]\d+)?)\s*(?:°\s*[CС]\s*)?до\s+([+−-]?\d{1,3}(?:[.,]\d+)?)\s*°\s*[CС]\b",
+    re.IGNORECASE,
+)
 MASS_ONLY = re.compile(r"\b(?:по\s+(?:одной\s+)?(?:массе|весу)|только\s+(?:массу|вес)|без\s+(?:уч[её]та\s+)?объ[её]ма)\b", re.IGNORECASE)
 MONTH_NAMES = ("января", "февраля", "марта", "апреля", "мая", "июня",
                "июля", "августа", "сентября", "октября", "ноября", "декабря")
@@ -98,6 +103,7 @@ ROUTER_PROMPT = """Классифицируй запрос о грузопере
 - lookup_pipeline_reference: узнать ставки, операции или справочную длину нефтепровода.
 - lookup_connectivity: исходные наблюдения расстояния и времени поездок между городами.
 - lookup_fesco_voyages: даты рейсов FESCO из снимка расписания.
+- lookup_fesco_reefer_tariff: опубликованная ставка на рефконтейнер FESCO на линии Владивосток ↔ Петропавловск-Камчатский.
 - lookup_river_scenario: справка по ставкам, условным рейсам или вместимости Красноярск ↔ Дудинка.
 - lookup_rosmorport: справочные характеристики, услуги и навигация порта.
 - lookup_asop: статистика морских портов и грузооборота АСОП.
@@ -182,6 +188,10 @@ NETWORK_PROMPT = SHIPMENT_PROMPT + """
 Для «10 т сухого груза в коробках» позиция {"name":"Сухой груз","weight_tonnes":10,"packaging":"boxes"}.
 Обычно достаточно name, без cargo_type. Добавляй properties только при явно заданных состоянии,
 опасности, профиле обращения и температурном режиме. Не угадывай недостающие свойства.
+Состояние груза передавай в properties.phase, а не в cargo_type. Все свойства находятся внутри properties.
+«Коробки на паллетах» означает packaging=boxes. «Бережное обращение, твёрдый, неопасный,
+от +15 до +18 °C» означает properties={"handling_profile":"careful","phase":"solid","hazardous":false,
+"temperature_control_required":true,"required_temperature_c":[15,18]}.
 Не указывай служебные max_legs, max_candidates, ready_offset_hours или параметры отдельных позиций
 по умолчанию. Общий предельный срок относится к верхнеуровневому max_delivery_hours.
 """
@@ -386,6 +396,35 @@ def _has_single_duration(message):
     return sum(1 for _ in durations) == 1
 
 
+def _normalize_cargo_properties(arguments):
+    cargoes = arguments.get("cargoes")
+    if not isinstance(cargoes, list):
+        return
+    for cargo in cargoes:
+        if not isinstance(cargo, dict):
+            continue
+        properties = cargo.get("properties")
+        if properties is not None and not isinstance(properties, dict):
+            continue
+        flat = {field: cargo.pop(field) for field in CargoProperties.model_fields if field in cargo}
+        if cargo.get("name") and cargo.get("cargo_type") in ("solid", "liquid", "gas"):
+            flat.setdefault("phase", cargo.pop("cargo_type"))
+        if flat:
+            cargo["properties"] = {**flat, **(properties or {})}
+
+
+def _keep_explicit_temperature(arguments, message):
+    cargoes = arguments.get("cargoes")
+    if not isinstance(cargoes, list) or len(cargoes) != 1 or not isinstance(cargoes[0], dict):
+        return
+    properties = cargoes[0].get("properties")
+    if not isinstance(properties, dict) or properties.get("temperature_control_required") is not True:
+        return
+    ranges = CELSIUS_RANGE.findall(message)
+    if len(ranges) == 1:
+        properties["required_temperature_c"] = [float(value.replace(",", ".").replace("−", "-")) for value in ranges[0]]
+
+
 def _keep_explicit_river_cargo(arguments, message):
     cargoes = arguments.get("cargoes")
     if (arguments.get("network_id") != "river-krasnoyarsk-dudinka-scenario-v1"
@@ -522,7 +561,21 @@ class DeliveryPlanner:
             {"role": "user", "content": json.dumps(route_input, ensure_ascii=False)},
         ], [], response_schema=ROUTE_SCHEMA)
         selected = RouteChoice.model_validate_json(route.content).tool
-        if (future_year and (cities or selected in ("calculate_russia", FUTURE_COST_TOOL))
+        if (stated_year and pending and pending.tool == "calculate_russia"
+                and not ROUTE_IN_MESSAGE.search(request.message)
+                and selected in ("resume", "help", "calculate_russia", FUTURE_COST_TOOL)):
+            arguments = dict(pending.arguments)
+            schedule = arguments.pop("schedule", None)
+            if isinstance(schedule, dict) and schedule.get("mode") == "regular":
+                arguments["schedule"] = {key: schedule[key] for key in ("mode", "frequency") if key in schedule}
+            arguments["target_year"] = stated_year
+            pending = pending.model_copy(update={
+                "tool": FUTURE_COST_TOOL, "arguments": arguments,
+                "missing_fields": [field for field in pending.missing_fields
+                                   if field != "schedule" and not field.startswith("schedule.")],
+            })
+            selected = FUTURE_COST_TOOL
+        elif (future_year and (cities or selected in ("calculate_russia", FUTURE_COST_TOOL))
                 and selected in ("help", TOOL_NAME, "calculate_russia", "calculate_network", "calculate_corridor_forecast", FUTURE_COST_TOOL)):
             selected = FUTURE_COST_TOOL
         elif (pending and pending.tool == FUTURE_COST_TOOL and selected in SHIPMENT_TOOLS
@@ -605,6 +658,8 @@ class DeliveryPlanner:
                 arguments = _keep_explicit_readiness_date(arguments, request.message)
                 if selected == "calculate_network":
                     _keep_explicit_river_cargo(arguments, request.message)
+                if selected in ("calculate_russia", "calculate_network", FUTURE_COST_TOOL):
+                    _normalize_cargo_properties(arguments)
                 if duration := STATED_DEADLINE.search(request.message):
                     arguments["max_delivery_hours"] = _deadline_hours(duration)
                     cargoes = arguments.get("cargoes")
@@ -634,6 +689,8 @@ class DeliveryPlanner:
                     arguments = {key: value for key, value in arguments.items()
                                  if key not in ROUTE_ARGUMENTS or key not in pending.arguments}
                 arguments = merge_arguments(pending.arguments, arguments)
+            if selected in ("calculate_russia", "calculate_network", FUTURE_COST_TOOL):
+                _keep_explicit_temperature(arguments, request.message)
             if selected in SHIPMENT_TOOLS:
                 schedule = _weekly_schedule(request.message, arguments.get("schedule"), self.zone)
                 if schedule is not None:

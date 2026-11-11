@@ -15,6 +15,7 @@ from backend.calculation_models import InputModel, Text
 from backend.network.asop import load_snapshot
 from backend.network.cargo import normalized_name
 from backend.network.chukotavia import normalized
+from backend.network.provider_tariffs import observations as provider_observations
 
 from .regional_forecast import ForecastQuery, forecast_reply, rank_regional_forecast
 from .schemas import DocumentSource, InformationTurn, ReferenceResult
@@ -25,6 +26,7 @@ AIR_PATH = "backend/data_sources/chukotavia/dataset.json"
 ASOP_PATH = "backend/data_sources/asop/observations.json"
 CONNECTIVITY_PATH = "backend/data_sources/russia/connectivity.json"
 FESCO_PATH = "backend/data_sources/russia/fesco-voyages.json"
+PROVIDER_TARIFF_PATH = "backend/data_sources/delivery_forecast/provider_observations.json"
 PIPELINE_PATH = "backend/data_sources/pipeline/tariffs.json"
 PORTS_PATH = "backend/data_sources/rosmorport/references.json"
 RIVER_PATH = "backend/data_sources/river/network.json"
@@ -43,6 +45,8 @@ def snapshot(path):
 
 
 def source_ref(source, path, *, section=None, title=None):
+    if section is None and source.get("publication_year"):
+        section = source.get("description", "")[:100] or str(source["publication_year"])
     return DocumentSource(
         title=title or source.get("title") or source.get("name") or source.get("id") or "Снимок проекта",
         url=source.get("url") or source.get("source_url"),
@@ -105,6 +109,11 @@ class FescoQuery(LookupLimit):
         if self.date_from and self.date_to and self.date_from > self.date_to:
             raise ValueError("Конец периода должен быть не раньше начала")
         return self
+
+
+class FescoReeferQuery(CityPair):
+    size_ft: Literal[20, 40] | None = None
+    shipment_date: date | None = None
 
 
 class RiverQuery(InputModel):
@@ -321,6 +330,36 @@ def fesco(query):
         ["Опубликованы календарные даты. Время суток, фрахт и рабочие параметры модели сценарные. Бронирование не подтверждено."],
         [source_ref(source, FESCO_PATH) for source in data["sources"] if not ids or source["id"] in ids],
         total_matches=len(records),
+    )
+
+
+def fesco_reefer_tariff(query):
+    collected, records, documents, _ = provider_observations()
+    record = records["fesco-fpkl-container-cy-cy"]
+    endpoints = record["endpoints"]
+    direction = [query.origin, query.destination]
+    normalized_direction = list(map(normalized_name, direction))
+    forward = list(map(normalized_name, endpoints))
+    source = source_ref({"url": documents[record["source"]], "date": collected}, PROVIDER_TARIFF_PATH,
+                        title="FESCO — контейнерные тарифы ФПКЛ", section=record["source_locator"])
+    if normalized_direction not in (forward, forward[::-1]):
+        return _information(record["id"], "Этот тарифный снимок относится к линии Владивосток ↔ Петропавловск-Камчатский.",
+                            [], [], [], [source])
+    if query.shipment_date and not date.fromisoformat(record["valid_from"]) <= query.shipment_date <= date.fromisoformat(collected):
+        return _information(record["id"], "Для выбранной даты применимость ставки в снимке не подтверждена.",
+                            [], [], [f"Ставка опубликована с {record['valid_from']}, снимок собран {collected}."], [source])
+    column = 1 if normalized_direction == forward else 2
+    rows = []
+    for size in (20, 40) if query.size_ft is None else (query.size_ft,):
+        tariff = next(row[column] for row in record["rows"] if row[0] == f"shipper_{size}_reefer")
+        if tariff is not None:
+            rows.append({"container_ft": size, "rate_rub": tariff, "valid_from": record["valid_from"], "vat": "с НДС"})
+    return _information(
+        record["id"], f"Фрахт FESCO для рефконтейнера грузоотправителя, {query.origin} → {query.destination}.", rows,
+        [f"{row['container_ft']} футов — {number(row['rate_rub'])} ₽ за контейнер с НДС." for row in rows],
+        [f"Ставка опубликована с {record['valid_from']}, снимок собран {collected}.",
+         record["notes"], "Наличие мест, допустимый температурный диапазон и полная цена требуют подтверждения перевозчика."],
+        [source], booking_confirmed=False, cost_scope="published_component", observed_on=collected,
     )
 
 

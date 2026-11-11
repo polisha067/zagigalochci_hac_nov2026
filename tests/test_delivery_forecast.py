@@ -141,6 +141,66 @@ class ForecastApiTests(unittest.TestCase):
         self.assertEqual(form.status_code, 200, form.text)
         self.assertEqual(chat["calculation"], form.json())
 
+    def test_chat_keeps_forecast_context_with_temperature_range(self):
+        tool = "estimate_future_delivery_cost"
+        self.case.connect_ollama(
+            self.case.domain_reply(tool, origin="Москва", destination="Новосибирск", target_year=2028,
+                                   cargoes=[{"name": "Конфеты", "weight_tonnes": 100}]),
+            self.case.domain_reply(tool, target_year=2026, cargoes=[{
+                "name": "Конфеты", "cargo_type": "solid", "handling_profile": "careful",
+                "hazardous": False, "temperature_control_required": True,
+                "packaging": "boxes", "volume_m3": 180, "splittable": True,
+            }]),
+        )
+        first = self.client.post("/assistant/chat", json={
+            "message": "Сколько стоит перевезти 100 тонн конфет из Москвы в Новосибирск в 2028 году?",
+        })
+        self.assertEqual(first.status_code, 200, first.text)
+        self.assertEqual(first.json()["kind"], "clarification")
+        response = self.client.post("/assistant/chat", json={
+            "message": "Конфеты в коробках на паллетах, 180 м³, делимые, твёрдые, неопасные, бережное обращение, от +15°C до +18°C.",
+            "pending": first.json()["pending"],
+        })
+        self.assertEqual(response.status_code, 200, response.text)
+        result = response.json()
+        self.assertEqual(result["kind"], "calculation")
+        self.assertEqual(result["calculation"]["forecast"]["target_year"], 2028)
+        self.assertEqual(result["calculation"]["request"]["cargoes"][0]["weight_tonnes"], 100)
+        self.assertIsNone(result["calculation"]["recommendation"])
+        self.assertIn("от +15 до +18 °C", result["reply"])
+
+    def test_future_year_in_followup_switches_route_calculation_to_forecast(self):
+        tool = "estimate_future_delivery_cost"
+        cargo = {
+            "name": "Конфеты", "volume_m3": 180, "packaging": "boxes", "splittable": True,
+            "properties": {"phase": "solid", "hazardous": False, "handling_profile": "careful",
+                           "temperature_control_required": True, "required_temperature_c": [15, 18]},
+        }
+        for message, previous_weight in (
+            ("отправить нужно в 2030 году, вес общий 100 тонн,", {}),
+            ("к 2030 году январь", {"weight_tonnes": 100}),
+        ):
+            with self.subTest(message=message):
+                self.case.connect_ollama(self.case.domain_reply(
+                    tool, cargoes=[{"weight_tonnes": 100}], continue_previous=True,
+                ))
+                response = self.client.post("/assistant/chat", json={
+                    "message": message,
+                    "pending": {"tool": "calculate_russia", "missing_fields": ["schedule"], "arguments": {
+                        "origin": "Москва", "destination": "Новосибирск", "cargoes": [cargo | previous_weight],
+                    }},
+                })
+                self.assertEqual(response.status_code, 200, response.text)
+                result = response.json()
+                self.assertEqual(result["kind"], "calculation")
+                self.assertEqual(result["tool"], tool)
+                calculation = result["calculation"]
+                self.assertEqual(calculation["forecast"]["target_year"], 2030)
+                self.assertEqual(calculation["forecast"]["date_precision"], "year")
+                self.assertEqual(calculation["request"]["cargoes"][0]["weight_tonnes"], 100)
+                self.assertIn("Москва → Новосибирск", result["reply"])
+                self.assertIn("от +15 до +18 °C", result["reply"])
+
     def test_cross_year_schedule_is_rejected(self):
         response = self.client.post("/network/russia/forecasts", json=shipment(schedule={
             "mode": "explicit", "ready_at": ["2029-12-31T08:00:00+03:00", "2030-01-01T08:00:00+03:00"],
