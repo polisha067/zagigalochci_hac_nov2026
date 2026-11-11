@@ -1,22 +1,17 @@
 import type { DashboardCalculation } from "./assistantApi";
-import { emptyDraft as emptyLegacyDraft } from "./legacyModel";
 import { emptyDraft, newCargo, newStop, scheduleDraft, type Cargo, type Snapshot } from "./model";
 import type { Options } from "./networkApi";
 
-export function assistantSnapshot(result: DashboardCalculation, options: Options | null): Snapshot {
+export function assistantSnapshot(result: DashboardCalculation, options: Options | null, names: Record<string, string>): Snapshot {
   const metadata = {
     id: crypto.randomUUID(),
     createdAt: new Date().toISOString(),
     cargoNames: Object.fromEntries((options?.cargo_types ?? []).map((cargo) => [cargo.id, cargo.name])),
   };
-  if (!("engine" in result)) {
-    return { ...metadata, result, draft: emptyLegacyDraft() };
-  }
-
   const { request } = result;
   const settlement = (value: string, index: number) => {
     const id = result.settlements[index] ?? value;
-    return options?.settlements.find((city) => city.id === id || city.name === value) ?? { id, name: value };
+    return options?.settlements.find((city) => city.id === id) ?? { id, name: names[id] ?? value };
   };
   const stops = request.stops.map((stop, index) => ({
     ...newStop(),

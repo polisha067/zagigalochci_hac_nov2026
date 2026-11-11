@@ -87,6 +87,13 @@ function sourceTitle(s: Source) {
       : s.id)
   );
 }
+function ChargeSource({ result, id }: { result: Calculation; id: string }) {
+  const source = result.sources.find((entry) => entry.id === id);
+  if (!source) return null;
+  return source.url && /^https?:\/\//.test(source.url)
+    ? <a href={source.url} target="_blank" rel="noreferrer">{sourceTitle(source)}</a>
+    : <span>{sourceTitle(source)}</span>;
+}
 function Sources({ r, ids }: { r: Calculation; ids?: string[] }) {
   const sources = ids ? r.sources.filter((s) => ids.includes(s.id)) : r.sources;
   return (
@@ -458,10 +465,17 @@ function CandidateReport({
                         <td>{item.batch == null ? "—" : item.batch + 1}</td>
                         <td>{displayedTime(item.at, item.offset_hours)}</td>
                         {r.forecast && <>
-                          <td>{money(item.base_amount_rub)}{item.pricing && ` · ${item.pricing.base_year}`}</td>
+                          <td>
+                            {money(item.base_amount_rub)}{item.pricing && ` · ${item.pricing.base_year}`}
+                            {item.pricing?.source_ids.map((id) => (
+                              <div key={id}><ChargeSource result={r} id={id} /></div>
+                            ))}
+                          </td>
                           <td>
                             {item.index_factors?.length ? item.index_factors.map((factor) => (
-                              <div key={factor.year}>{factor.year} · ×{num(factor.factor, 4)}</div>
+                              <div key={factor.year}>
+                                {factor.year} · ×{num(factor.factor, 4)} · <ChargeSource result={r} id={factor.source_id} />
+                              </div>
                             )) : item.amount_rub == null ? "Нет индекса" : "Действующая ставка"}
                             {item.index_proxy && <small>Сводный индекс, приближение</small>}
                           </td>
@@ -642,12 +656,14 @@ function CandidateReport({
 }
 function NetworkResults({
   snapshot,
+  initialCandidate,
   saved,
   onEdit,
   onNew,
   onBack,
 }: {
   snapshot: NetworkSnapshot;
+  initialCandidate?: string;
   saved: boolean;
   onEdit: () => void;
   onNew: () => void;
@@ -655,7 +671,7 @@ function NetworkResults({
 }) {
   const r = snapshot.result;
   const [filter, setFilter] = useState("all");
-  const [opened, setOpened] = useState<string | null>(null);
+  const [opened, setOpened] = useState<string | null>(initialCandidate ?? null);
   const [reportNavigation, setReportNavigation] = useState(0);
   function openFromMap(id: string) {
     if (!candidates.some((candidate) => candidate.id === id)) setFilter("all");
@@ -1050,12 +1066,14 @@ function NetworkResults({
 }
 export function Results({
   snapshot,
+  initialCandidate,
   saved = false,
   onEdit,
   onNew,
   onBack,
 }: {
   snapshot: Snapshot;
+  initialCandidate?: string;
   saved?: boolean;
   onEdit: () => void;
   onNew: () => void;
@@ -1064,6 +1082,7 @@ export function Results({
   return isNetwork(snapshot) ? (
     <NetworkResults
       snapshot={snapshot}
+      initialCandidate={initialCandidate}
       saved={saved}
       onEdit={onEdit}
       onNew={onNew}

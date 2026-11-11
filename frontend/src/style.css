@@ -1987,6 +1987,11 @@ header.auth-header {
 .assistant-sources > summary {
   color: var(--blue);
 }
+.assistant-scenario {
+  border-top: 1px solid #d0deed;
+  margin: 12px 0;
+  padding-top: 12px;
+}
 /* Плашка доступности сервиса ИИ-ассистента. */
 .availability {
   display: inline-flex;

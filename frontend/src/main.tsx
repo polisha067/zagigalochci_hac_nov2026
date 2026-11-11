@@ -11,15 +11,13 @@ import type {
 import { loadHistory, saveSnapshot } from "./history";
 import { Auth } from "./Auth";
 import { ConditionsForm } from "./ConditionsForm";
-import { CorridorResults } from "./CorridorResults";
 import { History, Results } from "./Results";
 import { Assistant } from "./Assistant";
 import { assistantSnapshot } from "./assistantSnapshot";
-import type { CorridorReport, DashboardCalculation } from "./assistantApi";
+import type { DashboardCalculation } from "./assistantApi";
 import { Brand } from "./ui";
 import "./style.css";
 
-const CORRIDOR_HASH = "#calculation/corridor";
 function navigate(hash: string) {
   if (window.location.hash !== hash) window.location.hash = hash;
   else window.scrollTo({ top: 0 });
@@ -41,7 +39,7 @@ function Workspace({
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [formVersion, setFormVersion] = useState(0);
   const [current, setCurrent] = useState<Snapshot | null>(null);
-  const [corridor, setCorridor] = useState<CorridorReport | null>(null);
+  const [assistantSelection, setAssistantSelection] = useState<{ snapshot: string; candidate: string } | null>(null);
   const userId = user?.id;
   const [historyCache, setHistoryCache] = useState<{
     userId: string;
@@ -101,9 +99,8 @@ function Workspace({
     return () => window.removeEventListener("storage", sync);
   }, [userId]);
   const inHistory = hash.startsWith("#history");
-  const showingCorridor = hash === CORRIDOR_HASH ? corridor : null;
   const needsAuth = !user && (inHistory || hash === "#login");
-  const calculationHash = corridor ? CORRIDOR_HASH : current
+  const calculationHash = current
     ? "#calculation/result/" + current.id
     : "#calculation";
   const saved = hash.startsWith("#history/")
@@ -120,13 +117,12 @@ function Workspace({
           : historyState.entries.find((s) => s.id === resultId)) || null
       : null;
   useEffect(() => {
-    document.title = `${inHistory ? (saved ? "Сохранённый расчёт" : "История расчётов") : showing || showingCorridor ? "Результат расчёта" : "Условия перевозки"} · Попутно`;
-  }, [inHistory, saved, showing, showingCorridor]);
+    document.title = `${inHistory ? (saved ? "Сохранённый расчёт" : "История расчётов") : showing ? "Результат расчёта" : "Условия перевозки"} · Попутно`;
+  }, [inHistory, saved, showing]);
   function newCalculation() {
     setDraft(emptyDraft());
     setFormVersion((v) => v + 1);
     setCurrent(null);
-    setCorridor(null);
     navigate("#calculation");
   }
   function completed(result: Calculation, submitted: Draft) {
@@ -145,7 +141,6 @@ function Workspace({
   }
   function publishSnapshot(snapshot: Snapshot) {
     setCurrent(snapshot);
-    setCorridor(null);
     if (userId) {
       const savedHistory = saveSnapshot(userId, snapshot);
       setHistoryCache((previous) => ({
@@ -163,13 +158,10 @@ function Workspace({
     }
     navigate("#calculation/result/" + snapshot.id);
   }
-  function showAssistantResult(result: DashboardCalculation | CorridorReport) {
-    if ("kind" in result) {
-      setCorridor(result);
-      navigate(CORRIDOR_HASH);
-      return;
-    }
-    publishSnapshot(assistantSnapshot(result, options));
+  function showAssistantResult(result: DashboardCalculation, settlementNames: Record<string, string>, candidateId?: string) {
+    const snapshot = assistantSnapshot(result, options, settlementNames);
+    setAssistantSelection(candidateId ? { snapshot: snapshot.id, candidate: candidateId } : null);
+    publishSnapshot(snapshot);
   }
   async function logout() {
     if (logoutBusy) return;
@@ -248,7 +240,7 @@ function Workspace({
           )}
         </div>
       </header>
-      <main className={showing || showingCorridor || inHistory ? "wide-main" : ""}>
+      <main className={showing || inHistory ? "wide-main" : ""}>
         {logoutError && (
           <p role="alert" className="feedback error">
             {logoutError}
@@ -259,19 +251,17 @@ function Workspace({
             {historyState.warning}
           </p>
         )}
-        {showingCorridor ? (
-          <CorridorResults report={showingCorridor} onNew={newCalculation} />
-        ) : showing ? (
+        {showing ? (
           <Results
             key={showing.id + (inHistory ? "-saved" : "")}
             snapshot={showing}
+            initialCandidate={assistantSelection?.snapshot === showing.id ? assistantSelection.candidate : undefined}
             saved={inHistory}
             onNew={newCalculation}
             onEdit={() => {
               setDraft(editableDraft(showing, options || undefined));
               setFormVersion((v) => v + 1);
               setCurrent(null);
-              setCorridor(null);
               navigate("#calculation");
             }}
             onBack={() => navigate("#history")}
@@ -319,7 +309,7 @@ function Workspace({
         )}
       </main>
       <Assistant
-        snapshot={showing}
+        key={userId ?? "guest"}
         onResult={showAssistantResult}
         onRequireAuth={user ? undefined : () => navigate("#login")}
       />

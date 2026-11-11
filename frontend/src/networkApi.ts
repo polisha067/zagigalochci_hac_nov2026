@@ -137,7 +137,10 @@ export interface CostItem {
   at?: string;
   offset_hours?: number;
   base_amount_rub?: number;
-  pricing?: { category: string; basis: string; quantity: number; rate_rub: number; base_year: number; source_ids: string[] };
+  pricing?: {
+    category: string; basis: string; quantity: number; rate_rub: number; base_year: number;
+    source_ids: string[]; valid_from?: string; valid_until?: string;
+  };
   index_factors?: { year: number; factor: number; source_id: string; kind: string }[];
   index_proxy?: boolean;
   batch?: number;

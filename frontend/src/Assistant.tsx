@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState, type PointerEvent } from "react";
-import { errorText, post } from "./api";
-import { getCorridorReport, hasDashboard, type AssistantDraft, type AssistantReply, type AssistantSource, type CorridorReport, type DashboardCalculation, type PendingTool } from "./assistantApi";
+import { ApiError, errorText, post, request } from "./api";
+import { dashboardResult, type AssistantDialog, type AssistantReply, type AssistantSource, type DashboardCalculation, type DialogScenario } from "./assistantApi";
 import { AssistantData } from "./AssistantData";
-import { num, snapshotRoute, totalVolume, type Snapshot } from "./model";
 
 export function SourceLinks({ sources }: { sources: AssistantSource[] }) {
   if (!sources.length) return null;
@@ -33,16 +32,16 @@ function fitPanel(x: number, y: number, { width, height }: DOMRect): PanelPositi
   };
 }
 
-export function Assistant({ snapshot, onResult, onRequireAuth }: {
-  snapshot: Snapshot | null;
-  onResult: (result: DashboardCalculation | CorridorReport) => void;
+export function Assistant({ onResult, onRequireAuth }: {
+  onResult: (result: DashboardCalculation, settlementNames: Record<string, string>, candidateId?: string) => void;
   onRequireAuth?: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
-  const [turns, setTurns] = useState<{ message: string; response: AssistantReply }[]>([]);
-  const [draft, setDraft] = useState<AssistantDraft | null>(null);
-  const [pending, setPending] = useState<PendingTool | null>(null);
+  const [turns, setTurns] = useState<{ message: string; dialog: AssistantDialog; response: AssistantReply }[]>([]);
+  const [known, setKnown] = useState<string[]>([]);
+  const [savedScenarios, setSavedScenarios] = useState<DialogScenario[]>([]);
+  const [savedNames, setSavedNames] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [position, setPosition] = useState<PanelPosition | null>(null);
@@ -54,6 +53,8 @@ export function Assistant({ snapshot, onResult, onRequireAuth }: {
   const latestReply = useRef<HTMLParagraphElement>(null);
   const drag = useRef<{ pointerId: number; offsetX: number; offsetY: number } | null>(null);
   const active = useRef<AbortController | null>(null);
+  const revision = useRef<number | null>(null);
+  const retry = useRef<{ message: string; revision: number; turn_id: string } | null>(null);
   useEffect(() => () => active.current?.abort(), []);
   useEffect(() => {
     if (!open) return;
@@ -85,6 +86,19 @@ export function Assistant({ snapshot, onResult, onRequireAuth }: {
       : latestReply.current?.offsetTop ?? 0;
   }, [open, turns, busy, error]);
 
+  useEffect(() => {
+    if (!open || revision.current !== null) return;
+    const controller = new AbortController();
+    request<AssistantDialog>("/assistant/dialog", { signal: controller.signal }).then((dialog) => {
+      if (controller.signal.aborted || revision.current !== null) return;
+      revision.current = dialog.revision;
+      setKnown(dialog.known);
+      setSavedScenarios(dialog.scenarios);
+      setSavedNames(dialog.settlement_names);
+    }).catch(() => { /* Отправка повторно загрузит состояние и покажет ошибку при сбое. */ });
+    return () => controller.abort();
+  }, [open]);
+
   function startDrag(event: PointerEvent<HTMLDivElement>) {
     if (event.button !== 0 || drag.current || (event.target as Element).closest("button")) return;
     const bounds = panel.current?.getBoundingClientRect();
@@ -115,20 +129,39 @@ export function Assistant({ snapshot, onResult, onRequireAuth }: {
     setBusy(true);
     setError("");
     try {
-      const response = await post<AssistantReply>("/assistant/chat", { message: text, draft, pending }, controller.signal, 190000);
-      if (controller.signal.aborted) return;
-      setTurns((previous) => [...previous, { message: text, response }]);
-      setDraft(response.draft);
-      setPending(response.pending);
-      setMessage("");
-      if (response.kind === "calculation" && hasDashboard(response.calculation)) {
-        onResult(response.calculation);
-      } else {
-        const report = getCorridorReport(response);
-        if (report) onResult(report);
+      if (revision.current === null) {
+        const current = await request<AssistantDialog>("/assistant/dialog", { signal: controller.signal });
+        revision.current = current.revision;
+        setKnown(current.known);
       }
+      if (retry.current?.message !== text) {
+        retry.current = { message: text, revision: revision.current, turn_id: crypto.randomUUID() };
+      }
+      const dialog = await post<AssistantDialog>("/assistant/dialog", retry.current, controller.signal, 370000);
+      const answer = dialog.answer;
+      if (controller.signal.aborted || !answer) return;
+      revision.current = dialog.revision;
+      retry.current = null;
+      setKnown(dialog.known);
+      setSavedScenarios([]);
+      setTurns((previous) => [...previous, { message: text, dialog, response: answer }]);
+      setMessage("");
+      const scenario = dialog.scenarios.find(({ answer }) => dashboardResult(answer));
+      if (scenario) showResult(scenario.answer, dialog.settlement_names);
+      else showResult(answer, dialog.settlement_names, dialog.selected_candidate ?? undefined);
     } catch (failure) {
       if (!controller.signal.aborted) setError(errorText(failure));
+      if (failure instanceof ApiError && failure.code === "assistant_revision_conflict") {
+        retry.current = null;
+        revision.current = null;
+        const latest = await request<AssistantDialog>("/assistant/dialog", { signal: controller.signal }).catch(() => null);
+        if (latest && !controller.signal.aborted) {
+          revision.current = latest.revision;
+          setKnown(latest.known);
+          setSavedScenarios(latest.scenarios);
+          setSavedNames(latest.settlement_names);
+        }
+      }
     } finally {
       active.current = null;
       if (!controller.signal.aborted) {
@@ -136,6 +169,25 @@ export function Assistant({ snapshot, onResult, onRequireAuth }: {
         requestAnimationFrame(() => input.current?.focus({ preventScroll: true }));
       }
     }
+  }
+
+  function showResult(response: AssistantReply, settlementNames: Record<string, string>, candidateId?: string) {
+    const result = dashboardResult(response);
+    if (result) onResult(result, settlementNames, candidateId);
+  }
+
+  function scenarioCards(scenarios: DialogScenario[], settlementNames: Record<string, string>) {
+    return scenarios.map(({ title, answer }, index) => (
+      <div className="assistant-scenario" key={index}>
+        <b>{title}</b>
+        <p className="assistant-reply">{answer.reply}</p>
+        <AssistantData response={answer} />
+        {dashboardResult(answer) && (
+          <button type="button" className="text-button" onClick={() => showResult(answer, settlementNames)}>Открыть на карте</button>
+        )}
+        <SourceLinks sources={answer.sources} />
+      </div>
+    ));
   }
 
   return (
@@ -179,20 +231,23 @@ export function Assistant({ snapshot, onResult, onRequireAuth }: {
               <>
                 <span className="availability">Планирование перевозок</span>
                 <h3>Помощник по перевозкам</h3>
-                <p>Например, «Сравни, как доставить 10 т муки из Москвы в Брянск».</p>
-                {snapshot && (
-                  <div className="assistant-context">
-                    <small>Текущий расчёт</small>
-                    <b>{snapshotRoute(snapshot)}</b>
-                    <span>{num(totalVolume(snapshot.result), 6)} т · {snapshot.result.shipments} отправок</span>
-                  </div>
-                )}
+                <p>Например, «Сколько стоит перевезти 10 т муки из Москвы в Нижний Новгород через Владимир в 2030 году?»</p>
               </>
             )}
-            {turns.map(({ message, response }, index) => (
+            {known.length > 0 && (
+              <details className="assistant-sources">
+                <summary>Текущие условия</summary>
+                <ul>{known.map((condition, index) => <li key={index}>{condition}</li>)}</ul>
+              </details>
+            )}
+            {scenarioCards(savedScenarios, savedNames)}
+            {turns.map(({ message, dialog, response }, index) => (
               <article key={index}>
                 <p className="assistant-context">{message}</p>
                 <p className="assistant-reply" ref={index === turns.length - 1 ? latestReply : null}>{response.reply}</p>
+                {dialog.changes.length > 0 && <p>Обновлено — {dialog.changes.join(" · ")}</p>}
+                {response.kind === "clarification" && dialog.known.length > 0 && <p>Уже учёл — {dialog.known.join(" · ")}</p>}
+                {scenarioCards(dialog.scenarios, dialog.settlement_names)}
                 <AssistantData response={response} />
                 {response.sources.length > 0 && (
                   <details className="assistant-sources">
