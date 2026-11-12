@@ -1,0 +1,228 @@
+{
+  "observed_on": "2026-11-12",
+  "year": 2026,
+  "vat_percent": 22,
+  "vehicle_tonnes": 20,
+  "vehicle_m3": null,
+  "columns": [
+    "origin",
+    "destination",
+    "rub_per_vehicle"
+  ],
+  "sources": [
+    {
+      "id": "logistic-avto-moscow-novosibirsk-2026",
+      "url": "https://logistic-avto.ru/gruzoperevozki-po-rf/novosibirsk/",
+      "rows": [
+        [
+          "Москва",
+          "Новосибирск",
+          161602
+        ],
+        [
+          "Новосибирск",
+          "Москва",
+          161602
+        ]
+      ]
+    },
+    {
+      "id": "logistic-avto-moscow-irkutsk-2026",
+      "url": "https://logistic-avto.ru/gruzoperevozki-po-rf/moskva-irkutsk/",
+      "rows": [
+        [
+          "Москва",
+          "Иркутск",
+          251027
+        ],
+        [
+          "Иркутск",
+          "Москва",
+          251027
+        ]
+      ]
+    },
+    {
+      "id": "logistic-avto-novosibirsk-krasnoyarsk-2026",
+      "url": "https://logistic-avto.ru/gruzoperevozki-po-rf/novosibirsk-krasnoyarsk/",
+      "rows": [
+        [
+          "Новосибирск",
+          "Красноярск",
+          38514
+        ],
+        [
+          "Красноярск",
+          "Новосибирск",
+          38514
+        ],
+        [
+          "Новосибирск",
+          "Ачинск",
+          30086
+        ]
+      ]
+    },
+    {
+      "id": "logistic-avto-novosibirsk-irkutsk-2026",
+      "url": "https://logistic-avto.ru/gruzoperevozki-po-rf/novosibirsk-irkutsk/",
+      "rows": [
+        [
+          "Новосибирск",
+          "Иркутск",
+          89768
+        ],
+        [
+          "Иркутск",
+          "Новосибирск",
+          89768
+        ],
+        [
+          "Новосибирск",
+          "Братск",
+          74284
+        ],
+        [
+          "Новосибирск",
+          "Усть-Кут",
+          91238
+        ]
+      ]
+    },
+    {
+      "id": "logistic-avto-novosibirsk-omsk-2026",
+      "url": "https://logistic-avto.ru/gruzoperevozki-po-rf/novosibirsk-omsk/",
+      "rows": [
+        [
+          "Новосибирск",
+          "Омск",
+          31360
+        ],
+        [
+          "Омск",
+          "Новосибирск",
+          31360
+        ]
+      ]
+    },
+    {
+      "id": "logistic-avto-novosibirsk-chelyabinsk-2026",
+      "url": "https://logistic-avto.ru/gruzoperevozki-po-rf/novosibirsk-chelyabinsk/",
+      "rows": [
+        [
+          "Новосибирск",
+          "Челябинск",
+          76293
+        ],
+        [
+          "Челябинск",
+          "Новосибирск",
+          76293
+        ],
+        [
+          "Новосибирск",
+          "Златоуст",
+          83937
+        ],
+        [
+          "Новосибирск",
+          "Магнитогорск",
+          91140
+        ],
+        [
+          "Новосибирск",
+          "Чебаркуль",
+          80899
+        ]
+      ]
+    },
+    {
+      "id": "logistic-avto-chelyabinsk-ekaterinburg-2026",
+      "url": "https://chelyabinsk.logistic-avto.ru/gruzoperevozki-po-rf/ekaterinburg/",
+      "rows": [
+        [
+          "Челябинск",
+          "Екатеринбург",
+          30000
+        ],
+        [
+          "Екатеринбург",
+          "Челябинск",
+          30000
+        ],
+        [
+          "Челябинск",
+          "Нижний Тагил",
+          30000
+        ],
+        [
+          "Челябинск",
+          "Каменск-Уральский",
+          30000
+        ],
+        [
+          "Челябинск",
+          "Первоуральск",
+          30000
+        ],
+        [
+          "Челябинск",
+          "Серов",
+          30000
+        ]
+      ]
+    },
+    {
+      "id": "logistic-avto-ekaterinburg-tyumen-2026",
+      "url": "https://logistic-avto.ru/gruzoperevozki-po-rf/ekaterinburg-tyumen/",
+      "rows": [
+        [
+          "Екатеринбург",
+          "Тюмень",
+          30000
+        ],
+        [
+          "Тюмень",
+          "Екатеринбург",
+          30000
+        ],
+        [
+          "Екатеринбург",
+          "Тобольск",
+          103390
+        ],
+        [
+          "Екатеринбург",
+          "Ишим",
+          30282
+        ],
+        [
+          "Екатеринбург",
+          "Ялуторовск",
+          30000
+        ],
+        [
+          "Екатеринбург",
+          "Заводоуковск",
+          30000
+        ]
+      ]
+    },
+    {
+      "id": "logistic-avto-ekaterinburg-krasnoyarsk-2026",
+      "url": "https://logistic-avto.ru/gruzoperevozki-po-rf/ekaterinburg-krasnoyarsk/",
+      "rows": [
+        [
+          "Красноярск",
+          "Екатеринбург",
+          115787
+        ],
+        [
+          "Екатеринбург",
+          "Ачинск",
+          107408
+        ]
+      ]
+    }
+  ]
+}

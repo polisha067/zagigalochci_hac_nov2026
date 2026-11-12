@@ -9,10 +9,21 @@ ROOT = Path(__file__).resolve().parents[1] / "data_sources/delivery_forecast"
 ROAD_SOURCE = "tlm-road-2026"
 LOGISTIC_AVTO_SOURCE = "logistic-avto-road-2026"
 RAIL_SOURCE = "tlm-rail-2026"
+SIBIR_RAIL_SOURCE = "sibir-container-rail-2026"
 SEA_SOURCE = "fesco-fpkl-tariff-2026"
 SEA_EQUIPMENT_SOURCE = "fesco-20dc-equipment"
 AIR_SOURCE = "yakutia-air-cargo-q4-2026"
-FORECAST_BASE_SOURCES = frozenset({ROAD_SOURCE, LOGISTIC_AVTO_SOURCE, RAIL_SOURCE})
+@lru_cache(maxsize=1)
+def logistic_avto_corridors():
+    return json.loads((ROOT / "logistic_avto_corridors_2026.json").read_text(encoding="utf-8"))
+
+
+FORECAST_BASE_SOURCES = frozenset({ROAD_SOURCE, LOGISTIC_AVTO_SOURCE, RAIL_SOURCE, SIBIR_RAIL_SOURCE}
+                                  | {source["id"] for source in logistic_avto_corridors()["sources"]})
+
+
+def sibir_rail_tariffs():
+    return json.loads((ROOT / "sibir_container_rail_2026.json").read_text(encoding="utf-8"))
 
 
 def logistic_avto_tariffs():

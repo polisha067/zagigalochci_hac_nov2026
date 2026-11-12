@@ -23,7 +23,7 @@ from backend.network.graph import FreightNetwork
 from backend.network.models import NetworkCargo, NetworkRequest, Mode
 from backend.network.provider_tariffs import (
     AIR_SOURCE, LOGISTIC_AVTO_SOURCE, RAIL_SOURCE, ROAD_SOURCE, SEA_EQUIPMENT_SOURCE, SEA_SOURCE,
-    logistic_avto_tariffs, observations, rate_evidence,
+    SIBIR_RAIL_SOURCE, logistic_avto_corridors, logistic_avto_tariffs, observations, rate_evidence, sibir_rail_tariffs,
     source as tariff_source, yakutia_tariffs,
 )
 from backend.network.river_tariffs import river_catalog
@@ -346,14 +346,24 @@ class RussiaNetwork:
             (ROAD_SOURCE, 'ТЛМ — цены на выделенную фуру из Москвы', road),
             (LOGISTIC_AVTO_SOURCE, 'Логистик Авто — ориентир за автомобиль 20 т', logistic_avto_tariffs()),
         )
-        for source_id, title, tariff in road_tariffs:
+        road_sources = [
+            (source_id, title, tariff, [(tariff['origin'], destination, rate)
+                                       for destination, rate in tariff['rub_per_vehicle'].items()])
+            for source_id, title, tariff in road_tariffs
+        ]
+        corridors = logistic_avto_corridors()
+        road_sources.extend(
+            (source['id'], 'Логистик Авто — ориентир за автомобиль 20 т', corridors | {'url':source['url']}, source['rows'])
+            for source in corridors['sources']
+        )
+        for source_id, title, tariff, rows in road_sources:
             self.register_source(tariff_source(source_id, title, tariff['url'], 'market_reference'))
             road_evidence = rate_evidence(source_id, tariff['observed_on'], START, END, 'market_reference')
-            origin = self.resolve(tariff['origin'])
-            for destination, rate in tariff['rub_per_vehicle'].items():
+            for origin_name, destination, rate in rows:
+                origin = self.resolve(origin_name)
                 city = self.resolve(destination)
                 edge = self.edges.get(f'observation:road:{origin}:{city}')
-                if edge is not None:
+                if edge is not None and 'quote' not in edge:
                     edge['quote'] = quote('transport', rate, 'per_unit', road_evidence, 'including_vat',
                                           tariff['vat_percent'] / 100)
                     edge['reference_metadata'].update(movement_tariff='market_reference', tariff_source_id=source_id)
@@ -386,6 +396,29 @@ class RussiaNetwork:
                                'reference_metadata':{'tariff_source_id':RAIL_SOURCE, 'container_size_ft':size,
                                    'station_destination':destination, 'optional_security_rub_per_container':guard,
                                    'scope':'station_to_station', 'transit_days':float(days)}})
+        self.load_sibir_rail_tariffs()
+
+    def load_sibir_rail_tariffs(self):
+        tariff = sibir_rail_tariffs()
+        self.register_source(tariff_source(SIBIR_RAIL_SOURCE, 'Сибирь Контейнер — ставки контейнерной перевозки',
+                                           tariff['url'], 'market_reference'))
+        evidence = rate_evidence(SIBIR_RAIL_SOURCE, tariff['observed_on'], START, END, 'market_reference')
+        for origin_name, destination, rate20, rate40, min_days, max_days in tariff['rows']:
+            origin, city = self.resolve(origin_name), self.resolve(destination)
+            start, end = 'tlc:'+str(origin), 'tlc:'+str(city)
+            if start not in self.hubs or end not in self.hubs:
+                continue
+            base = self.edges.get(f'observation:rail:{origin}:{city}')
+            for size, rate, capacity, volume in ((20, rate20, 18, 28), (40, rate40, 24, 58)):
+                if rate is None:
+                    continue
+                self.add_edge({'id':f'sibir-rail:{origin}:{city}:{size}', 'from_hub':start, 'to_hub':end,
+                               'mode':'rail', 'kind':'provider_rail', 'travel_hours':max_days*24,
+                               'distance_km':base['distance_km'] if base else None,
+                               'quote':quote('transport', rate, 'per_unit', evidence, 'including_vat', None),
+                               'unit_tonnes':capacity, 'unit_m3':volume,
+                               'reference_metadata':{'tariff_source_id':SIBIR_RAIL_SOURCE, 'container_size_ft':size,
+                                   'scope':'container_linehaul', 'transit_days_range':[min_days, max_days]}})
 
     def load_pipeline(self):
         self.pipeline=json.loads((ROOT/'data_sources/pipeline/tariffs.json').read_text())
@@ -494,9 +527,14 @@ class RussiaNetwork:
         priced_air=forecast and 'air' in request.allowed_modes
         air_volume=all(cargo.volume_m3 is not None for cargo in request.cargoes)
         def edge_active(edge):
+            if (edge['kind']=='provider_rail' and request.cost_basis=='excluding_vat'
+                    and edge['quote']['tax_rate'] is None):
+                return False
             if forecast and edge['mode']=='air' and edge['kind']!='provider_air':
                 return False
             if forecast and edge['kind']=='provider_air':
+                return air_volume
+            if forecast and via and edge['kind']=='provider_rail':
                 return air_volume
             if edge['kind'] in ('provider_rail','provider_air'):
                 evidence = edge['quote']['evidence']
@@ -553,6 +591,11 @@ class RussiaNetwork:
                 for start in left:
                     options.extend(e for e in self.outgoing[start] if e['to_hub'] in right and e['mode'] in request.allowed_modes
                                    and edge_active(e))
+                published_rail = {(edge['from_hub'], edge['to_hub']) for edge in options if edge['kind']=='provider_rail'}
+                options = [edge for edge in options if not (
+                    edge['kind']=='observation' and edge['mode']=='rail'
+                    and (edge['from_hub'], edge['to_hub']) in published_rail
+                )]
                 options.sort(key=price_weight or (lambda e:e['travel_hours']))
                 # At most one direct service per physical mode for seeding.
                 selected={}

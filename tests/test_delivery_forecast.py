@@ -23,6 +23,16 @@ class ForecastModelTests(unittest.TestCase):
     def calculate(self, indices=None, **changes):
         return calculate_forecast(ForecastRequest.model_validate(shipment(**changes)), indices=indices)
 
+    def test_published_rail_prices_apply_on_both_sides_of_a_stop(self):
+        result = self.calculate(destination="Красноярск", allowed_modes=["rail"], stops=[
+            {"settlement": "Новосибирск", "action": "visit", "dwell_hours": 2},
+        ])
+        candidate = next(row for row in result.candidates if row["modes"] == ["rail", "rail"] and row["complete"])
+        movement = [item for item in candidate["cost_items"] if item["kind"] == "transport"]
+        self.assertEqual([(item["pricing"]["source_ids"], item["base_amount_rub"]) for item in movement],
+                         [(["tlm-rail-2026"], 44170), (["sibir-container-rail-2026"], 75000)])
+        self.assertEqual(candidate["total_cost_rub"], 210734.41)
+
     def test_road_stop_uses_published_rates_on_both_legs(self):
         result = self.calculate(destination="Красноярск", allowed_modes=["road"], stops=[
             {"settlement": "Екатеринбург", "action": "visit", "dwell_hours": 2},
