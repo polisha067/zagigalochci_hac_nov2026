@@ -503,7 +503,11 @@ function CandidateReport({
                             ))}
                             {item.pricing?.tariff_version && (
                               <div className="table-note">
-                                {item.pricing.valid_from && <>Тариф действует с {date(item.pricing.valid_from.slice(0, 10))}<br /></>}
+                                {item.pricing.tariff_projected && <>Прогноз по опубликованной базе<br /></>}
+                                {item.pricing.tariff_date_precision === "year"
+                                  ? <>Прайс на {item.pricing.base_year} год<br /></>
+                                  : item.pricing.valid_from && <>Тариф действует с {date(item.pricing.valid_from.slice(0, 10))}<br /></>}
+                                {item.pricing.valid_until && <>До {date(item.pricing.valid_until.slice(0, 10))} (не включая)<br /></>}
                                 {item.pricing.observed_on && <>Источник проверен {date(item.pricing.observed_on)}</>}
                               </div>
                             )}

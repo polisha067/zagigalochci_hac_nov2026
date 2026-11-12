@@ -17,6 +17,7 @@ from typing import Annotated, List, Literal, Optional
 from pydantic import Field, model_validator
 
 from backend.calculation_models import InputModel, Text, Schedule, Hours, NonnegativeHours
+from backend.network.air_tariff import YAKUTSK, bundled_air_tariff, latest_air_snapshot, read_air_snapshot, yakutsk_today
 from backend.network.cargo import normalized_name
 from backend.network.engine import calculate_network
 from backend.network.graph import FreightNetwork
@@ -24,10 +25,12 @@ from backend.network.models import NetworkCargo, NetworkRequest, Mode
 from backend.network.provider_tariffs import (
     AIR_SOURCE, LOGISTIC_AVTO_SOURCE, RAIL_SOURCE, ROAD_SOURCE, SEA_EQUIPMENT_SOURCE, SEA_SOURCE,
     SIBIR_RAIL_SOURCE, logistic_avto_corridors, logistic_avto_tariffs, observations, rate_evidence, sibir_rail_tariffs,
-    source as tariff_source, yakutia_tariffs,
+    source as tariff_source,
 )
 from backend.network.river_tariffs import river_catalog
-from backend.network.tlm_tariff import MOSCOW, bundled_tariff, latest_snapshot, moscow_today, read_snapshot, snapshot_dir
+from backend.network.tlm_tariff import (
+    MOSCOW, ROAD_URL, bundled_road_tariff, bundled_tariff, latest_snapshot, moscow_today, read_snapshot, snapshot_dir,
+)
 from backend.schedule import build_schedule
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -127,8 +130,10 @@ def digest(data):
 
 
 class RussiaNetwork:
-    def __init__(self, snapshot=None, *, tlm_tariff=None):
+    def __init__(self, snapshot=None, *, tlm_tariff=None, tlm_road_tariff=None, air_tariff=None):
         self.tlm_tariff = tlm_tariff if tlm_tariff is not None else bundled_tariff()
+        self.tlm_road_tariff = tlm_road_tariff if tlm_road_tariff is not None else bundled_road_tariff()
+        self.air_tariff = air_tariff if air_tariff is not None else bundled_air_tariff()
         self.snapshot = snapshot or json.loads((ROOT/'data_sources/russia/connectivity.json').read_text())
         self.settlements = {c['id']:dict(c, provenance='source-01') for c in self.snapshot['settlements']}
         self.by_name = defaultdict(list)
@@ -321,10 +326,9 @@ class RussiaNetwork:
         self.coverage_notes.extend(data['limitations'])
 
     def load_yakutia_tariffs(self):
-        _, _, documents, _ = observations()
-        data = yakutia_tariffs()
-        self.register_source(tariff_source(AIR_SOURCE, 'Якутия — грузовые тарифы, октябрь–декабрь 2026',
-                                           documents[data['source']]))
+        data = self.air_tariff
+        self.register_source(tariff_source(AIR_SOURCE, 'Якутия — внутренние грузовые тарифы',
+                                           data['source_url']))
         evidence = rate_evidence(AIR_SOURCE, data['observed_on'],
                                  data['valid_from']+'T00:00:00+09:00', data['valid_until']+'T00:00:00+09:00')
         aliases = {'С.-Петербург':'Санкт-Петербург','Мин. Воды':'Минеральные Воды','Улан–Удэ':'Улан-Удэ'}
@@ -343,12 +347,15 @@ class RussiaNetwork:
                 cost_scope='published_component',missing_cost_components=['agent_fee','other_terminal_services'],
                 reference_metadata={**base['reference_metadata'],'tariff_source_id':AIR_SOURCE,
                                     'published_airports':[origin,destination],'scope':'airline_and_awb_only',
-                                    'tariff_valid_until':evidence['valid_until']}))
+                                    'tariff_valid_until':evidence['valid_until'],
+                                    'tariff_version':data['version'], 'tariff_observed_on':data['observed_on']}))
 
     def load_land_tariffs(self):
-        _collected_on, _records, documents, road = observations()
+        _collected_on, _records, documents, _road = observations()
+        road = self.tlm_road_tariff
         road_tariffs = (
-            (ROAD_SOURCE, 'ТЛМ — цены на выделенную фуру из Москвы', road),
+            (ROAD_SOURCE, 'ТЛМ — цены на выделенную фуру из Москвы',
+             road | {'url': ROAD_URL, 'origin': 'Москва', 'rub_per_vehicle': dict(road['rows'])}),
             (LOGISTIC_AVTO_SOURCE, 'Логистик Авто — ориентир за автомобиль 20 т', logistic_avto_tariffs()),
         )
         road_sources = [
@@ -363,7 +370,13 @@ class RussiaNetwork:
         )
         for source_id, title, tariff, rows in road_sources:
             self.register_source(tariff_source(source_id, title, tariff['url'], 'market_reference'))
-            road_evidence = rate_evidence(source_id, tariff['observed_on'], START, END, 'market_reference')
+            start, end = START, END
+            if source_id == ROAD_SOURCE:
+                # The publisher supplies a year. The snapshot selection separately
+                # prevents using a revision before the day it was observed.
+                start = tariff['valid_from'] + 'T00:00:00+00:00'
+                end = f"{int(tariff['valid_from'][:4])+1}-01-01T00:00:00+00:00"
+            road_evidence = rate_evidence(source_id, tariff['observed_on'], start, end, 'market_reference')
             for origin_name, destination, rate in rows:
                 origin = self.resolve(origin_name)
                 city = self.resolve(destination)
@@ -372,8 +385,12 @@ class RussiaNetwork:
                     edge['quote'] = quote('transport', rate, 'per_unit', road_evidence, 'including_vat',
                                           tariff['vat_percent'] / 100)
                     edge['reference_metadata'].update(movement_tariff='market_reference', tariff_source_id=source_id)
+                    if source_id == ROAD_SOURCE:
+                        edge['reference_metadata'].update(
+                            tariff_version=tariff['version'], tariff_observed_on=tariff['observed_on'],
+                            tariff_date_precision='year')
 
-        origin = self.resolve(road['origin'])
+        origin = self.resolve('Москва')
 
         rail = self.tlm_tariff
         self.register_source(tariff_source(RAIL_SOURCE, 'ТЛМ — ж/д тарифы от станции до станции',
@@ -813,17 +830,25 @@ class RussiaNetwork:
 from functools import lru_cache
 
 @lru_cache(maxsize=2)
-def _load_russia(tlm_snapshot):
-    return RussiaNetwork(tlm_tariff=read_snapshot(tlm_snapshot) if tlm_snapshot else None)
+def _load_russia(tlm_snapshot, road_snapshot, air_snapshot):
+    return RussiaNetwork(tlm_tariff=read_snapshot(tlm_snapshot) if tlm_snapshot else None,
+                         tlm_road_tariff=read_snapshot(road_snapshot) if road_snapshot else None,
+                         air_tariff=read_air_snapshot(air_snapshot) if air_snapshot else None)
 
 
-def load_russia(*, tariff_date=None):
+def load_russia(*, tariff_date=None, air_tariff_date=None):
     today = moscow_today()
     cutoff = min(today, tariff_date) if tariff_date is not None else today
-    return _load_russia(latest_snapshot(snapshot_dir(), cutoff))
+    directory = snapshot_dir()
+    air_today = yakutsk_today()
+    air_date = air_tariff_date or tariff_date or air_today
+    return _load_russia(latest_snapshot(directory, cutoff), latest_snapshot(directory, cutoff, road=True),
+                        latest_air_snapshot(directory, min(air_today, air_date)))
 
 
 def calculate_russia(payload):
     request = payload if isinstance(payload, RussiaRequest) else RussiaRequest.model_validate(payload)
     events, _, _ = build_schedule(request.schedule)
-    return load_russia(tariff_date=min(events).astimezone(MOSCOW).date()).calculate(request)
+    ready = min(events)
+    return load_russia(tariff_date=ready.astimezone(MOSCOW).date(),
+                       air_tariff_date=ready.astimezone(YAKUTSK).date()).calculate(request)

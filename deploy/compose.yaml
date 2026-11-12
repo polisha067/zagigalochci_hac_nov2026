@@ -36,7 +36,7 @@ services:
       TLM_TARIFF_DIR: /var/lib/transport/tlm-tariffs
     volumes:
       - backend-data:/var/lib/transport
-    command: ["python", "-m", "backend.update_tlm_tariff", "--interval-seconds", "604800"]
+    command: ["python", "-m", "backend.update_tlm_tariff", "--source", "all", "--interval-seconds", "604800"]
     logging:
       driver: json-file
       options:

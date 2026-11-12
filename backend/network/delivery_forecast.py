@@ -11,6 +11,7 @@ from zoneinfo import ZoneInfo
 from pydantic import Field, model_validator
 
 from backend.calculation_models import Hours, OnceSchedule, Schedule
+from backend.network.air_tariff import YAKUTSK
 from backend.network.forecast_indices import load_indices
 from backend.network.provider_tariffs import AIR_SOURCE, FORECAST_BASE_SOURCES
 from backend.network.russia import END, SCENARIO, START, RussiaRequest, RussiaResponse, load_russia
@@ -95,20 +96,22 @@ def _search_weights(network, request, index):
     # simulated ledger with actual units, transfer charges and capacity checks.
     tonnes = sum(cargo.weight_tonnes for cargo in request.cargoes)
     volume = sum(cargo.volume_m3 or 0 for cargo in request.cargoes)
-    factors = {mode: index(mode, BASE_YEAR) for mode in PROJECTED_MODES}
 
     @cache
     def weight(edge_id):
         edge = network.edges[edge_id]
         mode = edge["mode"]
-        if edge["kind"] not in ("observation", "provider_rail") or mode not in PROJECTED_MODES or factors[mode] is None:
+        if edge["kind"] not in ("observation", "provider_rail") or mode not in PROJECTED_MODES:
             return 1000 + edge["travel_hours"]
         service = network.service(edge)
         quote = service["quote"]
+        factor = index(mode, int(quote["evidence"]["valid_from"][:4]))
+        if factor is None:
+            return 1000 + edge["travel_hours"]
         quantity = (max(1, ceil(max(tonnes / service["unit_tonnes"], volume / service["unit_m3"])))
                     if quote["basis"] == "per_unit" else tonnes * edge["distance_km"])
         base = max(quote.get("minimum_rub", 0), quote["rate_rub"] * quantity)
-        return base * float(factors[mode].central) / 1000
+        return base * float(factor.central) / 1000
 
     return lambda edge: weight(edge["id"])
 
@@ -168,9 +171,13 @@ def _sum_items(items, key):
 def _air_charge(item, request, indices, connection):
     pricing = item["pricing"]
     base = datetime.fromisoformat(pricing["valid_from"])
+    metadata = connection["reference_metadata"]
+    end_of_tariff = datetime.fromisoformat(metadata["tariff_valid_until"])
+    in_period = False
     years = Decimal(request.target_year - base.year)
     if request.schedule is not None:
         event = datetime.fromisoformat(item["at"]).astimezone(base.tzinfo)
+        in_period = base <= event < end_of_tariff
         years = Decimal(event.year - base.year)
         anniversary = base.replace(year=event.year)
         if event < anniversary:
@@ -178,11 +185,15 @@ def _air_charge(item, request, indices, connection):
             years -= 1
         end = anniversary.replace(year=anniversary.year + 1)
         years += Decimal((event.date() - anniversary.date()).days) / (end.date() - anniversary.date()).days
-    pricing.update(valid_until=connection["reference_metadata"]["tariff_valid_until"], effective_price_year=base.year)
+    pricing.update(valid_until=metadata["tariff_valid_until"], effective_price_year=base.year,
+                   tariff_version=metadata["tariff_version"], observed_on=metadata["tariff_observed_on"],
+                   tariff_projected=not in_period)
     amount = Decimal(str(item["amount_rub"]))
     item.update(base_amount_rub=float(amount), amount_rub=None, lower_rub=None, upper_rub=None,
                 index_factors=[], index_proxy=False, long_term=years > 3)
-    if scenario := indices.air_scenarios(base.year, years):
+    if in_period:
+        item["amount_rub"] = float(amount)
+    elif years >= 0 and (scenario := indices.air_scenarios(base.year, years)):
         central, softened, points = scenario
         item.update(amount_rub=float(money(amount * central)), index_factors=[point.as_dict() for point in points])
         if softened is not None:
@@ -219,6 +230,8 @@ def _reprice(row, request, index, reference, indices):
             if (metadata := tariff_metadata.get(item["object_id"])) and item["kind"] == "transport":
                 item["pricing"].update(tariff_version=metadata["tariff_version"],
                                        observed_on=metadata["tariff_observed_on"])
+                if metadata.get("tariff_date_precision") == "year":
+                    item["pricing"]["tariff_date_precision"] = "year"
                 item["pricing"].pop("valid_until", None)
     _relative_calendar(row, reference, request.schedule is None)
     row["forecast_price"] = {"base_rub": None, "base_year": None, "lower_rub": None, "upper_rub": None,
@@ -326,7 +339,9 @@ def calculate_forecast(request, network=None, indices=None):
     # as a cargo readiness date or an actual departure.
     if request.schedule:
         events, _, _ = build_schedule(request.schedule)
-        network = network or load_russia(tariff_date=min(events).astimezone(MOSCOW).date())
+        ready = min(events)
+        network = network or load_russia(tariff_date=ready.astimezone(MOSCOW).date(),
+                                         air_tariff_date=ready.astimezone(YAKUTSK).date())
         schedule = request.schedule
     else:
         network = network or load_russia(tariff_date=date(request.target_year, 12, 31))
@@ -335,6 +350,10 @@ def calculate_forecast(request, network=None, indices=None):
             effective = date.fromisoformat(network.tlm_tariff["valid_from"])
             if effective.year == request.target_year:
                 start = effective
+        if "air" in request.allowed_modes:
+            effective = date.fromisoformat(network.air_tariff["valid_from"])
+            if effective.year == request.target_year:
+                start = max(start, effective)
         schedule = OnceSchedule(mode="once", ready_at=datetime(
             start.year, start.month, start.day, 12, tzinfo=timezone.utc))
     horizon = request.max_delivery_hours or TECHNICAL_HOURS

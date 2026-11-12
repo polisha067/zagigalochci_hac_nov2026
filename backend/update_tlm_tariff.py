@@ -1,4 +1,4 @@
-"""Fetch and publish compatible updates to the TLM container tariff."""
+"""Fetch and publish compatible updates to rail, road and air tariffs."""
 
 import argparse
 import json
@@ -13,7 +13,8 @@ from pathlib import Path
 from urllib.request import Request, urlopen
 
 from backend.network.tlm_tariff import (
-    MOSCOW, URL, bundled_tariff, latest_snapshot, read_snapshot, snapshot_dir, tariff_version,
+    MOSCOW, ROAD_URL, URL, bundled_road_tariff, bundled_tariff, latest_snapshot, read_snapshot,
+    snapshot_dir, tariff_version,
 )
 
 
@@ -33,6 +34,14 @@ EXTRAS = {
     "МКАД: выезд за пределы — 80 руб/км.",
 }
 HEADINGS = {"h1", "h2", "h3", "h4", "h5", "h6"}
+ROAD_HEADER = ["Направление (Город назначения)", "Ставка (с НДС 22%)"]
+ROAD_INCLUDED = {
+    "НДС 22% и топливный сбор.",
+    "Экспедирование груза водителем.",
+    "Оформление сопроводительных документов.",
+    "Страхование груза (до 5 млн. руб.).",
+    "Мониторинг движения ТС.",
+}
 
 
 def normalized(value):
@@ -153,8 +162,49 @@ def parse_page(html, previous):
     return {"valid_from": effective.isoformat(), "vat_percent": 22, "rows": rows}
 
 
-def fetch_page():
-    request = Request(URL, headers={"User-Agent": "Poputno tariff updater/1.0"})
+def parse_road_page(html, previous):
+    page = TariffPage()
+    page.feed(html)
+    page.close()
+    dates = [(i, int(match[1])) for i, (tag, value) in enumerate(page.blocks) if tag in HEADINGS
+             and (match := re.fullmatch(r"Тарифы на перевозку из Москвы \((20\d{2}) год\)", value, re.I))]
+    if len(dates) != 1:
+        raise ValueError("Не найден год автотарифа на перевозку из Москвы")
+    start, year = dates[0]
+    equipment = [value for tag, value in page.blocks if tag == "li" and value.startswith("Транспорт:")]
+    if equipment != ["Транспорт: Тентованные полуприцепы (20 тонн / 82-92 м³)."]:
+        raise ValueError("Изменился тип машины в автопрайсе ТЛМ")
+    if contract_items(page.blocks, "В стоимость включено:") != ROAD_INCLUDED:
+        raise ValueError("Изменились НДС или состав автотарифа ТЛМ")
+    if page.blocks[start + 1:start + 2] != [("tr", ROAD_HEADER)]:
+        raise ValueError("Изменились колонки автопрайса ТЛМ")
+
+    rates = {}
+    destinations = set()
+    for tag, cells in page.blocks[start + 2:]:
+        if tag == "table":
+            break
+        if tag != "tr" or len(cells) != 2:
+            raise ValueError("Изменилась структура автопрайса ТЛМ")
+        city, amount = cells
+        key = city.casefold()
+        if not city or key in destinations or not amount.endswith("₽"):
+            raise ValueError("Некорректное или повторное направление либо валюта автотарифа")
+        rate = rubles(amount.removesuffix("₽"))
+        if rate <= 0:
+            raise ValueError("Нулевая ставка в автопрайсе ТЛМ")
+        destinations.add(key)
+        rates[city] = rate
+    else:
+        raise ValueError("Неполная таблица автопрайса ТЛМ")
+    if not dict(previous["rows"]).keys() <= rates.keys():
+        raise ValueError("В автопрайсе ТЛМ пропали ранее опубликованные направления")
+    return {"valid_from": f"{year}-01-01", "vat_percent": 22,
+            "rows": sorted([city, rate] for city, rate in rates.items())}
+
+
+def fetch_page(url=URL):
+    request = Request(url, headers={"User-Agent": "Poputno tariff updater/1.0"})
     with urlopen(request, timeout=20) as response:
         if response.geturl().split("/", 3)[2] != "tl-m.ru":
             raise ValueError("Прайс перенаправлен на другой домен")
@@ -164,20 +214,32 @@ def fetch_page():
         return data.decode(response.headers.get_content_charset() or "utf-8")
 
 
-def refresh(directory, *, now=None):
+def refresh(directory, *, now=None, road=False):
     checked = now or datetime.now(timezone.utc)
-    previous_path = latest_snapshot(directory)
-    previous = read_snapshot(previous_path) if previous_path else bundled_tariff()
-    tariff = parse_page(fetch_page(), previous)
+    previous_path = latest_snapshot(directory, road=road)
+    if road:
+        previous = read_snapshot(previous_path) if previous_path else bundled_road_tariff()
+        tariff = parse_road_page(fetch_page(ROAD_URL), previous)
+    else:
+        previous = read_snapshot(previous_path) if previous_path else bundled_tariff()
+        tariff = parse_page(fetch_page(), previous)
     if date.fromisoformat(tariff["valid_from"]) < date.fromisoformat(previous["valid_from"]):
         raise ValueError("На странице ТЛМ появилась более старая дата тарифа")
     version = tariff_version(tariff)
     if previous_path and version == previous["version"]:
         return None
-    tariff.update(version=version, source_url=URL, observed_on=checked.astimezone(MOSCOW).date().isoformat())
+    tariff.update(version=version, source_url=ROAD_URL if road else URL,
+                  observed_on=checked.astimezone(MOSCOW).date().isoformat())
+    prefix = "tlm-road" if road else "tlm"
+    applicable_from = max(tariff["valid_from"], tariff["observed_on"]) if road else tariff["valid_from"]
+    return publish_snapshot(directory, prefix, applicable_from, tariff, checked)
+
+
+def publish_snapshot(directory, prefix, applicable_from, tariff, checked):
     directory.mkdir(parents=True, exist_ok=True)
     stamp = checked.astimezone(timezone.utc).strftime("%Y%m%dT%H%M%S%f")
-    path = directory / f"tlm-{tariff['valid_from']}-{stamp}-{version}.json"
+    version = tariff["version"]
+    path = directory / f"{prefix}-{applicable_from}-{stamp}-{version}.json"
     temporary = None
     try:
         with tempfile.NamedTemporaryFile(dir=directory, suffix=".tmp", delete=False, mode="w", encoding="utf-8") as file:
@@ -197,20 +259,32 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--directory", type=Path, default=snapshot_dir())
     parser.add_argument("--interval-seconds", type=int, default=0)
+    parser.add_argument("--source", choices=("rail", "road", "air", "all"), default="rail")
     args = parser.parse_args()
     if args.directory is None or args.interval_seconds < 0:
         parser.error("Укажите TLM_TARIFF_DIR или --directory и неотрицательный интервал")
+    sources = ("rail", "road", "air") if args.source == "all" else (args.source,)
+    if "air" in sources:
+        from backend.update_air_tariff import refresh_air
+    due = dict.fromkeys(sources, 0.0)
     while True:
-        try:
-            result = refresh(args.directory)
-            logger.info("Прайс ТЛМ: %s", result.name if result else "изменений нет")
-            status = 0
-        except (OSError, ValueError, LookupError) as exc:
-            logger.error("Прайс ТЛМ не обновлён: %s", exc)
-            status = 1
+        failed = False
+        for source in sources:
+            if due[source] > time.monotonic():
+                continue
+            delay = args.interval_seconds
+            try:
+                result = (refresh_air(args.directory, publish_snapshot) if source == "air"
+                          else refresh(args.directory, road=source == "road"))
+                logger.info("Прайс (%s): %s", source, result.name if result else "изменений нет")
+            except (OSError, ValueError, LookupError) as exc:
+                logger.error("Прайс (%s) не обновлён: %s", source, exc)
+                failed = True
+                delay = min(delay, 3600)
+            due[source] = time.monotonic() + delay
         if not args.interval_seconds:
-            return status
-        time.sleep(min(args.interval_seconds, 3600) if status else args.interval_seconds)
+            return int(failed)
+        time.sleep(max(0, min(due.values()) - time.monotonic()))
 
 
 if __name__ == "__main__":
