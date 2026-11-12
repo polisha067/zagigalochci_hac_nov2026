@@ -39,7 +39,8 @@ from .password_reset import reset_password, send_reset_code
 from .schemas import Credentials, EmailRequest, PasswordResetRequested, ResetPasswordRequest, ErrorResponse, RegisterRequest, ResendRequest, UserResponse, VerificationResponse, VerificationRequired, VerifyEmailRequest
 from .verification import VerificationProblem, VerificationService
 from backend.a1_forecast import Granularity, MAX_FORECAST_YEAR, MIN_FORECAST_YEAR, forecast_options, forecast_route
-from backend.network.delivery_forecast import ForecastRequest, ForecastResponse, calculate_forecast
+from backend.network.delivery_forecast import (ForecastRequest, ForecastResponse, calculate_forecast,
+    SavedPriceSeriesRequest, saved_price_series)
 from backend.network.delivery_forecast import forecast_options as delivery_forecast_options
 from backend.calculation_models import CalculationRequest, CalculationResponse, MAX_SHIPMENTS
 from backend.transport_calculator import catalog_cities, compare_transport, load_catalog
@@ -591,6 +592,13 @@ def create_app(settings=None, *, assistant_planner: Optional[TurnPlanner] = None
             return calculate_russia(payload)
         except ValueError as exc:
             raise error(422,"calculation_error",str(exc))
+
+    @app.post("/network/russia/forecast-series", tags=["Общая сеть России"])
+    def archived_forecast_series(payload: SavedPriceSeriesRequest):
+        try:
+            return saved_price_series(payload)
+        except ValueError as exc:
+            raise error(422, "saved_forecast_incompatible", str(exc)) from exc
 
     @app.post("/network/russia/forecasts", response_model=ForecastResponse, tags=["Общая сеть России"])
     def russia_forecast(request: Request, payload: ForecastRequest, user=Depends(optional_user)):

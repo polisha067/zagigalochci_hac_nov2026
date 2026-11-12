@@ -8,7 +8,7 @@ from math import ceil
 from typing import Annotated
 from zoneinfo import ZoneInfo
 
-from pydantic import Field, model_validator
+from pydantic import BaseModel, Field, model_validator
 
 from backend.calculation_models import Hours, OnceSchedule, Schedule
 from backend.network.air_tariff import YAKUTSK
@@ -202,6 +202,67 @@ def _air_charge(item, request, indices, connection):
             item["air_softened_rub"] = float(money(amount * softened))
 
 
+def _annual_price_series(items, base_year, target_year, index):
+    """Reprice the same charge quantities for each year, without interpolation."""
+    series = []
+    for year in range(base_year, target_year + 1):
+        amounts, lower, upper = [], [], []
+        for item in items:
+            pricing = item["pricing"]
+            estimate = index(pricing["category"], pricing["effective_price_year"], year)
+            if estimate is None:
+                break
+            amount = Decimal(str(item["base_amount_rub"]))
+            amounts.append(money(amount * estimate.central))
+            if estimate.lower is not None:
+                lower.append(money(amount * estimate.lower))
+            if estimate.upper is not None:
+                upper.append(money(amount * estimate.upper))
+        if len(amounts) == len(items):
+            series.append({
+                "year": year, "amount_rub": float(sum(amounts)),
+                "lower_rub": float(sum(lower)) if len(lower) == len(items) else None,
+                "upper_rub": float(sum(upper)) if len(upper) == len(items) else None,
+            })
+    return series
+
+
+class SavedCharge(BaseModel):
+    category: Annotated[str, Field(min_length=1, max_length=50)]
+    effective_price_year: Annotated[int, Field(strict=True, ge=1900, le=2100)]
+    base_amount_rub: Annotated[Decimal, Field(ge=0, le=Decimal("1e18"))]
+
+
+class SavedPriceSeriesRequest(BaseModel):
+    base_year: Annotated[int, Field(strict=True, ge=1900, le=2100)]
+    target_year: Annotated[int, Field(strict=True, ge=1900, le=2100)]
+    base_rub: Annotated[Decimal, Field(ge=0, le=Decimal("1e20"))]
+    total_rub: Annotated[Decimal, Field(ge=0, le=Decimal("1e20"))]
+    indices_version: Annotated[str, Field(max_length=100)] | None = None
+    model_version: Annotated[str, Field(max_length=100)] | None = None
+    charges: Annotated[list[SavedCharge], Field(min_length=1, max_length=20000)]
+
+
+def saved_price_series(request: SavedPriceSeriesRequest):
+    """Enrich an archived ledger without rerunning route selection or changing its totals."""
+    indices = load_indices()
+    if (request.indices_version and request.indices_version != indices.version or
+            request.model_version and request.model_version != MODEL_VERSION):
+        raise ValueError("Версия модели сохранённого расчёта отличается. Выполните новый прогноз.")
+    if not request.base_year <= request.target_year <= indices.max_year:
+        raise ValueError("Некорректный период сохранённого прогноза.")
+    if any(charge.effective_price_year > request.base_year for charge in request.charges):
+        raise ValueError("Начисления не сопоставимы с базовым годом.")
+    items = [{"pricing": {"category": charge.category, "effective_price_year": charge.effective_price_year},
+              "base_amount_rub": charge.base_amount_rub} for charge in request.charges]
+    series = _annual_price_series(items, request.base_year, request.target_year, indices.estimate)
+    if (len(series) != request.target_year - request.base_year + 1 or
+            money(series[0]["amount_rub"]) != money(request.base_rub) or
+            money(series[-1]["amount_rub"]) != money(request.total_rub)):
+        raise ValueError("Годовой ряд не совпадает с сохранёнными суммами. Выполните новый прогноз.")
+    return {"annual_series": series}
+
+
 def _reprice(row, request, index, reference, indices):
     requires_date = request.schedule is None and any(
         edge["mode"] not in PROJECTED_MODES or edge["kind"] not in SCENARIO_CONNECTIONS
@@ -282,6 +343,9 @@ def _reprice(row, request, index, reference, indices):
         range_status="available" if lower is not None and upper is not None else "not_calibrated",
         long_term=any(item["long_term"] for item in items),
     )
+    if row["forecast_price"]["base_rub"] is not None:
+        row["forecast_price"]["annual_series"] = _annual_price_series(
+            items, row["forecast_price"]["base_year"], request.target_year, index)
 
 
 def _alternative(best, other):
