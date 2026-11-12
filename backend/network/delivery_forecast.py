@@ -12,6 +12,7 @@ from pydantic import Field, model_validator
 
 from backend.calculation_models import Hours, OnceSchedule, Schedule
 from backend.network.air_tariff import YAKUTSK
+from backend.network.connection_pilot import ConnectionConditions, connection_pilot
 from backend.network.forecast_indices import load_indices
 from backend.network.provider_tariffs import AIR_SOURCE, FORECAST_BASE_SOURCES
 from backend.network.russia import END, SCENARIO, START, RussiaRequest, RussiaResponse, load_russia
@@ -34,6 +35,7 @@ class ForecastRequest(RussiaRequest):
     target_year: Annotated[int, Field(strict=True, gt=BASE_YEAR, le=2100)]
     schedule: Schedule | None = None
     max_delivery_hours: Hours | None = None
+    connection_conditions: ConnectionConditions | None = None
 
     @model_validator(mode="after")
     def dates_in_target_year(self):
@@ -324,6 +326,8 @@ def _visible_candidates(candidates, limit):
 
 def _normalized_request(request, network, settlements):
     payload = request.model_dump(mode="json")
+    if request.connection_conditions is None:
+        payload.pop("connection_conditions")
     points = [(payload, "origin"), *((stop, "settlement") for stop in payload["stops"]), (payload, "destination")]
     for (item, field), settlement in zip(points, settlements):
         if settlement:
@@ -360,7 +364,7 @@ def calculate_forecast(request, network=None, indices=None):
     events, _, _ = build_schedule(schedule)
     end = max(events) + timedelta(hours=horizon + 24)
     simulation = RussiaRequest.model_validate({
-        **request.model_dump(exclude={"target_year", "schedule", "max_delivery_hours"}),
+        **request.model_dump(exclude={"target_year", "schedule", "max_delivery_hours", "connection_conditions"}),
         "schedule": schedule, "max_delivery_hours": horizon, "max_candidates": 16,
     })
 
@@ -383,6 +387,10 @@ def calculate_forecast(request, network=None, indices=None):
         row["known_cost_subtotal_rub"] if continuous and row["known_cost_subtotal_rub"] is not None else float("inf"),
         row["max_delivery_hours"] if row["max_delivery_hours"] is not None else float("inf"), row["id"]))
     visible = _visible_candidates(candidates, request.max_candidates)
+    route = [network.settlements[city]["name"] if city else None for city in result["settlements"]]
+    for row in visible:
+        if pilot := connection_pilot(row, route, request):
+            row["connection_pilot"] = pilot
     eligible = [row for row in visible if row["status"] == "feasible"]
     best = eligible[0] if eligible else None
     alternative = _alternative(best, eligible[1] if len(eligible) > 1 else None)

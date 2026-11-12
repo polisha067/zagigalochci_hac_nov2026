@@ -8,6 +8,7 @@ import {
   type CSSProperties,
 } from "react";
 import { RouteMap } from "./RouteMap";
+import { ConnectionPilot } from "./ConnectionPilot";
 import { Results as LegacyResults } from "./LegacyResults";
 import type { Calculation, Candidate, Source } from "./networkApi";
 import {
@@ -445,6 +446,10 @@ function CandidateReport({
             : "Проверьте происхождение данных в источниках."}{" "}
           Это оценка при заданных условиях, не подтверждение бронирования.
         </p>
+        {c.connection_pilot && (
+          <ConnectionPilot key={`${r.forecast?.target_year}-${r.network_fingerprint}-${c.id}`}
+            calculation={r} candidateId={c.id} initial={c.connection_pilot} />
+        )}
         {c.cost_items.length > 0 && (
           <section className="report-section">
             <h3>

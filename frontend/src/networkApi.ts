@@ -160,6 +160,28 @@ export interface Delivery {
   delivery_hours: number;
   hub_id?: string;
 }
+export interface ConnectionPilot {
+  movement_rub: number;
+  conditions: Record<string, string | null>;
+  terminal_reference_url: string;
+  truck_10t_reference_rub: number;
+  truck_10t_forecast_rub: number | null;
+  truck_10t_reference_url: string;
+  scenarios: {
+    scenario: "planned" | "within_buffer" | "requested" | "pickup_after_6h" | "pickup_after_24h";
+    delay_hours: number;
+    buffer_remaining_hours: number;
+    missed: boolean;
+    extra_hours: number | null;
+    billable_truck_hours: number;
+    billable_storage_days: number | null;
+    known_rub: number;
+    total_rub: number | null;
+    charges_rub: Record<string, number | null>;
+    missing: string[];
+  }[];
+}
+
 export interface Candidate {
   id: string;
   service_ids: string[];
@@ -168,6 +190,7 @@ export interface Candidate {
   multimodal: boolean;
   status: "feasible" | "infeasible" | "insufficient_data";
   complete: boolean;
+  connection_pilot?: ConnectionPilot;
   total_cost_rub: number | null;
   known_cost_subtotal_rub?: number | null;
   cost_rub_per_tonne: number | null;

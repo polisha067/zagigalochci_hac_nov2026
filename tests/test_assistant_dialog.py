@@ -88,6 +88,22 @@ class AssistantDialogTests(unittest.TestCase):
         self.assertEqual(form.status_code, 200, form.text)
         self.assertEqual(calculation, form.json())
 
+    def test_show_all_routes_clears_air_only_restriction(self):
+        first = self.send(
+            "Новый расчёт. Москва → Якутск, 2031 год. Только прямое авиа. "
+            "100 кг муки в мешках по 25 кг, размер одного мешка 50 × 40 × 20 см, общий объём 0,2 м³. "
+            "Партию можно делить.",
+            "new", {"allowed_modes": ["air"]},
+        )["answer"]["calculation"]
+        self.assertEqual([row["modes"] for row in first["candidates"]], [["air"]])
+        calls = self.model.chat.call_count
+        expanded = self.send("Покажи все варианты маршрутов")["answer"]["calculation"]
+        self.assertEqual(self.model.chat.call_count, calls)
+        self.assertEqual({key: value for key, value in expanded["request"].items() if key != "allowed_modes"},
+                         {key: value for key, value in first["request"].items() if key != "allowed_modes"})
+        self.assertIn(["air"], [row["modes"] for row in expanded["candidates"]])
+        self.assertTrue(any(row["multimodal"] for row in expanded["candidates"]))
+
     def test_rail_stop_without_reloading_matches_main_form_and_persists(self):
         reply = self.send(
             "Новый расчёт. Москва → Новосибирск → Красноярск, 2030 год. "
@@ -274,6 +290,24 @@ class AssistantDialogTests(unittest.TestCase):
         )
         self.assertEqual(complete["answer"]["kind"], "calculation")
         self.assertEqual(complete["answer"]["calculation"]["request"]["capacity_basis"], "mass_only")
+
+    def test_region_in_new_price_request_does_not_reuse_previous_destination(self):
+        self.send("10 т муки из Москвы в Ставрополь в 2030 году, мешки, 20 м³, партия делимая. Только авто.",
+                  "new", {"allowed_modes": ["road"]})
+        message = ("Сколько будет стоить перевезти 20 тонн муки из Москвы в Якутию в 2031 году? "
+                   "Партию можно делить, груз в мешках.")
+        for prefix, action in (("", "update"), ("Новый расчёт. ", "clarify")):
+            result = self.send(prefix + message, action)
+            self.assertEqual(result["answer"]["missing_fields"], ["destination"])
+            self.assertIn("Якутск", result["answer"]["reply"])
+            self.assertIn("Москва", " ".join(result["known"]))
+            self.assertIn("20 т", " ".join(result["known"]))
+            self.assertIn("2031", " ".join(result["known"]))
+            self.assertNotIn("Ставрополь", " ".join(result["known"]))
+        result = self.send("Город назначения Якутск. Общий объём 20 м³.", "update")
+        request = result["answer"]["calculation"]["request"]
+        self.assertEqual((request["destination"], request["target_year"]), ("Якутск", 2031))
+        self.assertIn("air", request["allowed_modes"])
 
     def test_cargo_clarification_keeps_route_when_model_says_new(self):
         self.flour(destination="Красноярск")

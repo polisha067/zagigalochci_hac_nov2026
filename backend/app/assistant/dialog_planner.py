@@ -70,6 +70,7 @@ HOURS = re.compile(rf"(?<!\d){NUMBER}\s*(ч(?:ас\w*)?|д(?:ень|н[яией]
 TEMPERATURE = re.compile(r"([+−-]?\d+(?:[.,]\d+)?)\s*(?:°\s*[cс])?\s*(?:до|…|–|—|-)\s*([+−-]?\d+(?:[.,]\d+)?)\s*°\s*[cс]?", re.IGNORECASE)
 DIMENSIONS = re.compile(rf"{NUMBER}\s*[×хx*]\s*{NUMBER}\s*[×хx*]\s*{NUMBER}\s*(мм|см|м)\b", re.IGNORECASE)
 ALIASES = {"новосиб": "Новосибирск", "питер": "Санкт-Петербург", "спб": "Санкт-Петербург"}
+YAKUTIA_REGION = re.compile(r"якут(?:ия|ию|ии|ией)")
 MONTHS = ("январ", "феврал", "март", "апрел", "ма", "июн", "июл", "август", "сентябр", "октябр", "ноябр", "декабр")
 MODE_WORDS = {
     "road": r"авто|машин|фур|грузовик", "rail": r"поезд|ж/д|железнодорож|железн\w*\s+дорог",
@@ -144,6 +145,8 @@ def name_in_quote(value, quote):
 
 def resolve_city(value):
     network = load_russia()
+    if YAKUTIA_REGION.fullmatch(clean(value)) and (yakutsk := network.resolve("Якутск")):
+        return None, [yakutsk]
     value = ALIASES.get(clean(value), value)
     if identifier := network.resolve(value):
         return identifier, []
@@ -163,11 +166,18 @@ def resolve_city(value):
     return None, choices
 
 
+def _point_phrase(phrase):
+    phrase = re.split(r"[,;.!?]|\s+(?:в|на|через|после|перед|останов\w*|с\s+останов\w*|за)\b|\s+\d", phrase.strip(), maxsplit=1)[0]
+    return re.sub(r"^город(?:а|е)?\s+", "", phrase, flags=re.I).strip(" «»\"")
+
+
 def _city_prefix(phrase):
     network = load_russia()
     # Only examine the name at the start of a directional phrase.
-    phrase = re.split(r"[,;.!?]|\s+(?:в|на|через|после|перед|останов\w*|с\s+останов\w*|за)\b|\s+\d", phrase.strip(), maxsplit=1)[0]
-    words = re.sub(r"^город(?:а|е)?\s+", "", phrase, flags=re.I).strip(" «»\"").split()
+    point = _point_phrase(phrase)
+    if YAKUTIA_REGION.fullmatch(clean(point)):
+        return point
+    words = point.split()
     matches = []
     for length in range(1, min(4, len(words)) + 1):
         raw = " ".join(words[:length])
@@ -199,12 +209,16 @@ def _city_prefix(phrase):
     return ids[0]
 
 
-def _explicit_route(message):
+def _explicit_route(message, *, preserve_unknown=False):
     pair = ROUTE_QUOTE.search(message)
     if pair:
         origin, destination = (_city_prefix(phrase) for phrase in pair.groups())
         if origin and destination:
             return origin, destination, []
+        if preserve_unknown and (origin or destination):
+            unresolved = _point_phrase(pair[1] if not origin else pair[2])
+            if re.fullmatch(r"[а-яё-]+(?:\s+[а-яё-]+){0,3}", unresolved, re.I):
+                return origin or unresolved, destination or unresolved, []
     if "→" in message:
         parts = re.split(r"\s*→\s*", message)
         # A route can start after a sentence or a label such as «Новый расчёт:».
@@ -579,11 +593,11 @@ def plan_turn(planner, message, draft):
     text = clean(message)
     if re.search(r"\b(?:чукотавиа|забронируй|бронирован\w*|регулярно|еженедельно|ежемесячно)\b|\bраз[а]?\s+в\s+(?:недел|месяц)", text):
         return "unsupported", {}, None
-    route = _explicit_route(message)
     masses = mass_values(message, False)
+    explicit_new = bool(NEW_SHIPMENT.search(text))
+    route = _explicit_route(message, preserve_unknown=bool(masses and (explicit_new or PRICE_REQUEST.search(text))))
     mass_name = _name_after_mass(message) if len(masses) == 1 else None
     full_shipment = bool(route and (masses or any(row.get("name") for row in cargoes)))
-    explicit_new = bool(NEW_SHIPMENT.search(text))
     compare = action == "compare" or bool(re.search(r"\b(?:сравн|сопостав)", text))
     matches_draft = bool(route and draft and all(
         not (previous := draft.arguments.get(field)) or _point_id(previous) == _point_id(city)
