@@ -167,6 +167,58 @@ class AssistantDialogTests(unittest.TestCase):
                 self.assertTrue(cargo["name"].lower().startswith(name))
                 self.assertEqual((cargo["weight_tonnes"], cargo["volume_m3"], cargo["splittable"]), (weight, volume, True))
 
+    def test_new_shipment_with_typo_and_repeated_route_keeps_year_and_stop(self):
+        self.flour(destination="Брянск")
+        self.send("Добавь остановку в Калуге.", "update",
+                  {"stops": [{"operation": "add", "city": "Калуга"}]})
+        self.send("Повезём книги вместо муки.", "update", {"cargoes": [{"name": "Книги"}]})
+        message = ("Сколько стоит перевезти 10 тонн муки из Москвы в снкт петербург в 2032 году? "
+                   "С остановкой в Брянске на 2 часа.")
+        for prefix, action in (("", "update"), ("Новый расчёт. ", "clarify")):
+            with self.subTest(prefix=prefix):
+                first = self.send(prefix + message, action, evidence=[])
+                self.assertEqual(set(first["answer"]["missing_fields"]), {
+                    "cargoes.0.packaging", "cargoes.0.splittable", "cargoes.0.volume_m3",
+                })
+                self.assertIn("Москва → Санкт-Петербург", first["known"])
+                self.assertIn("Через Брянск (+2 ч)", first["known"])
+                self.assertIn("2032 год", first["known"])
+                self.assertFalse(any("Калуга" in line or "Книги" in line for line in first["known"]))
+
+        complete = self.send(
+            "Из Москвы в Санкт Петербург, 10 тонн муки везём, груз в мешках, "
+            "партию можно разделить, объём 20 м³.",
+            "new", evidence=[],
+        )
+        self.assertEqual(complete["answer"]["kind"], "calculation", complete["answer"]["reply"])
+        result = complete["answer"]["calculation"]
+        request = result["request"]
+        self.assertEqual((request["origin"], request["destination"], request["target_year"]),
+                         ("Москва", "Санкт-Петербург", 2032))
+        self.assertEqual([(stop["settlement"], stop["dwell_hours"]) for stop in request["stops"]], [("Брянск", 2)])
+        network = load_russia()
+        form_request = request | {
+            "origin": network.resolve(request["origin"]),
+            "destination": network.resolve(request["destination"]),
+            "stops": [stop | {"settlement": network.resolve(stop["settlement"])} for stop in request["stops"]],
+        }
+        form = self.client.post("/network/russia/forecasts", json=form_request)
+        self.assertEqual(form.status_code, 200, form.text)
+        self.assertEqual(form.json(), result)
+
+    def test_stop_anchor_answer_can_also_correct_destination(self):
+        self.flour(destination="Брянск")
+        self.send("Добавь остановку в Калуге.", "update",
+                  {"stops": [{"operation": "add", "city": "Калуга"}]})
+        pending = self.send("Добавь остановку в Брянске на 2 часа.", "clarify", evidence=[])
+        self.assertIn("После какого города", pending["answer"]["reply"])
+        reply = self.send("После Москвы, конечная точка маршрута Санкт Петербург.", "clarify", evidence=[])
+        self.assertEqual(reply["answer"]["kind"], "calculation", reply["answer"]["reply"])
+        request = reply["answer"]["calculation"]["request"]
+        self.assertEqual(request["destination"], "Санкт-Петербург")
+        self.assertEqual([(s["settlement"], s["dwell_hours"]) for s in request["stops"]],
+                         [("Брянск", 2), ("Калуга", 0)])
+
     def test_dated_estimate_uses_form_defaults_and_horizon(self):
         reply = self.send(
             "Офисная бумага, 8 т, 12 м³, делимые коробки, из Москвы в Санкт-Петербург. Груз готов 20 ноября 2026 года.",

@@ -3,6 +3,77 @@
   "archive_path": "backend/data/delivery_forecast/provider_sources",
   "documents": [
     {
+      "file": "air-pobeda-vko-2022-11-11.pdf",
+      "url": "https://www.vnukovo.ru/uploads/content/assets/Documents/pobeda-s-11.11.2022.pdf",
+      "status": "verified_online"
+    },
+    {
+      "file": "air-pobeda-vko-2023-07-01.pdf",
+      "url": "https://www.vnukovo.ru/uploads/content/Documents/Partneram/gruzovie-perevozki/pobeda-s-01.07.2023.pdf",
+      "status": "verified_online"
+    },
+    {
+      "file": "air-pobeda-vko-2024-04-01.pdf",
+      "url": "https://www.vnukovo.ru/uploads/content/Documents/Partneram/gruzovie-perevozki/pobeda-s-01.04.2024.pdf",
+      "status": "verified_online"
+    },
+    {
+      "file": "air-pobeda-vko-2025-01-01.pdf",
+      "url": "https://www.vnukovo.ru/uploads/content/Documents/Partneram/gruzovie-perevozki/pobeda-s-01.01.2025.pdf",
+      "status": "verified_online"
+    },
+    {
+      "file": "air-pobeda-vko-2026-01-01.pdf",
+      "url": "https://www.vnukovo.ru/uploads/content/Documents/Partneram/gruzovie-perevozki/pobeda-s-01.01.2026.pdf",
+      "status": "verified_online"
+    },
+    {
+      "file": "air-utair-vko-2025-03-15.pdf",
+      "url": "https://www.vnukovo.ru/uploads/content/Documents/Partneram/gruzovie-perevozki/yuteyr-s-15.03.2025.pdf",
+      "status": "verified_online"
+    },
+    {
+      "file": "air-utair-vko-2026-01-01.pdf",
+      "url": "https://www.vnukovo.ru/uploads/content/Documents/Partneram/gruzovie-perevozki/yuteir-s-01.01.2026.pdf",
+      "status": "verified_online"
+    },
+    {
+      "file": "air-yakutia-vko-2024-11.pdf",
+      "url": "https://www.vnukovo.ru/uploads/content/Documents/Partneram/gruzovie-perevozki/yakutiya-s-01.11.2024.pdf",
+      "observed_on": "2026-11-12",
+      "status": "verified_online"
+    },
+    {
+      "file": "air-yakutia-vko-2025-05.pdf",
+      "url": "https://www.vnukovo.ru/uploads/content/Documents/Partneram/gruzovie-perevozki/yakutiya-s-01.05.2025.pdf",
+      "observed_on": "2026-11-12",
+      "status": "verified_online"
+    },
+    {
+      "file": "air-yakutia-vko-2026-01.pdf",
+      "url": "https://www.vnukovo.ru/uploads/content/Documents/Partneram/gruzovie-perevozki/yakutiya-s-01.01.2026.pdf",
+      "observed_on": "2026-11-12",
+      "status": "verified_online"
+    },
+    {
+      "file": "air-yakutia-feb-mar-2026.pdf",
+      "url": "https://www.yakutia.aero/uslugi/gruzovye-perevozki-na-vnutrennikh-reisakh/R3-CargoFares-feb-mar-2026.pdf",
+      "observed_on": "2026-11-12",
+      "status": "verified_online"
+    },
+    {
+      "file": "air-yakutia-jun-sep-2026.pdf",
+      "url": "https://www.yakutia.aero/uslugi/gruzovye-perevozki-na-vnutrennikh-reisakh/R3-CargoFares-jun-sep-2026.pdf",
+      "observed_on": "2026-11-12",
+      "status": "verified_online"
+    },
+    {
+      "file": "air-vnukovo-cargo-2026-02.pdf",
+      "url": "https://www.vnukovo.ru/uploads/content/Documents/Partneram/gruzovie-perevozki/1.-tarifi-na-uslugi-po-obrabotke-gruzov-i-pochti-01.02.26.pdf",
+      "observed_on": "2026-11-12",
+      "status": "verified_online"
+    },
+    {
       "file": "maintransport-ftl-2025.html",
       "url": "https://maintransport.ru/pro/ftl2025",
       "observed_on": "2026-11-12",

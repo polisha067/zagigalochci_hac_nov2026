@@ -14,7 +14,7 @@ from backend.network.russia import RussiaResponse, load_russia
 
 from .dialog_models import DialogOptions, DialogReply, DialogSnapshot, ScenarioReply
 from .dialog_planner import (
-    COMPARE_YEARS, HELP, SAME_ROUTE, SHIPMENT_TOOLS, YEAR_ONLY, clean, plan_turn, readiness_moment,
+    COMPARE_YEARS, HELP, NEW_SHIPMENT, SAME_ROUTE, SHIPMENT_TOOLS, YEAR_ONLY, clean, plan_turn, readiness_moment,
     readiness_parts, resolve_city, stop_anchor, visit_only_stop,
 )
 from .references import MODE_LABELS, number
@@ -556,6 +556,13 @@ def process_dialog(planner, message, state, revision, run_tool):
             labels = dict.fromkeys(_field_label(field) for field in draft.missing_fields) if draft else {}
             detail = "Уточните, пожалуйста: " + ", ".join(labels) + "." if labels else HELP
             return _reply(current, revision, question(detail, draft.missing_fields if labels else ("intent",)))
+        if (draft and current.pending_stop and (anchor := stop_anchor(text, allow_tail=True))
+                and action in ("update", "clarify") and not NEW_SHIPMENT.search(clean(text))):
+            edit = {key: value for key, value in current.pending_stop.items() if key not in ("after", "before")}
+            remaining = [row for row in changes.get("stops", []) if _stop_index(
+                [{"settlement": edit["city"]}], row["city"],
+            ) is None]
+            action, changes = "update", changes | {"stops": [edit | anchor, *remaining]}
     if action == "unsupported":
         return _reply(current, revision, info(HELP))
     if action == "clarify" or action == "update" and not changes:

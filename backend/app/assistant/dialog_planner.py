@@ -58,6 +58,11 @@ ISO_MOMENT = re.compile(r"\b\d{4}-\d{2}-\d{2}[tT]\d{2}:\d{2}(?::\d{2})?(?:[+-]\d
 ROUTE_QUOTE = re.compile(r"\bиз\s+([^.!?]{2,70}?)\s+(?:в|до)\s+([а-яё][^.!?]{0,90})", re.IGNORECASE)
 SAME_ROUTE = re.compile(r"\b(?:тот\s+же\s+маршрут|тем\s+же\s+маршрутом|по\s+тому\s+же\s+маршруту)\b")
 NEW_SHIPMENT = re.compile(r"\b(?:нов\w+\s+(?:перевозк\w*|партия|парти[юи]|расч[её]т)|а\s+теперь|начн[её]м\s+заново)\b")
+PRICE_REQUEST = re.compile(r"\b(?:сколько\b[^.!?]{0,30}\bсто\w*|рассчитай\w*\s+стоимость)\b")
+ENDPOINT_LABELS = {
+    "origin": r"город\s+отправления|начальная\s+точка(?:\s+маршрута)?",
+    "destination": r"город\s+назначения|конечная\s+точка(?:\s+маршрута)?",
+}
 NUMBER = r"(\d+(?:[ \u00a0\u202f]\d{3})*(?:[.,]\d+)?)"
 MASS = re.compile(rf"(?<!\d)(?P<piece>по\s+)?{NUMBER}\s*(?P<unit>кг|килограмм\w*|т|тон\w*)\b", re.IGNORECASE)
 VOLUME = re.compile(rf"(?<!\d){NUMBER}\s*(?:м[³3]|куб(?:а|ов|ометр\w*|ич\w*\s+метр\w*)?)\b", re.IGNORECASE)
@@ -167,7 +172,8 @@ def _city_prefix(phrase):
     for length in range(1, min(4, len(words)) + 1):
         raw = " ".join(words[:length])
         key = normalized_name(raw)
-        if city := network.resolve(ALIASES.get(clean(raw), raw)):
+        joined = "-".join(words[:length])
+        if city := network.resolve(ALIASES.get(clean(raw), raw)) or network.resolve(joined):
             matches.append((1.0, length, raw, [city]))
         elif key in network.by_name:
             matches.append((1.0, length, raw, network.by_name[key]))
@@ -179,6 +185,11 @@ def _city_prefix(phrase):
                     matches.append((max(0.84, score), length, raw, network.by_name[name]))
             for name in get_close_matches(key, names, n=2, cutoff=0.81):
                 matches.append((SequenceMatcher(None, key, name).ratio(), length, raw, network.by_name[name]))
+            # A city name can be missing both a letter and a hyphen.
+            for spelling in dict.fromkeys((key, normalized_name(joined))):
+                candidates = (name for name in network.by_name if len(name.split()) == len(spelling.split()))
+                for name in get_close_matches(spelling, candidates, n=3, cutoff=0.86):
+                    matches.append((SequenceMatcher(None, spelling, name).ratio(), length, raw, network.by_name[name]))
     if not matches:
         return None
     matches.sort(key=lambda row: (-row[0], -row[1]))
@@ -481,11 +492,22 @@ def visit_only_stop(message):
     return None
 
 
-def stop_anchor(message):
-    if match := re.fullmatch(r"\s*(после|перед)\s+([^.!?]+)[.!?]*\s*", message, re.I):
+def stop_anchor(message, *, allow_tail=False):
+    pattern = r"\s*(после|перед)\s+([^,;.!?\n]+)"
+    match = re.match(pattern, message, re.I) if allow_tail else re.fullmatch(pattern + r"[.!?]*\s*", message, re.I)
+    if match:
         if city := _city_prefix(match[2]):
             return {"after" if clean(match[1]) == "после" else "before": city}
     return {}
+
+
+def _labeled_endpoints(message):
+    changes = {}
+    for field, label in ENDPOINT_LABELS.items():
+        if match := re.search(rf"\b(?:{label})\s*(?:[:—–-]\s*|\s+)([^,;.!?]+)", message, re.I):
+            if city := _city_prefix(match[1]):
+                changes[field] = city
+    return changes
 
 
 def _point_id(value):
@@ -540,24 +562,32 @@ def plan_turn(planner, message, draft):
     route = _explicit_route(message)
     masses = mass_values(message, False)
     mass_name = _name_after_mass(message) if len(masses) == 1 else None
-    independent = bool(route and (masses or any(row.get("name") for row in cargoes)))
+    full_shipment = bool(route and (masses or any(row.get("name") for row in cargoes)))
+    explicit_new = bool(NEW_SHIPMENT.search(text))
+    compare = action == "compare" or bool(re.search(r"\b(?:сравн|сопостав)", text))
+    matches_draft = bool(route and draft and all(
+        not (previous := draft.arguments.get(field)) or _point_id(previous) == _point_id(city)
+        for field, city in zip(("origin", "destination"), route[:2])
+    ))
+    completing_draft = bool(draft and draft.missing_fields and matches_draft
+                            and not explicit_new and not PRICE_REQUEST.search(text))
+    endpoints = _labeled_endpoints(message)
     explicit_stop = _explicit_stop(message)
-    if action == "clarify":
-        if independent and mass_name and not re.search(r"\b(?:сравн|сопостав)", text):
+    if not compare and action != "unsupported":
+        if explicit_new or full_shipment and not completing_draft:
             action = "new"
-        elif draft and explicit_stop and re.search(r"добав|остановк|заедем|заехать|заедь", text):
-            return "update", {"stops": [explicit_stop]}, None
+        elif completing_draft or endpoints and draft:
+            action = "update"
+        elif action == "clarify" and draft and explicit_stop and re.search(r"добав|остановк|заедем|заехать|заедь", text):
+            action = "update"
     if action not in ("clarify", "unsupported"):
         old_cargoes = draft.arguments.get("cargoes", []) if draft else []
-        if independent and not re.search(r"\b(?:сравн|сопостав)", clean(message)):
-            action = "new"
-        elif NEW_SHIPMENT.search(clean(message)) and action != "compare":
-            action = "new"
+        changes.update(endpoints)
         for row in cargoes:
             for field, piece in (("weight_tonnes", False), ("max_piece_tonnes", True)):
                 if row.get(field) is not None and not _same_number(row[field], mass_values(message, piece)):
                     row.pop(field)
-        recover_single_cargo = independent and mass_name and not cargoes
+        recover_single_cargo = full_shipment and mass_name and not cargoes
         single_position = len(raw_cargo or []) <= 1 and (
             len(old_cargoes) <= 1 or action == "new" or cargoes and cargoes[0].get("id")
         )
@@ -565,7 +595,7 @@ def plan_turn(planner, message, draft):
             position = cargoes[0] if cargoes else {}
             _explicit_quantities(message, position)
             _explicit_packing(message, position)
-            if independent:
+            if full_shipment:
                 catalogue_name = _catalogue_name(mass_name) if mass_name else None
                 if name := catalogue_name or position.get("name") or mass_name or _catalogue_name(message):
                     position["name"] = name
@@ -573,7 +603,7 @@ def plan_turn(planner, message, draft):
                 field.startswith("cargoes.") and ".properties." in field for field in draft.missing_fields
             )
             uncatalogued = position.get("name") and not _catalogue_name(position["name"])
-            if pending_properties or (independent and uncatalogued):
+            if pending_properties or (full_shipment and uncatalogued):
                 _explicit_cargo_properties(text, position)
             cargoes = [position] if position else []
         if _supported("capacity_basis", "mass_only", text, now):
@@ -583,7 +613,7 @@ def plan_turn(planner, message, draft):
         if len(YEAR_TOKEN.findall(message)) == 1 and not any(key in changes for key in ("ready_at", "deliver_by", "target_year", "readiness")):
             if re.search(r"(?:\b(?:в|на)\s+(?:19|20|21)\d{2}|\b(?:19|20|21)\d{2}(?:\s+год|[-‑–]м))", message, re.I):
                 changes["target_year"] = int(YEAR_TOKEN.search(message)[0])
-        if route and (action == "new" or independent):
+        if route:
             _route_fields(changes, cargoes, stops, route)
         if len(stops) <= 1 and (explicit := explicit_stop):
             if not stops:
@@ -592,7 +622,7 @@ def plan_turn(planner, message, draft):
                 stops[0]["dwell_hours"] = explicit["dwell_hours"]
         if len(cargoes) < 2:
             changes.pop("replace_cargoes", None)
-        if action == "new" and draft and not NEW_SHIPMENT.search(text) and not independent and not any(
+        if action == "new" and draft and not explicit_new and not full_shipment and not any(
                 key in changes for key in ("origin", "destination")):
             action = "update"
     if cargoes:
