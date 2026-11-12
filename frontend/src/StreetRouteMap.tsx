@@ -58,14 +58,17 @@ export function StreetRouteMap({ candidates, settlements, recommendation, opened
     const originHub = candidates.find((candidate) => candidate.route_hubs?.length)?.route_hubs[0];
     const origin = originHub?.settlement_id ? catalog.get(originHub.settlement_id)?.longitude : null;
     if (origin == null) return;
-    const cities = new Map<string, { name: string; point: L.LatLng }>();
+    const reference = candidates.find((candidate) => candidate.id === recommendation)
+      ?? candidates.find((candidate) => candidate.route_hubs?.length);
+    const mainStops = new Set(reference?.route_hubs.map((hub) => hub.settlement_id));
+    const cities = new Map<string, { name: string; point: L.LatLng; main: boolean }>();
     const routes = candidates.flatMap((candidate, index) => {
       const stops = (candidate.route_hubs || []).map((hub) => {
         const city = hub.settlement_id ? catalog.get(hub.settlement_id) : undefined;
         if (city?.latitude == null || city.longitude == null) return null;
         const lon = origin + ((city.longitude - origin + 540) % 360) - 180;
         const point = L.latLng(city.latitude, lon);
-        cities.set(city.id, { name: city.name, point });
+        cities.set(city.id, { name: city.name, point, main: mainStops.has(city.id) });
         return point;
       });
       return stops.length > 1 && stops.every((stop) => stop !== null)
@@ -97,7 +100,7 @@ export function StreetRouteMap({ candidates, settlements, recommendation, opened
     lines.current = currentLines;
     const draw = () => {
       for (const { candidate, index, stops } of routes) {
-        const offset = (index - (routes.length - 1) / 2) * 12;
+        const offset = (index - (routes.length - 1) / 2) * Math.min(9, 44 / routes.length);
         const points = routeLine(map, stops, offset);
         const existing = currentLines.get(candidate.id);
         if (existing) {
@@ -105,23 +108,23 @@ export function StreetRouteMap({ candidates, settlements, recommendation, opened
           continue;
         }
         const line = L.polyline(points, {
-          color: candidate.id === recommendation ? "#006cf5" : "#64748b",
-          weight: candidate.id === recommendation ? 6 : 4,
+          className: "route-street-line",
         }).addTo(map);
         const label = document.createElement("span");
         label.textContent = `Вариант ${index + 1} · ${candidateName(candidate)}`;
         line.bindTooltip(label).on("click", () => click.current(candidate.id));
         currentLines.set(candidate.id, line);
       }
-      if (recommendation) currentLines.get(recommendation)?.bringToFront();
     };
     draw();
     map.on("zoomend", draw);
-    for (const { name, point } of cities.values()) {
+    for (const { name, point, main } of cities.values()) {
       const label = document.createElement("span");
       label.textContent = name;
-      L.circleMarker(point, { radius: 5, color: "#344c67", fillColor: "#fff", fillOpacity: 1 })
-        .addTo(map).bindTooltip(label, { direction: "top" });
+      L.circleMarker(point, { pane: "markerPane", radius: main ? 5 : 3, weight: 2,
+        color: main ? "#075fc9" : "#809ab7", fillColor: "#fff", fillOpacity: 1 })
+        .addTo(map).bindTooltip(label, { direction: "top", offset: [0, -6],
+          className: "route-city-label", opacity: 1 });
     }
     const resize = new ResizeObserver(() => map.invalidateSize({ pan: false }));
     resize.observe(container.current);
@@ -134,9 +137,12 @@ export function StreetRouteMap({ candidates, settlements, recommendation, opened
   }, [candidates, settlements, recommendation]);
 
   useEffect(() => {
+    const active = opened ?? recommendation ?? candidates[0]?.id;
     for (const [id, line] of lines.current) {
-      line.setStyle({ weight: id === opened || id === recommendation ? 6 : 4 });
+      line.setStyle({ color: id === active ? "#0870f5" : "#6284ae",
+        weight: id === active ? 4 : 3, opacity: id === active ? 1 : .62 });
     }
+    if (active) lines.current.get(active)?.bringToFront();
   }, [opened, recommendation, candidates, settlements]);
 
   return <div ref={container} className={`route-street-map${ready ? " ready" : ""}`}

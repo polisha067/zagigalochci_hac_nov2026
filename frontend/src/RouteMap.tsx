@@ -141,13 +141,14 @@ export function RouteMap({ candidates, recommendation, opened, onOpen }: {
     index,
     points: (candidate.route_hubs || []).map((hub) => position.get(hubKey(hub))!),
   }));
+  const active = opened ?? recommendation ?? candidates[0]?.id;
   const drawnRoutes = routes.filter((route) => route.points.length > 1)
-    .sort((a, b) => Number(a.candidate.id === recommendation) - Number(b.candidate.id === recommendation));
+    .sort((a, b) => Number(a.candidate.id === active) - Number(b.candidate.id === active));
 
   return (
     <section className="route-map" aria-label="Карта маршрутов">
       <h2>Карта маршрутов</h2>
-      <p>{geographic ? "Линии схематично соединяют города." : "Схема связей между узлами."} Выберите маршрут, чтобы открыть подробный расчёт.</p>
+      <p>Выберите вариант на схеме или в списке, чтобы открыть расчёт.</p>
       <div className="route-map-layout">
       <div className="route-map-canvas">
         <svg viewBox={`0 0 ${width} ${height}`} aria-label="Схема маршрутов перевозки">
@@ -162,9 +163,9 @@ export function RouteMap({ candidates, recommendation, opened, onOpen }: {
               </g>
             : <rect width={width} height={height} fill={`url(#${gridId})`} />}
           {drawnRoutes.map(({ candidate, index, points: routePoints }) => {
-            const path = routePath(routePoints, (index - (routes.length - 1) / 2) * 26);
+            const path = routePath(routePoints, (index - (routes.length - 1) / 2) * Math.min(18, 82 / routes.length));
             return <g key={candidate.id}
-              className={`route-map-line${candidate.id === recommendation ? " recommended" : ""}${candidate.id === opened ? " active" : ""}`}
+              className={`route-map-line${candidate.id === active ? " active" : ""}`}
               onClick={() => onOpen(candidate.id)}>
               <title>Вариант {index + 1} · {candidateName(candidate)}</title>
               <path className="route-map-hit" d={path} />
@@ -185,8 +186,8 @@ export function RouteMap({ candidates, recommendation, opened, onOpen }: {
         {routes.map(({ candidate, index }) => (
           <button type="button" key={candidate.id} onClick={() => onOpen(candidate.id)}
             aria-pressed={opened === candidate.id}
-            className={candidate.id === recommendation ? "recommended" : undefined}>
-            <b>{index + 1} · {candidateName(candidate)}</b>
+            className={candidate.id === active ? "map-selected" : undefined}>
+            <b><span className="route-option-number">{index + 1}</span>{candidateName(candidate)}</b>
             {candidate.id === recommendation && <small>Рекомендуем</small>}
             <span>{candidate.total_cost_rub == null && candidate.forecast_price?.air_median_rub != null
               ? <>{candidate.multimodal && candidate.known_cost_subtotal_rub != null

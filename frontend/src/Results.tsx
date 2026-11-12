@@ -940,6 +940,7 @@ function NetworkResults({
         <RouteMap candidates={ranked} recommendation={r.recommendation}
           opened={opened} onOpen={openFromMap} />
       )}
+      <section className="route-comparison" aria-labelledby="comparison">
       <h2 id="comparison" className="comparison-title">
         Подробное сравнение вариантов
       </h2>
@@ -1180,6 +1181,7 @@ function NetworkResults({
         Цены и ресурсы могут включать явно указанные сценарные допущения. Расчёт
         не является предложением перевозчика или бронированием.
       </p>
+      </section>
     </div>
   );
 }
