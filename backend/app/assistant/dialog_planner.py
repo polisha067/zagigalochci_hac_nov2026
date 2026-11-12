@@ -582,6 +582,8 @@ def plan_turn(planner, message, draft):
     raw_cargo = raw.pop("cargoes", None)
     raw_stops = raw.pop("stops", None)
     changes = _ground(raw, evidence, "", now)
+    if modes := changes.get("allowed_modes"):
+        changes["allowed_modes"] = list(dict.fromkeys(modes))
     # A whole phrase can confirm the operation of a stop whose city is cited separately.
     for i, row in enumerate(raw_stops or []):
         path = f"stops.{i}"
@@ -598,7 +600,10 @@ def plan_turn(planner, message, draft):
     route = _explicit_route(message, preserve_unknown=bool(masses and (explicit_new or PRICE_REQUEST.search(text))))
     mass_name = _name_after_mass(message) if len(masses) == 1 else None
     full_shipment = bool(route and (masses or any(row.get("name") for row in cargoes)))
-    compare = action == "compare" or bool(re.search(r"\b(?:сравн|сопостав)", text))
+    explicit_year_comparison = len(set(YEAR_TOKEN.findall(message))) >= 2
+    if action == "compare" and explicit_new and not explicit_year_comparison:
+        action = "new"
+    compare = action == "compare" or explicit_year_comparison and bool(re.search(r"\b(?:сравн|сопостав)", text))
     matches_draft = bool(route and draft and all(
         not (previous := draft.arguments.get(field)) or _point_id(previous) == _point_id(city)
         for field, city in zip(("origin", "destination"), route[:2])

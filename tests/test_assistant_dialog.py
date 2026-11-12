@@ -67,6 +67,20 @@ class AssistantDialogTests(unittest.TestCase):
                                  "splittable": True, "packaging": "bags"}]},
         )
 
+    def test_new_forecast_compares_modes_even_when_planner_repeats_modes(self):
+        dialog = self.send(
+            "Новый расчёт. Сколько будет стоить перевезти 10 тонн муки из Москвы в Красноярск в 2030 году? "
+            "Мука в мешках, общий объём 20 м³, партию можно разделить. "
+            "Добавь обязательную остановку в Екатеринбурге на 2 часа. "
+            "Сравни перевозку по железной дороге, на машине и смешанные варианты", "compare",
+            {"allowed_modes": ["rail", "road", "rail", "road"]},
+        )
+        answer = dialog["answer"]
+        self.assertEqual(answer["kind"], "calculation", answer)
+        calculation = answer["calculation"]
+        self.assertEqual(calculation["request"]["allowed_modes"], ["rail", "road"])
+        self.assertTrue(any(row.get("connection_pilot") for row in calculation["candidates"]))
+
     def test_air_forecast_matches_main_form(self):
         message = ("Новый расчёт. Москва → Якутск, 2030 год. Сколько стоит перевезти "
                    "100 кг муки в мешках по 25 кг? Общий объём 0,2 м³, партия делимая. "

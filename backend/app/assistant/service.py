@@ -208,6 +208,8 @@ def _validation_questions(error):
         parts = [str(part) for part in item["loc"] if part not in ("once", "regular", "explicit")]
         field = ".".join(parts) or "parameters"
         label = _field_label(field)
+        if item["type"] == "value_error" and not parts:
+            label = item["msg"].removeprefix("Value error, ")
         if item["type"] == "timezone_aware":
             label += " и по какому местному времени"
         fields[field] = label
