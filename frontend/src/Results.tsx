@@ -501,6 +501,12 @@ function CandidateReport({
                             {item.pricing?.source_ids.map((id) => (
                               <div key={id}><ChargeSource result={r} id={id} /></div>
                             ))}
+                            {item.pricing?.tariff_version && (
+                              <div className="table-note">
+                                {item.pricing.valid_from && <>Тариф действует с {date(item.pricing.valid_from.slice(0, 10))}<br /></>}
+                                {item.pricing.observed_on && <>Источник проверен {date(item.pricing.observed_on)}</>}
+                              </div>
+                            )}
                           </td>
                           <td>
                             {item.index_factors?.length ? item.index_factors.map((factor) => (

@@ -1,7 +1,7 @@
 """Shared settlement route forecast for the form and the assistant."""
 
 from copy import deepcopy
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from functools import cache
 from math import ceil
@@ -202,6 +202,8 @@ def _reprice(row, request, index, reference, indices):
     feasible = row["status"] == "feasible"
     row["transport_status"] = row["status"]
     air_connections = {edge["id"]: edge for edge in row["connections"] if edge["kind"] == "provider_air"}
+    tariff_metadata = {edge["id"]: edge["reference_metadata"] for edge in row["connections"]
+                       if "tariff_version" in edge["reference_metadata"]}
     items = row["cost_items"]
     if air_connections:
         # The simulator uses generic airport operations for timing. The price
@@ -214,6 +216,10 @@ def _reprice(row, request, index, reference, indices):
             air_items.append(item)
         else:
             _calculate_charge(item, request.target_year, index)
+            if (metadata := tariff_metadata.get(item["object_id"])) and item["kind"] == "transport":
+                item["pricing"].update(tariff_version=metadata["tariff_version"],
+                                       observed_on=metadata["tariff_observed_on"])
+                item["pricing"].pop("valid_until", None)
     _relative_calendar(row, reference, request.schedule is None)
     row["forecast_price"] = {"base_rub": None, "base_year": None, "lower_rub": None, "upper_rub": None,
                              "known_subtotal_rub": None, "range_status": "incomplete", "long_term": False}
@@ -313,13 +319,24 @@ def _normalized_request(request, network, settlements):
 
 
 def calculate_forecast(request, network=None, indices=None):
-    network, indices = network or load_russia(), indices or load_indices()
+    indices = indices or load_indices()
     if request.target_year > indices.max_year:
         raise ValueError(f"Оценка доступна до {indices.max_year} года по текущему снимку индексов.")
     # A representative phase of the repeating weekly calendar, never returned
     # as a cargo readiness date or an actual departure.
-    schedule = request.schedule or OnceSchedule(
-        mode="once", ready_at=datetime(request.target_year, 1, 1, 12, tzinfo=timezone.utc))
+    if request.schedule:
+        events, _, _ = build_schedule(request.schedule)
+        network = network or load_russia(tariff_date=min(events).astimezone(MOSCOW).date())
+        schedule = request.schedule
+    else:
+        network = network or load_russia(tariff_date=date(request.target_year, 12, 31))
+        start = date(request.target_year, 1, 1)
+        if "rail" in request.allowed_modes:
+            effective = date.fromisoformat(network.tlm_tariff["valid_from"])
+            if effective.year == request.target_year:
+                start = effective
+        schedule = OnceSchedule(mode="once", ready_at=datetime(
+            start.year, start.month, start.day, 12, tzinfo=timezone.utc))
     horizon = request.max_delivery_hours or TECHNICAL_HOURS
     events, _, _ = build_schedule(schedule)
     end = max(events) + timedelta(hours=horizon + 24)

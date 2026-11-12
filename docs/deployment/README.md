@@ -57,11 +57,31 @@ API доступен на `https://домен/api`, документация —
 docker compose --env-file deploy/.env -f deploy/compose.yaml exec -T backend python /app/backup.py
 git pull --ff-only origin backend
 export RELEASE_TAG="$(git rev-parse --short HEAD)"
-docker compose --env-file deploy/.env -f deploy/compose.yaml up -d --build backend
+docker compose --env-file deploy/.env -f deploy/compose.yaml up -d --build backend tariff-updater
 docker compose --env-file deploy/.env -f deploy/compose.yaml ps
 ```
 
 Резервная копия SQLite создаётся через SQLite backup API, включая записи в WAL, а не обычным копированием работающего файла. Копии внутри тома находятся в `/var/lib/transport/backups`. Для защиты от потери VPS скачать их на другую машину, например через `docker compose cp` и затем SSH/SCP. Сам `deploy/.env` тоже нужно безопасно сохранить отдельно: в копии SQLite его нет.
+
+### Обновление железнодорожного прайса ТЛМ
+
+Compose запускает `tariff-updater` вместе с приложением. Он проверяет публичный прайс при старте и затем раз в семь дней. После ошибки повторяет проверку через час. Сервису нужен исходящий HTTPS до `tl-m.ru`.
+
+Версии хранятся в каталоге `/var/lib/transport/tlm-tariffs` общего тома `backend-data`. Сопоставимая версия публикуется автоматически после проверки таблицы, НДС и состава услуг. При недоступном или изменившемся источнике причина попадает в журнал, а расчёты используют последний подходящий снимок. Новый тариф применяется после даты вступления в силу по Москве. Сервер подхватывает версию при следующем расчёте. Дата в строке «Источник проверен» относится к проверке, при которой опубликована эта версия. Старые версии остаются в томе.
+
+Запустить проверку сразу и посмотреть журнал:
+
+```bash
+docker compose --env-file deploy/.env -f deploy/compose.yaml exec -T tariff-updater python -m backend.update_tlm_tariff
+docker compose --env-file deploy/.env -f deploy/compose.yaml logs --tail=30 tariff-updater
+```
+
+Для локального запуска из PowerShell используйте одну переменную окружения в терминалах обновления и бэкенда:
+
+```powershell
+$env:TLM_TARIFF_DIR = Join-Path $PWD 'backend/data/tlm-tariffs'
+.venv/Scripts/python.exe -m backend.update_tlm_tariff
+```
 
 Обновление одного экземпляра может кратко прервать API. Изменение схемы БД требует совместимой миграции; копирование нового кода не заменяет её. Для возврата к старому выпуску использовать сохранённый Git commit/image tag. Откат приложения не откатывает схему/содержимое базы автоматически; при несовместимой миграции требуется восстановление заранее проверенной резервной копии при остановленном backend.
 

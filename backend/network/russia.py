@@ -27,6 +27,7 @@ from backend.network.provider_tariffs import (
     source as tariff_source, yakutia_tariffs,
 )
 from backend.network.river_tariffs import river_catalog
+from backend.network.tlm_tariff import MOSCOW, bundled_tariff, latest_snapshot, moscow_today, read_snapshot, snapshot_dir
 from backend.schedule import build_schedule
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -126,7 +127,8 @@ def digest(data):
 
 
 class RussiaNetwork:
-    def __init__(self, snapshot=None):
+    def __init__(self, snapshot=None, *, tlm_tariff=None):
+        self.tlm_tariff = tlm_tariff if tlm_tariff is not None else bundled_tariff()
         self.snapshot = snapshot or json.loads((ROOT/'data_sources/russia/connectivity.json').read_text())
         self.settlements = {c['id']:dict(c, provenance='source-01') for c in self.snapshot['settlements']}
         self.by_name = defaultdict(list)
@@ -344,7 +346,7 @@ class RussiaNetwork:
                                     'tariff_valid_until':evidence['valid_until']}))
 
     def load_land_tariffs(self):
-        collected_on, records, documents, road = observations()
+        _collected_on, _records, documents, road = observations()
         road_tariffs = (
             (ROAD_SOURCE, 'ТЛМ — цены на выделенную фуру из Москвы', road),
             (LOGISTIC_AVTO_SOURCE, 'Логистик Авто — ориентир за автомобиль 20 т', logistic_avto_tariffs()),
@@ -373,11 +375,12 @@ class RussiaNetwork:
 
         origin = self.resolve(road['origin'])
 
-        rail = records['tlm-moscow-container-rail']
+        rail = self.tlm_tariff
         self.register_source(tariff_source(RAIL_SOURCE, 'ТЛМ — ж/д тарифы от станции до станции',
-                                    documents[rail['source']]))
-        rail_evidence = rate_evidence(RAIL_SOURCE, collected_on,
-                                      rail['valid_from']+'T00:00:00+03:00', END)
+                                    rail.get('source_url') or documents[rail['source']]))
+        rail_evidence = rate_evidence(RAIL_SOURCE, rail['observed_on'],
+                                      rail['valid_from']+'T00:00:00+03:00',
+                                      f"{int(rail['valid_from'][:4])+1}-01-01T00:00:00+00:00")
         for destination, rate20, rate40, guard20, guard40, days in rail['rows']:
             if days.endswith('+'):  # The island service has an unverified non-rail leg.
                 continue
@@ -394,11 +397,12 @@ class RussiaNetwork:
                 self.add_edge({'id':identifier, 'from_hub':'tlc:'+origin, 'to_hub':'tlc:'+city,
                                'mode':'rail', 'kind':'provider_rail', 'travel_hours':float(days)*24,
                                'distance_km':base['distance_km'] if base else None,
-                               'quote':quote('transport', rate, 'per_unit', rail_evidence, 'including_vat'),
+                               'quote':quote('transport', rate, 'per_unit', rail_evidence, 'including_vat', rail['vat_percent']/100),
                                'unit_tonnes':capacity, 'unit_m3':volume, 'terminal_handling_included':True,
                                'reference_metadata':{'tariff_source_id':RAIL_SOURCE, 'container_size_ft':size,
                                    'station_destination':destination, 'optional_security_rub_per_container':guard,
-                                   'scope':'station_to_station', 'transit_days':float(days)}})
+                                   'scope':'station_to_station', 'transit_days':float(days),
+                                   'tariff_version':rail['version'], 'tariff_observed_on':rail['observed_on']}})
         self.load_sibir_rail_tariffs()
 
     def load_sibir_rail_tariffs(self):
@@ -808,6 +812,18 @@ class RussiaNetwork:
 
 from functools import lru_cache
 
-@lru_cache(maxsize=1)
-def load_russia():
-    return RussiaNetwork()
+@lru_cache(maxsize=2)
+def _load_russia(tlm_snapshot):
+    return RussiaNetwork(tlm_tariff=read_snapshot(tlm_snapshot) if tlm_snapshot else None)
+
+
+def load_russia(*, tariff_date=None):
+    today = moscow_today()
+    cutoff = min(today, tariff_date) if tariff_date is not None else today
+    return _load_russia(latest_snapshot(snapshot_dir(), cutoff))
+
+
+def calculate_russia(payload):
+    request = payload if isinstance(payload, RussiaRequest) else RussiaRequest.model_validate(payload)
+    events, _, _ = build_schedule(request.schedule)
+    return load_russia(tariff_date=min(events).astimezone(MOSCOW).date()).calculate(request)

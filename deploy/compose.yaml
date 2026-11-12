@@ -9,6 +9,7 @@ services:
     env_file: .env
     environment:
       DATABASE_PATH: /var/lib/transport/auth.sqlite3
+      TLM_TARIFF_DIR: /var/lib/transport/tlm-tariffs
     volumes:
       - backend-data:/var/lib/transport
     expose:
@@ -19,6 +20,23 @@ services:
       timeout: 5s
       retries: 3
       start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+  tariff-updater:
+    image: transport-backend:${RELEASE_TAG:-local}
+    pull_policy: never
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      TLM_TARIFF_DIR: /var/lib/transport/tlm-tariffs
+    volumes:
+      - backend-data:/var/lib/transport
+    command: ["python", "-m", "backend.update_tlm_tariff", "--interval-seconds", "604800"]
     logging:
       driver: json-file
       options:

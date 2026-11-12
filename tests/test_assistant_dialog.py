@@ -1,7 +1,11 @@
 import json
+import os
 import unittest
+from datetime import date, datetime, timezone
+from html import escape
+from pathlib import Path
 from uuid import uuid4
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from backend.app.assistant.dialog_models import DialogRequest
 from backend.app.assistant.dialog_store import dialog_turn
@@ -9,6 +13,8 @@ from backend.app.assistant.ollama_client import OllamaMessage
 from backend.app.assistant.planner import DeliveryPlanner
 from backend.app.assistant.service import AssistantUnavailable
 from backend.network.russia import load_russia
+from backend.network.tlm_tariff import bundled_tariff
+from backend.update_tlm_tariff import refresh
 from tests import test_assistant
 
 
@@ -117,6 +123,70 @@ class AssistantDialogTests(unittest.TestCase):
         updated = self.send("А если в 2028 году?")["answer"]["calculation"]
         self.assertEqual(updated["request"], result["request"] | {"target_year": 2028})
         self.assertLess(updated["candidates"][0]["known_cost_subtotal_rub"], candidate["known_cost_subtotal_rub"])
+
+    def test_tlm_refresh_is_used_by_chat_and_form_after_effective_date(self):
+        directory = Path(self.app.settings.database_path).parent / "tariffs"
+        old = bundled_tariff()
+        rows = []
+        for city, price20, price40, security20, security40, days in old["rows"]:
+            price20 = 50000 if city == "Новосибирск" else price20
+            rows.append(f"<tr><td rowspan='2'>{escape(city)}</td><td>20-фут</td>"
+                        f"<td>{price20}</td><td>{security20}</td><td rowspan='2'>{days}</td></tr>"
+                        f"<tr><td>40-фут</td><td>{price40}</td><td>{security40}</td></tr>")
+        html = f"""
+        <h2>Тарифы с 01.02.2027 (От станции до станции)</h2>
+        <table><tr><th>Пункт назначения</th><th>Тип</th><th>Стоимость (руб)</th>
+        <th>Охрана (руб)</th><th>Срок (суток)</th></tr>{''.join(rows)}</table>
+        <h4>В стоимость включено (НДС 22%):</h4>
+        <ul><li>ЖД тариф и предоставление платформы.</li><li>Подача контейнера под погрузку.</li>
+        <li>Погрузо-разгрузочные работы (терминал).</li><li>Дислокация и отслеживание.</li>
+        <li>ЗПУ (пломбы).</li></ul>
+        <h4>Важная информация:</h4>
+        <ul><li>Простой на погрузке: свыше 3ч (20фт) / 4ч (40фт) — 1000 руб/час.</li>
+        <li>Сверхнорматив: пользование контейнером свыше срока — 1000 руб/сутки.</li>
+        <li>МКАД: выезд за пределы — 80 руб/км.</li></ul>
+        """
+        with patch.dict(os.environ, {"TLM_TARIFF_DIR": str(directory)}), \
+                patch("backend.network.russia.moscow_today", return_value=date(2027, 1, 15)) as today:
+            request = self.send(
+                "Новый расчёт. Москва → Новосибирск, 2030 год. Только ж/д. "
+                "10 т муки в мешках, 20 м³, партия делимая.",
+                "new", {"allowed_modes": ["rail"], "cargoes": [{
+                    "name": "Мука", "weight_tonnes": 10, "volume_m3": 20,
+                    "packaging": "bags", "splittable": True,
+                }]},
+            )["answer"]["calculation"]["request"]
+
+            def form():
+                response = self.client.post("/network/russia/forecasts", json=request)
+                self.assertEqual(response.status_code, 200, response.text)
+                return response.json()
+
+            def movement(result):
+                row = next(row for row in result["candidates"] if row["id"] == result["recommendation"])
+                return next(item for item in row["cost_items"] if item["kind"] == "transport")
+
+            checked = datetime(2027, 1, 15, tzinfo=timezone.utc)
+            with patch("backend.update_tlm_tariff.fetch_page", return_value=html):
+                path = refresh(directory, now=checked)
+                self.assertIsNone(refresh(directory, now=checked))
+            self.assertEqual(movement(form())["base_amount_rub"], 44170)
+
+            today.return_value = date(2027, 2, 1)
+            updated = form()
+            item = movement(updated)
+            self.assertEqual(item["base_amount_rub"], 50000)
+            self.assertEqual(item["pricing"]["valid_from"], "2027-02-01T00:00:00+03:00")
+            self.assertEqual(item["pricing"]["observed_on"], "2027-01-15")
+            self.assertIn(item["pricing"]["tariff_version"], path.name)
+            self.assertEqual([factor["year"] for factor in item["index_factors"]], [2028, 2029, 2030])
+            self.assertEqual(self.send("А если в 2030 году?")["answer"]["calculation"], updated)
+
+            with patch("backend.update_tlm_tariff.fetch_page", return_value=html.replace(rows[0], "")):
+                with self.assertRaisesRegex(ValueError, "пропали"):
+                    refresh(directory, now=checked)
+            self.assertEqual(list(directory.glob("*.json")), [path])
+            self.assertEqual(form(), updated)
 
     def test_air_and_land_share_one_comparison(self):
         dialog = self.send(

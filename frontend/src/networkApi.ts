@@ -141,6 +141,7 @@ export interface CostItem {
   pricing?: {
     category: string; basis: string; quantity: number; rate_rub: number; base_year: number;
     source_ids: string[]; valid_from?: string; valid_until?: string;
+    tariff_version?: string; observed_on?: string;
   };
   index_factors?: { year: number; factor: number; source_id: string; kind: string }[];
   index_proxy?: boolean;

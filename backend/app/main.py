@@ -44,7 +44,7 @@ from backend.network.delivery_forecast import forecast_options as delivery_forec
 from backend.calculation_models import CalculationRequest, CalculationResponse, MAX_SHIPMENTS
 from backend.transport_calculator import catalog_cities, compare_transport, load_catalog
 from backend.network.models import NetworkRequest, NetworkResponse
-from backend.network.russia import RussiaRequest, RussiaResponse, load_russia
+from backend.network.russia import RussiaRequest, RussiaResponse, calculate_russia, load_russia
 from backend.network.pipeline import PipelineRequest, PipelineResponse, calculate_pipeline
 from backend.network.engine import calculate_network
 from backend.network.graph import CATEGORIES, FreightNetwork, load_network
@@ -417,7 +417,7 @@ def create_app(settings=None, *, assistant_planner: Optional[TurnPlanner] = None
             if isinstance(payload, ForecastRequest):
                 return calculate_forecast(payload)
             if isinstance(payload, RussiaRequest):
-                return load_russia().calculate(payload)
+                return calculate_russia(payload)
             if isinstance(payload, ChukotaviaRequest):
                 return calculate_chukotavia(payload, app.state.chukotavia)
             return calculate_network(payload,selected_network(payload.network_id)) if isinstance(payload,NetworkRequest) else compare_transport(payload, app.state.calculation_catalog)
@@ -588,7 +588,7 @@ def create_app(settings=None, *, assistant_planner: Optional[TurnPlanner] = None
     def russia_calculate(request: Request, payload: RussiaRequest, user=Depends(optional_user)):
         calculation_limit(request, user)
         try:
-            return load_russia().calculate(payload)
+            return calculate_russia(payload)
         except ValueError as exc:
             raise error(422,"calculation_error",str(exc))
 
