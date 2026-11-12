@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { ApiError, errorText, post, request, type User } from "./api";
-import { editableDraft, emptyDraft, type Draft, type Snapshot } from "./model";
+import { editableDraft, emptyDraft, isNetwork, type Draft, type Snapshot } from "./model";
 import type {
   Calculation,
   NetworkOptions,
@@ -11,6 +11,7 @@ import type {
 import { loadHistory, saveSnapshot } from "./history";
 import { Auth } from "./Auth";
 import { ConditionsForm } from "./ConditionsForm";
+import { ForecastOverview } from "./ForecastOverview";
 import { History, Results } from "./Results";
 import { Assistant } from "./Assistant";
 import { assistantSnapshot } from "./assistantSnapshot";
@@ -117,7 +118,7 @@ function Workspace({
           : historyState.entries.find((s) => s.id === resultId)) || null
       : null;
   useEffect(() => {
-    document.title = `${inHistory ? (saved ? "Сохранённый расчёт" : "История расчётов") : showing ? "Результат расчёта" : "Условия перевозки"} · Попутно`;
+    document.title = `${inHistory ? (saved ? "Сохранённый прогноз" : "История прогнозов") : showing ? "Результат прогноза" : "Прогноз грузоперевозок"} · Попутно`;
   }, [inHistory, saved, showing]);
   function newCalculation() {
     setDraft(emptyDraft());
@@ -199,7 +200,7 @@ function Workspace({
               aria-current={!inHistory ? "page" : undefined}
               onClick={() => navigate(calculationHash)}
             >
-              Расчёт
+              Прогноз
             </button>
             <button
               aria-current={inHistory ? "page" : undefined}
@@ -240,7 +241,7 @@ function Workspace({
           )}
         </div>
       </header>
-      <main className={showing || inHistory ? "wide-main" : ""}>
+      <main className="wide-main forecast-main">
         {logoutError && (
           <p role="alert" className="feedback error">
             {logoutError}
@@ -257,6 +258,11 @@ function Workspace({
             snapshot={showing}
             initialCandidate={assistantSelection?.snapshot === showing.id ? assistantSelection.candidate : undefined}
             saved={inHistory}
+            editor={!inHistory && options && isNetwork(showing) ? (
+              <ConditionsForm key={showing.id} initial={editableDraft(showing, options)}
+                options={options} onDraft={setDraft} onResult={completed} />
+            ) : undefined}
+            draftChanged={isNetwork(showing) && JSON.stringify(draft) !== JSON.stringify(showing.draft)}
             onNew={newCalculation}
             onEdit={() => {
               setDraft(editableDraft(showing, options || undefined));
@@ -280,13 +286,22 @@ function Workspace({
             />
           </>
         ) : options ? (
-          <ConditionsForm
-            key={formVersion}
-            initial={draft}
-            options={options}
-            onDraft={setDraft}
-            onResult={completed}
-          />
+          <>
+            <div className="forecast-page-heading">
+              <h1>Прогноз грузоперевозок</h1>
+              <p>Оцените стоимость доставки и объём перевозок на выбранный год.</p>
+            </div>
+            <div className="forecast-workspace">
+              <ConditionsForm
+                key={formVersion}
+                initial={draft}
+                options={options}
+                onDraft={setDraft}
+                onResult={completed}
+              />
+              <ForecastOverview draft={draft} />
+            </div>
+          </>
         ) : (
           <section className="empty-state perforated">
             <h1>

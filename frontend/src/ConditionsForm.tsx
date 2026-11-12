@@ -40,7 +40,16 @@ export function ConditionsForm({
   onDraft: (d: Draft) => void;
   onResult: (r: Calculation, d: Draft) => void;
 }) {
-  const [draft, setDraft] = useState(() => structuredClone(initial));
+  const [draft, setDraft] = useState(() => {
+    const value = structuredClone(initial);
+    if (!value.origin && !value.destination && !value.forecastYear && options.delivery_forecast) {
+      value.forecastYear = String(options.delivery_forecast.min_year);
+      value.scheduleMode = "once";
+      value.start = "";
+      value.capacityBasis = "mass_and_volume";
+    }
+    return value;
+  });
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [questions, setQuestions] = useState<Clarification[]>([]);
@@ -101,6 +110,11 @@ export function ConditionsForm({
     points.every((p) => p.city) &&
     draft.cargo.every((c) => c.name.trim() && Number(c.weight) > 0) &&
     (Number(draft.days) > 0 || Boolean(forecastYear && !draft.days));
+  function selectYear(year: string) {
+    update(year
+      ? { forecastYear: year, scheduleMode: "once", start: "", capacityBasis: "mass_and_volume" }
+      : { forecastYear: "", start: draft.start || initial.start });
+  }
   function removeStop(id: string) {
     setDraft((d) => ({
       ...d,
@@ -178,7 +192,29 @@ export function ConditionsForm({
     >
       <fieldset className="ticket" disabled={busy}>
         <section className="paper">
-          <h1>Условия перевозки</h1>
+          <h2 className="forecast-form-heading">Условия прогноза</h2>
+          {forecastOptions && (
+            <div className="forecast-year-control">
+              <label>
+                Год прогноза
+                <select aria-label="Год прогноза" value={draft.forecastYear ?? ""}
+                  onChange={(e) => selectYear(e.target.value)}>
+                  <option value="">По дате отправки</option>
+                  {Array.from({ length: forecastOptions.max_year - forecastOptions.min_year + 1 }, (_, index) => {
+                    const year = forecastOptions.min_year + index;
+                    return <option key={year} value={year}>{year}</option>;
+                  })}
+                </select>
+              </label>
+              <div className="forecast-year-pills" aria-label="Быстрый выбор года">
+                {Array.from({ length: Math.min(5, forecastOptions.max_year - forecastOptions.min_year + 1) }, (_, index) => {
+                  const year = String(forecastOptions.min_year + index);
+                  return <button type="button" key={year} aria-pressed={draft.forecastYear === year}
+                    onClick={() => selectYear(year)}>{year}</button>;
+                })}
+              </div>
+            </div>
+          )}
           <div className="route">
             <SettlementPicker
               label="Откуда"
@@ -515,27 +551,9 @@ export function ConditionsForm({
               </button>
             </section>
             <section>
-              <h2>График отправок</h2>
-              {forecastOptions && (
-                <label className="schedule-field">
-                  Год прогноза
-                  <select
-                    value={draft.forecastYear ?? ""}
-                    onChange={(e) => {
-                      const year = e.target.value;
-                      update(year
-                        ? { forecastYear: year, scheduleMode: "once", start: "", capacityBasis: "mass_and_volume" }
-                        : { forecastYear: "", start: draft.start || initial.start });
-                    }}
-                  >
-                    <option value="">По дате отправки</option>
-                    {Array.from({ length: forecastOptions.max_year - forecastOptions.min_year + 1 }, (_, index) => {
-                      const year = forecastOptions.min_year + index;
-                      return <option key={year} value={year}>{year}</option>;
-                    })}
-                  </select>
-                </label>
-              )}
+              <details className="forecast-schedule"
+                open={draft.scheduleMode !== "once" || undefined}>
+                <summary>График и даты отправок</summary>
               <div className="toggle schedule-toggle">
                 {(["once", "regular", "explicit"] as const).map((mode, i) => (
                   <button
@@ -685,6 +703,7 @@ export function ConditionsForm({
                   </button>
                 </div>
               )}
+              </details>
               <label className="schedule-field">
                 Макс. срок, дней
                 <input
@@ -800,7 +819,7 @@ export function ConditionsForm({
           <div className="network-coupon">
             <div className="stub-title">
               <span className="target" aria-hidden="true" />
-              Плановый объём
+              Объём перевозки
             </div>
             <div
               className={`volume${volumeReady ? "" : " volume-empty"}`}
@@ -826,7 +845,7 @@ export function ConditionsForm({
                 <p className="plan-hint">{preview.error}</p>
               )}
             <div className="action">
-              <p>Расчёт по транспортной сети · до 64 отправок</p>
+              <p>{forecastYear ? "Прогноз стоимости по индексам Росстата" : "Расчёт по транспортной сети"} · до 64 отправок</p>
               <p>
                 {draft.dataPolicy === "allow_assumptions"
                   ? "Сценарные тарифы и ресурсы будут отмечены в отчёте."
@@ -841,7 +860,7 @@ export function ConditionsForm({
                   ? "Ищем варианты…"
                   : wait > 0
                     ? `Повторить через ${wait} с`
-                    : "Рассчитать"}{" "}
+                    : forecastYear ? "Получить прогноз" : "Рассчитать"}{" "}
                 <span aria-hidden="true">→</span>
               </button>
             </div>
@@ -852,8 +871,7 @@ export function ConditionsForm({
         <div className="feedback form-questions" role="status">
           <b>Для расчёта нужны уточнения</b>
           <p>
-            Заполненные условия сохранены. Ответьте на вопросы и нажмите
-            «Рассчитать» ещё раз.
+            Заполненные условия сохранены. Ответьте на вопросы и отправьте форму ещё раз.
           </p>
           {questions
             .filter((q) => !q.cargo_id)

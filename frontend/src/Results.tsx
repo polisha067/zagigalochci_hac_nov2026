@@ -6,8 +6,10 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type ReactNode,
 } from "react";
 import { RouteMap } from "./RouteMap";
+import { ForecastOverview } from "./ForecastOverview";
 import { Results as LegacyResults } from "./LegacyResults";
 import type { Calculation, Candidate, Source } from "./networkApi";
 import {
@@ -387,6 +389,12 @@ function CandidateReport({
           </div>
         )}
         <div className="report-total">
+          {r.forecast && completePrice(c) && c.forecast_price?.base_rub != null && (
+            <div>
+              <small>База · {c.forecast_price.base_year}</small>
+              <strong>{money(c.forecast_price.base_rub)}</strong>
+            </div>
+          )}
           <div>
             <small>
               {partialAir
@@ -689,10 +697,14 @@ function NetworkResults({
   snapshot,
   initialCandidate,
   saved,
+  editor,
+  draftChanged,
   onEdit,
   onNew,
   onBack,
 }: {
+  editor?: ReactNode;
+  draftChanged?: boolean;
   snapshot: NetworkSnapshot;
   initialCandidate?: string;
   saved: boolean;
@@ -855,7 +867,7 @@ function NetworkResults({
       )}
       <div className="page-title">
         <div>
-          <h1>{saved ? "Сохранённый расчёт" : "Результат расчёта"}</h1>
+          <h1>{r.forecast ? "Прогноз грузоперевозок" : saved ? "Сохранённый расчёт" : "Результат расчёта"}</h1>
           <p className="muted">
             {saved ? date(snapshot.createdAt, true) + " · " : ""}
             {r.forecast ? `Сценарный прогноз · ${r.forecast.target_year} год` : "Сценарный расчёт"} ·{" "}
@@ -863,23 +875,37 @@ function NetworkResults({
           </p>
         </div>
         <div className="title-actions">
-          {!saved && (
+          {!saved && !editor && (
             <button className="outline-button" onClick={onEdit}>
               Изменить условия
             </button>
           )}
           <button className="outline-button" onClick={onNew}>
-            + Новый расчёт
+            + Новый прогноз
           </button>
         </div>
       </div>
+      {r.forecast && (
+        <>
+          {draftChanged && editor && <p className="notice forecast-stale" role="status">
+            Условия изменены. Нажмите «Получить прогноз», чтобы обновить стоимость, карту и варианты.
+          </p>}
+          <div className={editor ? "forecast-workspace" : "forecast-saved-overview"}>
+            {editor}
+            <ForecastOverview snapshot={snapshot} />
+          </div>
+        </>
+      )}
+      {!r.forecast && editor && <details className="method-notes">
+        <summary>Изменить условия перевозки</summary>{editor}
+      </details>}
       <Conditions snapshot={snapshot} />
       {r.candidates.length > 0 && (
         <RouteMap candidates={ranked} recommendation={r.recommendation}
           opened={opened} onOpen={openFromMap} />
       )}
       <h2 id="comparison" className="comparison-title">
-        Сравнение вариантов
+        Подробное сравнение вариантов
       </h2>
       {r.search.truncated && (
         <div className="notice warning">
@@ -1034,9 +1060,10 @@ function NetworkResults({
                           aria-controls={
                             opened === c.id ? "scheme-report" : undefined
                           }
-                          onClick={() =>
-                            setOpened((old) => (old === c.id ? null : c.id))
-                          }
+                          onClick={() => {
+                            if (opened === c.id) setOpened(null);
+                            else openFromMap(c.id);
+                          }}
                         >
                           {opened === c.id ? "Свернуть" : "Подробнее"}
                         </button>
@@ -1124,10 +1151,14 @@ export function Results({
   snapshot,
   initialCandidate,
   saved = false,
+  editor,
+  draftChanged,
   onEdit,
   onNew,
   onBack,
 }: {
+  editor?: ReactNode;
+  draftChanged?: boolean;
   snapshot: Snapshot;
   initialCandidate?: string;
   saved?: boolean;
@@ -1139,6 +1170,8 @@ export function Results({
     <NetworkResults
       snapshot={snapshot}
       initialCandidate={initialCandidate}
+      editor={editor}
+      draftChanged={draftChanged}
       saved={saved}
       onEdit={onEdit}
       onNew={onNew}
@@ -1164,23 +1197,27 @@ export function History({
   onNew: () => void;
 }) {
   const [search, setSearch] = useState("");
+  const [year, setYear] = useState("");
+  const years = [...new Set(entries.flatMap((s) =>
+    isNetwork(s) && s.result.forecast ? [s.result.forecast.target_year] : [],
+  ))].sort((a, b) => b - a);
   const filtered = entries.filter((s) =>
-    `${snapshotRoute(s)} ${cargoLabel(s)}`
-      .toLocaleLowerCase("ru")
-      .includes(search.trim().toLocaleLowerCase("ru")),
+    `${snapshotRoute(s)} ${cargoLabel(s)}`.toLocaleLowerCase("ru")
+      .includes(search.trim().toLocaleLowerCase("ru")) &&
+    (!year || (isNetwork(s) && String(s.result.forecast?.target_year) === year)),
   );
   let previous = "";
   return (
     <div className="history-page">
       <div className="page-title">
         <div>
-          <h1>История расчётов</h1>
+          <h1>История прогнозов</h1>
           <p className="muted">
             Снимки в этом браузере · отдельно для вашего аккаунта
           </p>
         </div>
         <button className="outline-button" onClick={onNew}>
-          + Новый расчёт
+          + Новый прогноз
         </button>
       </div>
       <label className="history-search">
@@ -1192,6 +1229,12 @@ export function History({
           onChange={(e) => setSearch(e.target.value)}
         />
       </label>
+      {years.length > 0 && <label className="history-year-filter">Год прогноза
+        <select value={year} onChange={(e) => setYear(e.target.value)}>
+          <option value="">Все годы</option>
+          {years.map((value) => <option key={value} value={value}>{value}</option>)}
+        </select>
+      </label>}
       {!filtered.length && (
         <div className="empty-state perforated">
           <h2>
@@ -1215,6 +1258,10 @@ export function History({
         previous = day;
         let recommendation = "Нет допустимой рекомендации";
         let price: number | null = null;
+        const forecastCandidate = isNetwork(s) && s.result.forecast
+          ? s.result.candidates.find((c) => c.id === s.result.recommendation)
+          : undefined;
+        const forecastBase = forecastCandidate?.forecast_price;
         if (isNetwork(s)) {
           const c = s.result.candidates.find(
             (c) => c.id === s.result.recommendation,
@@ -1250,13 +1297,21 @@ export function History({
                 </p>
               </div>
               <div className="history-recommendation">
-                <small>Рекомендация на момент расчёта</small>
+                <small>{isNetwork(s) && s.result.forecast
+                  ? `Прогноз на ${s.result.forecast.target_year} год`
+                  : "Рекомендация на момент расчёта"}</small>
                 <b>{recommendation}</b>
                 <p>
                   {price == null
                     ? "Проверьте ограничения в отчёте"
-                    : `${money(price)} за период`}
+                    : isNetwork(s) && s.result.forecast ? money(price) : `${money(price)} за период`}
                 </p>
+                {price != null && forecastBase?.base_rub != null && forecastBase.base_rub > 0 && (
+                  <small>База {forecastBase.base_year} · {money(forecastBase.base_rub)} ·{" "}
+                    {price >= forecastBase.base_rub ? "+" : ""}
+                    {num((price / forecastBase.base_rub - 1) * 100, 1)}%
+                  </small>
+                )}
                 <small>
                   {isNetwork(s)
                     ? "Сценарная сеть · версия " + s.result.schema_version
@@ -1274,7 +1329,7 @@ export function History({
                 className="history-open text-button"
                 onClick={() => onOpen(s)}
               >
-                Открыть расчёт ↗
+                {isNetwork(s) && s.result.forecast ? "Открыть прогноз ↗" : "Открыть расчёт ↗"}
               </button>
             </article>
           </Fragment>
