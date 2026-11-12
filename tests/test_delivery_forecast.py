@@ -37,7 +37,7 @@ class ForecastModelTests(unittest.TestCase):
         self.assertEqual(movement["base_amount_rub"], 109850)
         self.assertEqual(movement["pricing"]["source_ids"], ["tlm-rail-2026"])
         self.assertFalse(any(item["kind"] in ("pickup_handling", "delivery_handling") for item in b["cost_items"]))
-        self.assertEqual(b["total_cost_rub"], 184508.96)
+        self.assertEqual(b["total_cost_rub"], 184426.50)
         self.assertEqual(b["max_delivery_hours"], 301.5)
         self.assertFalse(second.forecast["alternative"]["ranges_overlap"])
         self.assertIsNone(second.request["schedule"])
@@ -130,7 +130,7 @@ class ForecastApiTests(unittest.TestCase):
         self.assertEqual(followup.status_code, 200, followup.text)
         chat = followup.json()
         self.assertEqual(chat["kind"], "calculation")
-        self.assertIn("184 500 ₽", chat["reply"])
+        self.assertIn("184 400 ₽", chat["reply"])
         self.assertIn("от станции до станции", chat["reply"])
         self.assertTrue(any(source["url"] and "rosstat.gov.ru" in source["url"] for source in chat["sources"]))
         self.client.cookies.clear()
@@ -140,6 +140,48 @@ class ForecastApiTests(unittest.TestCase):
         form = self.client.post("/network/russia/forecasts", json=payload)
         self.assertEqual(form.status_code, 200, form.text)
         self.assertEqual(chat["calculation"], form.json())
+
+    def test_published_tlm_rates_match_between_form_and_chat_for_new_horizons(self):
+        cases = (
+            ("Екатеринбург", "road", 2027, 20, 20, 200000, 228600, 239808.10),
+            ("Екатеринбург", "road", 2030, 20, 20, 200000, 316006.54, 332481.08),
+            ("Красноярск", "rail", 2030, 100, 120, 259260, 434620.41, 438290.48),
+        )
+        tool = "estimate_future_delivery_cost"
+        network = load_russia()
+        for destination, mode, year, mass, volume, base, transport, total in cases:
+            with self.subTest(destination=destination, mode=mode, year=year):
+                self.client.cookies.clear()
+                self.client.cookies.set(self.case.settings.cookie_name, self.case.token)
+                payload = shipment(destination=destination, allowed_modes=[mode], target_year=year)
+                cargo = payload["cargoes"][0]
+                cargo.update(weight_tonnes=mass, volume_m3=volume)
+                self.case.connect_ollama(
+                    self.case.domain_reply(tool, origin="Москва", destination=destination,
+                                           allowed_modes=[mode], target_year=year, cargoes=[cargo]),
+                )
+                mode_label = "авто" if mode == "road" else "по железной дороге"
+                chat_response = self.client.post("/assistant/chat", json={
+                    "message": f"Сколько стоит перевезти {mass} т муки из Москвы в {destination} "
+                               f"{mode_label} в {year} году? {volume} м³, в мешках, партия делимая. "
+                               "Мешки по 25 кг, 0,5 × 0,4 × 0,2 м."
+                })
+                self.assertEqual(chat_response.status_code, 200, chat_response.text)
+                chat = chat_response.json()
+                self.assertEqual(chat["kind"], "calculation", chat)
+                self.client.cookies.clear()
+                payload["origin"] = network.resolve(payload["origin"])
+                payload["destination"] = network.resolve(payload["destination"])
+                form = self.client.post("/network/russia/forecasts", json=payload)
+                self.assertEqual(form.status_code, 200, form.text)
+                self.assertEqual(chat["calculation"], form.json())
+                calculation = chat["calculation"]
+                row = next(row for row in calculation["candidates"] if row["id"] == calculation["recommendation"])
+                movement = next(item for item in row["cost_items"] if item["kind"] == "transport")
+                self.assertEqual(movement["pricing"]["source_ids"], [f"tlm-{mode}-2026"])
+                self.assertEqual(movement["base_amount_rub"], base)
+                self.assertEqual(movement["amount_rub"], transport)
+                self.assertEqual(row["total_cost_rub"], total)
 
     def test_chat_keeps_forecast_context_with_temperature_range(self):
         tool = "estimate_future_delivery_cost"

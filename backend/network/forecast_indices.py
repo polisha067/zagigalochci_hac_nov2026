@@ -47,31 +47,39 @@ class IndexSeries:
         return [self.actual[year].factor for year in years] if all(year in self.actual for year in years) else []
 
     @staticmethod
-    def central(history):
-        # For an odd window median(log(x)).exp() equals median(x).
+    def central(history, *, geometric=False):
+        if geometric:
+            return (prod(history).ln() / len(history)).exp()
         return median(history)
 
-    def backtest(self, horizon):
+    def backtest(self, horizon, *, skip=0, geometric=False):
         rows = []
-        for end in range(min(self.actual, default=0) + WINDOW - 1, self.last_actual - horizon + 1):
+        for end in range(min(self.actual, default=0) + WINDOW - 1, self.last_actual - skip - horizon + 1):
             history = self.history(end)
-            future = [self.actual.get(year) for year in range(end + 1, end + horizon + 1)]
+            future = [self.actual.get(year) for year in range(end + skip + 1, end + skip + horizon + 1)]
             if history and all(future):
                 actual = prod(point.factor for point in future)
-                rows.append((actual, self.central(history) ** horizon, history[-1] ** horizon))
+                rows.append((actual, self.central(history, geometric=geometric) ** horizon, history[-1] ** horizon))
         return rows
 
     @cached_property
-    def bands(self):
+    def band_cache(self):
+        return {}
+
+    def bands(self, skip, geometric):
+        key = (skip, geometric)
+        if key in self.band_cache:
+            return self.band_cache[key]
         low = high = Decimal(0)
         bands = {}
-        for horizon in range(1, max(1, len(self.actual) - WINDOW + 1)):
-            rows = self.backtest(horizon)
+        for horizon in range(1, len(self.actual) - WINDOW - skip + 1):
+            rows = self.backtest(horizon, skip=skip, geometric=geometric)
             if len(rows) < MIN_BACKTEST_WINDOWS:
                 break
             errors = [(actual / model).ln() for actual, model, _ in rows]
             low, high = min(low, quantile(errors, "0.2")), max(high, quantile(errors, "0.8"))
             bands[horizon] = (low.exp(), high.exp())
+        self.band_cache[key] = bands
         return bands
 
 
@@ -118,10 +126,13 @@ class ForecastIndices:
         if target_year < base_year or target_year > self.max_year:
             return None
         proxy = self.proxies.get(category)
-        series = self.series.get(proxy or category)
+        index_category = proxy or category
+        series = self.series.get(index_category)
+        geometric = index_category == "rail" or (index_category == "road" and target_year - base_year >= 2)
         central = Decimal(1)
         points = []
         estimated_years = []
+        modeled_factor = None
         for year in range(base_year + 1, target_year + 1):
             if series is None:
                 return None
@@ -129,20 +140,25 @@ class ForecastIndices:
             if point is None:
                 if year <= series.last_actual:
                     return None
-                history = series.history(series.last_actual)
-                if not history:
-                    return None
-                point = IndexPoint(year, series.central(history), series.model_source, "estimated")
+                if modeled_factor is None:
+                    history = series.history(series.last_actual)
+                    if not history:
+                        return None
+                    modeled_factor = series.central(history, geometric=geometric)
+                point = IndexPoint(year, modeled_factor, series.model_source, "estimated")
                 estimated_years.append(year)
             elif point.kind == "published_scenario":
                 estimated_years.append(year)
             central *= point.factor
             points.append(point)
-        horizon = max(estimated_years, default=base_year) - series.last_actual if estimated_years else 0
-        band = series.bands.get(horizon) if horizon else (Decimal(1), Decimal(1))
+        band = (Decimal(1), Decimal(1))
+        if estimated_years:
+            skip = max(0, base_year - series.last_actual)
+            horizon = max(estimated_years) - max(base_year, series.last_actual)
+            band = series.bands(skip, geometric).get(horizon)
         return IndexEstimate(
             central, central * band[0] if band else None, central * band[1] if band else None,
-            tuple(points), category if proxy else None, bool(horizon and not band),
+            tuple(points), category if proxy else None, bool(estimated_years and not band),
         )
 
 

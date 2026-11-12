@@ -20,7 +20,7 @@ from backend.transport_calculator import money
 
 TOOL = "estimate_future_delivery_cost"
 BASE_YEAR = datetime.fromisoformat(START).year
-MODEL_VERSION = "delivery-cost-v2"
+MODEL_VERSION = "delivery-cost-v3"
 PROJECTED_MODES = frozenset(("road", "rail"))
 TECHNICAL_HOURS = 90 * 24
 MOSCOW = ZoneInfo("Europe/Moscow")
