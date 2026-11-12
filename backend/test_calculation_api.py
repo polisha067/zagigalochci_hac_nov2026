@@ -33,6 +33,26 @@ class CalculationApiTests(unittest.TestCase):
         self.example_dir = Path(__file__).resolve().parent / "examples"
         self.request = json.loads((self.example_dir / "calculation-request.json").read_text(encoding="utf-8"))
 
+    def test_volume_scenarios_compare_against_each_year_baseline(self):
+        routes = self.client.get("/network/forecast/options").json()["routes"]
+        route = next(row for row in routes if row["origin"] == "Челябинск" and row["destination"] == "Омск")
+        response = self.client.get("/network/forecast/scenarios", params={
+            "route_id": route["route_id"], "start_year": 2030, "end_year": 2031,
+            "deadline_days": 14, "custom_growth": 37,
+        })
+        self.assertEqual(response.status_code, 200, response.text)
+        years = response.json()["years"]
+        self.assertEqual([row["year"] for row in years], [2030, 2031])
+        for year in years:
+            base, _, _, doubled, custom = year["scenarios"]
+            self.assertAlmostEqual(custom["tonnes"], base["tonnes"] * 1.37)
+            self.assertAlmostEqual(doubled["tonnes"], base["tonnes"] * 2)
+        base, _, _, doubled, _ = years[0]["scenarios"]
+        self.assertFalse(base["schemes"]["road_rail_road"]["feasible"])
+        self.assertTrue(doubled["schemes"]["road_rail_road"]["feasible"])
+        self.assertEqual(doubled["recommendation"], "road_rail_road")
+        self.assertTrue(doubled["recommendation_changed"])
+
     def test_guest_can_calculate(self):
         self.client.cookies.clear()
         self.assertEqual(self.client.post("/calculations", json=self.request).status_code, 200)
