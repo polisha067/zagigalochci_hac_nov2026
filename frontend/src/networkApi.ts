@@ -139,6 +139,7 @@ export interface CostItem {
   base_amount_rub?: number;
   pricing?: {
     category: string; basis: string; quantity: number; rate_rub: number; base_year: number;
+    effective_price_year?: number;
     source_ids: string[]; valid_from?: string; valid_until?: string;
   };
   index_factors?: { year: number; factor: number; source_id: string; kind: string }[];
@@ -262,6 +263,8 @@ export interface Calculation {
     transfers: number;
   } | null;
   forecast?: {
+    indices_version?: string;
+    model_version?: string;
     target_year: number;
     base_year: number;
     date_precision: "year" | "date";

@@ -3173,7 +3173,7 @@ header.auth-header {
 }
 
 .forecast-workspace .network-form .route .addStop {
-  order: 3;
+  order: 0;
   align-self: flex-start;
   font-size: 12px;
   padding: 7px 10px;
@@ -3595,11 +3595,9 @@ header.auth-header {
   font-size: 13px;
 }
 
-@media (min-width: 1100px) {
-  .forecast-workspace .forecast-overview {
-    position: sticky;
-    top: 20px;
-  }
+/* Both columns use the page scroll: a forecast taller than the viewport must stay reachable. */
+.forecast-workspace .forecast-overview {
+  position: static;
 }
 
 @media (max-width: 1000px) {
@@ -3972,3 +3970,18 @@ header.auth-header {
   stroke-width: 1;
   stroke-dasharray: 4 4;
 }
+
+/* Dropdowns scroll independently without passing wheel/touch gestures to the page. */
+.select-menu,
+.suggest-menu,
+.settlement-menu {
+  overscroll-behavior: contain;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+.forecast-workspace,
+.forecast-overview,
+.forecast-overview > div {
+  min-width: 0;
+}
+.forecast-main { padding-bottom: 100px; }

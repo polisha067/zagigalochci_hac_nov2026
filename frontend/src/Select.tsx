@@ -84,18 +84,23 @@ export function Select({
     if (!open) return;
     const place = () => {
       const bounds = button.current!.getBoundingClientRect();
-      const below = window.innerHeight - bounds.bottom - 12;
-      const above = bounds.top - 12;
+      const viewport = window.visualViewport;
+      const bottom = (viewport?.height ?? window.innerHeight) + (viewport?.offsetTop ?? 0);
+      const edge = (viewport?.offsetTop ?? 0) + 8;
+      if (bounds.bottom < edge || bounds.top > bottom) { setOpen(false); return; }
+      const below = bottom - bounds.bottom - 12;
+      const above = bounds.top - edge - 6;
       const height = Math.min(280, options.length * 42 + 12);
       const up = below < height && above > below;
-      const maxHeight = Math.min(height, up ? above : below);
+      const maxHeight = Math.max(0, Math.min(height, up ? above : below));
+      const width = Math.min(bounds.width, window.innerWidth - 16);
       setPosition({
         top: up ? bounds.top - maxHeight - 6 : bounds.bottom + 6,
         left: Math.max(
           8,
-          Math.min(bounds.left, window.innerWidth - bounds.width - 8),
+          Math.min(bounds.left, window.innerWidth - width - 8),
         ),
-        width: bounds.width,
+        width,
         maxHeight,
       });
     };
@@ -108,19 +113,24 @@ export function Select({
     };
     place();
     window.addEventListener("resize", place);
+    window.visualViewport?.addEventListener("resize", place);
     window.addEventListener("scroll", place, true);
     document.addEventListener("pointerdown", outside);
     return () => {
       window.removeEventListener("resize", place);
+      window.visualViewport?.removeEventListener("resize", place);
       window.removeEventListener("scroll", place, true);
       document.removeEventListener("pointerdown", outside);
     };
   }, [open, options.length]);
   useLayoutEffect(() => {
-    if (open)
-      menu.current
-        ?.querySelector(`[data-index="${active}"]`)
-        ?.scrollIntoView({ block: "nearest" });
+    const list = menu.current;
+    const option = list?.querySelector<HTMLElement>(`[data-index="${active}"]`);
+    if (!open || !list || !option) return;
+    const top = option.offsetTop;
+    if (top < list.scrollTop) list.scrollTop = top;
+    else if (top + option.offsetHeight > list.scrollTop + list.clientHeight)
+      list.scrollTop = top + option.offsetHeight - list.clientHeight;
   }, [active, open]);
   function choose(index: number) {
     const option = options[index];
@@ -133,7 +143,7 @@ export function Select({
       } as ChangeEvent<HTMLSelectElement>);
     }
     setOpen(false);
-    button.current?.focus();
+    button.current?.focus({ preventScroll: true });
   }
   function move(direction: number) {
     let index = open ? active : selected;

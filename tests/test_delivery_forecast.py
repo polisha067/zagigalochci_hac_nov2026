@@ -3,7 +3,8 @@ import unittest
 from copy import deepcopy
 from decimal import Decimal
 
-from backend.network.delivery_forecast import ForecastRequest, calculate_forecast
+from backend.network.delivery_forecast import (ForecastRequest, calculate_forecast,
+    SavedPriceSeriesRequest, saved_price_series)
 from backend.network.forecast_indices import ForecastIndices, SNAPSHOT_PATH, load_indices
 from backend.network.russia import load_russia
 from tests import BACKEND_DIR, test_assistant
@@ -41,6 +42,28 @@ class ForecastModelTests(unittest.TestCase):
                 for item in row["cost_items"]
             )
             self.assertAlmostEqual(point["amount_rub"], float(expected), places=2)
+
+    def test_archived_ledger_restores_same_annual_series_for_road_and_rail(self):
+        for modes in (["road"], ["rail"]):
+            with self.subTest(modes=modes):
+                result = self.calculate(allowed_modes=modes, target_year=2030)
+                row = recommended(result)
+                budget = row["forecast_price"]
+                payload = dict(base_year=budget["base_year"], target_year=2030,
+                               base_rub=budget["base_rub"], total_rub=row["total_cost_rub"],
+                               indices_version=result.forecast["indices_version"],
+                               model_version=result.forecast["model_version"],
+                               charges=[dict(category=item["pricing"]["category"],
+                                             effective_price_year=item["pricing"]["effective_price_year"],
+                                             base_amount_rub=item["base_amount_rub"])
+                                        for item in row["cost_items"]])
+                restored = saved_price_series(SavedPriceSeriesRequest.model_validate(payload))
+                self.assertEqual(restored["annual_series"], budget["annual_series"])
+                for change in ({"total_rub": payload["total_rub"] + 1},
+                               {"indices_version": "old-version"},
+                               {"model_version": "old-model"}):
+                    with self.assertRaises(ValueError):
+                        saved_price_series(SavedPriceSeriesRequest.model_validate(payload | change))
 
     def test_road_stop_uses_published_rates_on_both_legs(self):
         result = self.calculate(destination="Красноярск", allowed_modes=["road"], stops=[

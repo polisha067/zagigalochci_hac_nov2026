@@ -58,11 +58,11 @@ export function Assistant({ onResult, onRequireAuth }: {
   useEffect(() => () => active.current?.abort(), []);
   useEffect(() => {
     if (!open) return;
-    close.current?.focus();
+    close.current?.focus({ preventScroll: true });
     function escape(e: KeyboardEvent) {
       if (e.key === "Escape") {
         setOpen(false);
-        button.current?.focus();
+        button.current?.focus({ preventScroll: true });
       }
     }
     window.addEventListener("keydown", escape);
@@ -220,7 +220,7 @@ export function Assistant({ onResult, onRequireAuth }: {
               aria-label="Закрыть ассистента"
               onClick={() => {
                 setOpen(false);
-                button.current?.focus();
+                button.current?.focus({ preventScroll: true });
               }}
             >
               ×

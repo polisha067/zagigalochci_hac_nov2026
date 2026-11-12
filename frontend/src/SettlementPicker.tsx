@@ -1,3 +1,6 @@
+import { createPortal } from "react-dom";
+import { useCallback } from "react";
+import { useSuggestionMenu } from "./useSuggestionMenu";
 import { useEffect, useId, useState } from "react";
 import { errorText, request } from "./api";
 import type { Settlement, SettlementPage } from "./networkApi";
@@ -53,6 +56,8 @@ export function SettlementPicker({
       controller.abort();
     };
   }, [query, open]);
+  const closeMenu = useCallback(() => setOpen(false), []);
+  const { anchor, menu, position } = useSuggestionMenu(open, active, closeMenu);
   function choose(item: Settlement) {
     onChange(item);
     setQuery(item.name);
@@ -63,6 +68,7 @@ export function SettlementPicker({
     <div className="settlement-picker">
       <label htmlFor={id}>{label}</label>
       <input
+        ref={anchor}
         id={id}
         role="combobox"
         aria-label={label}
@@ -109,9 +115,11 @@ export function SettlementPicker({
           }
         }}
       />
-      {open && (
+      {open && createPortal(
         <div
-          className="settlement-menu"
+          ref={menu as React.RefObject<HTMLDivElement>}
+          style={position}
+          className="settlement-menu anchored-menu"
           id={id + "-list"}
           role="listbox"
           aria-label={`Населённые пункты: ${label}`}
@@ -143,7 +151,7 @@ export function SettlementPicker({
           ) : (
             <p>Населённый пункт не найден в загруженном справочнике.</p>
           )}
-        </div>
+        </div>, document.body
       )}
       {!open && query && !value && (
         <small className="selection-hint">

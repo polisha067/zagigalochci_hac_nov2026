@@ -1,4 +1,5 @@
 import { ForecastChart } from "./ForecastChart";
+import { useAnnualPrices } from "./useAnnualPrices";
 import { useId, useState } from "react";
 import { VolumeForecast } from "./VolumeForecast";
 import type { Calculation } from "./networkApi";
@@ -33,6 +34,7 @@ export function ForecastOverview({
       ? candidate.total_cost_rub
       : null;
   const budget = candidate?.forecast_price;
+  const annual = useAnnualPrices(candidate, forecast);
   const base = budget?.base_rub;
   const comparable = forecast && price != null && base != null && base > 0;
   const change = comparable ? (price / base - 1) * 100 : null;
@@ -151,13 +153,13 @@ export function ForecastOverview({
           </div>
           <div className="forecast-chart-card">
             <h3>Как изменится стоимость</h3>
-            {comparable ? (
+            {annual.loading ? <p role="status">Восстанавливаем прогноз по всем годам…</p> : comparable ? (
               <ForecastChart
                 variant="bar"
                 unit="₽"
                 label={`Базовая стоимость и прогноз на ${forecast.target_year} год, с диапазоном оценки`}
-                points={budget?.annual_series?.length
-                  ? budget.annual_series.map((point) => ({
+                points={annual.series?.length
+                  ? annual.series.map((point) => ({
                       label: String(point.year), value: point.amount_rub,
                       lower: point.year === baseYear ? null : point.lower_rub,
                       upper: point.year === baseYear ? null : point.upper_rub,
@@ -203,18 +205,19 @@ export function ForecastOverview({
                 Одна схема доставки и одинаковый объём груза. Для каждого года
                 стоимость пересчитана по индексам модели.
                 Вертикальная отметка показывает диапазон оценки.
-                {budget?.annual_series?.length
+                {annual.series?.length
                   ? " Наведите на столбец или нажмите на него, чтобы увидеть точную сумму."
                   : " В этом сохранённом расчёте есть только крайние годы. Выполните прогноз заново, чтобы получить полный ряд."}
               </p>
             )}
-            {budget?.annual_series && (
+            {annual.error && <p role="alert" className="forecast-chart-note">Не удалось восстановить промежуточные годы: {annual.error}</p>}
+            {annual.series && (
               <details className="volume-periods cost-annual-values">
                 <summary>Все значения по годам</summary>
                 <div className="table-scroll">
                   <table className="detail-table">
                     <thead><tr><th>Год</th><th>Стоимость</th><th>Диапазон оценки</th></tr></thead>
-                    <tbody>{budget.annual_series.map((point) => <tr key={point.year}>
+                    <tbody>{annual.series.map((point) => <tr key={point.year}>
                       <th>{point.year}{point.year === baseYear ? " · база" : ""}</th>
                       <td>{money(point.amount_rub)}</td>
                       <td>{point.year === baseYear ? "—"

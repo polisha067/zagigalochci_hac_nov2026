@@ -745,7 +745,20 @@ function NetworkResults({
       }
       step(startedAt);
     });
-    return () => cancelAnimationFrame(frameId);
+    // A user's scroll always takes priority over an in-progress route transition.
+    const cancel = () => cancelAnimationFrame(frameId);
+    const cancelOnKey = (event: KeyboardEvent) => {
+      if (["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End", " "].includes(event.key)) cancel();
+    };
+    window.addEventListener("wheel", cancel, { passive: true });
+    window.addEventListener("touchstart", cancel, { passive: true });
+    window.addEventListener("keydown", cancelOnKey);
+    return () => {
+      cancel();
+      window.removeEventListener("wheel", cancel);
+      window.removeEventListener("touchstart", cancel);
+      window.removeEventListener("keydown", cancelOnKey);
+    };
   }, [reportNavigation]);
   const frame = useRef<HTMLDivElement>(null),
     scroll = useRef<HTMLDivElement>(null),

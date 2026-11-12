@@ -1,3 +1,6 @@
+import { createPortal } from "react-dom";
+import { useCallback } from "react";
+import { useSuggestionMenu } from "./useSuggestionMenu";
 import { useId, useState, type InputHTMLAttributes } from "react";
 
 /** Свободный ввод с оформленными подсказками вместо системного datalist. */
@@ -19,6 +22,8 @@ export function SuggestInput({
       .toLocaleLowerCase()
       .includes(value.toLocaleLowerCase()),
   );
+  const closeMenu = useCallback(() => setOpen(false), []);
+  const { anchor, menu, position } = useSuggestionMenu(open, active, closeMenu);
   function choose(index: number) {
     if (!matches[index]) return;
     onChange(matches[index].value);
@@ -28,6 +33,7 @@ export function SuggestInput({
   return (
     <span className="suggest-input">
       <input
+        ref={anchor}
         {...props}
         value={value}
         autoComplete="off"
@@ -62,8 +68,8 @@ export function SuggestInput({
           }
         }}
       />
-      {open && matches.length > 0 && (
-        <span id={`${id}-list`} role="listbox" className="suggest-menu">
+      {open && matches.length > 0 && createPortal(
+        <span ref={menu} style={position} id={`${id}-list`} role="listbox" className="suggest-menu anchored-menu">
           {matches.map((option, index) => (
             <span
               role="option"
@@ -78,7 +84,7 @@ export function SuggestInput({
               {option.label}
             </span>
           ))}
-        </span>
+        </span>, document.body
       )}
     </span>
   );

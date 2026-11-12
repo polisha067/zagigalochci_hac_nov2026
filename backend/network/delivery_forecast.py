@@ -8,7 +8,7 @@ from math import ceil
 from typing import Annotated
 from zoneinfo import ZoneInfo
 
-from pydantic import Field, model_validator
+from pydantic import BaseModel, Field, model_validator
 
 from backend.calculation_models import Hours, OnceSchedule, Schedule
 from backend.network.forecast_indices import load_indices
@@ -212,6 +212,42 @@ def _annual_price_series(items, base_year, target_year, index):
                 "upper_rub": float(sum(upper)) if len(upper) == len(items) else None,
             })
     return series
+
+
+class SavedCharge(BaseModel):
+    category: Annotated[str, Field(min_length=1, max_length=50)]
+    effective_price_year: Annotated[int, Field(strict=True, ge=1900, le=2100)]
+    base_amount_rub: Annotated[Decimal, Field(ge=0, le=Decimal("1e18"))]
+
+
+class SavedPriceSeriesRequest(BaseModel):
+    base_year: Annotated[int, Field(strict=True, ge=1900, le=2100)]
+    target_year: Annotated[int, Field(strict=True, ge=1900, le=2100)]
+    base_rub: Annotated[Decimal, Field(ge=0, le=Decimal("1e20"))]
+    total_rub: Annotated[Decimal, Field(ge=0, le=Decimal("1e20"))]
+    indices_version: Annotated[str, Field(max_length=100)] | None = None
+    model_version: Annotated[str, Field(max_length=100)] | None = None
+    charges: Annotated[list[SavedCharge], Field(min_length=1, max_length=20000)]
+
+
+def saved_price_series(request: SavedPriceSeriesRequest):
+    """Enrich an archived ledger without rerunning route selection or changing its totals."""
+    indices = load_indices()
+    if (request.indices_version and request.indices_version != indices.version or
+            request.model_version and request.model_version != MODEL_VERSION):
+        raise ValueError("Версия модели сохранённого расчёта отличается. Выполните новый прогноз.")
+    if not request.base_year <= request.target_year <= indices.max_year:
+        raise ValueError("Некорректный период сохранённого прогноза.")
+    if any(charge.effective_price_year > request.base_year for charge in request.charges):
+        raise ValueError("Начисления не сопоставимы с базовым годом.")
+    items = [{"pricing": {"category": charge.category, "effective_price_year": charge.effective_price_year},
+              "base_amount_rub": charge.base_amount_rub} for charge in request.charges]
+    series = _annual_price_series(items, request.base_year, request.target_year, indices.estimate)
+    if (len(series) != request.target_year - request.base_year + 1 or
+            money(series[0]["amount_rub"]) != money(request.base_rub) or
+            money(series[-1]["amount_rub"]) != money(request.total_rub)):
+        raise ValueError("Годовой ряд не совпадает с сохранёнными суммами. Выполните новый прогноз.")
+    return {"annual_series": series}
 
 
 def _reprice(row, request, index, reference, indices):
