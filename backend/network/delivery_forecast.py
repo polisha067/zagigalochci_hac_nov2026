@@ -189,6 +189,31 @@ def _air_charge(item, request, indices, connection):
             item["air_softened_rub"] = float(money(amount * softened))
 
 
+def _annual_price_series(items, base_year, target_year, index):
+    """Reprice the same charge quantities for each year, without interpolation."""
+    series = []
+    for year in range(base_year, target_year + 1):
+        amounts, lower, upper = [], [], []
+        for item in items:
+            pricing = item["pricing"]
+            estimate = index(pricing["category"], pricing["effective_price_year"], year)
+            if estimate is None:
+                break
+            amount = Decimal(str(item["base_amount_rub"]))
+            amounts.append(money(amount * estimate.central))
+            if estimate.lower is not None:
+                lower.append(money(amount * estimate.lower))
+            if estimate.upper is not None:
+                upper.append(money(amount * estimate.upper))
+        if len(amounts) == len(items):
+            series.append({
+                "year": year, "amount_rub": float(sum(amounts)),
+                "lower_rub": float(sum(lower)) if len(lower) == len(items) else None,
+                "upper_rub": float(sum(upper)) if len(upper) == len(items) else None,
+            })
+    return series
+
+
 def _reprice(row, request, index, reference, indices):
     requires_date = request.schedule is None and any(
         edge["mode"] not in PROJECTED_MODES or edge["kind"] not in SCENARIO_CONNECTIONS
@@ -259,6 +284,9 @@ def _reprice(row, request, index, reference, indices):
         range_status="available" if lower is not None and upper is not None else "not_calibrated",
         long_term=any(item["long_term"] for item in items),
     )
+    if row["forecast_price"]["base_rub"] is not None:
+        row["forecast_price"]["annual_series"] = _annual_price_series(
+            items, row["forecast_price"]["base_year"], request.target_year, index)
 
 
 def _alternative(best, other):

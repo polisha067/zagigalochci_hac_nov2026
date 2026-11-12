@@ -3775,6 +3775,54 @@ header.auth-header {
   position: relative;
   margin-top: 16px;
 }
+
+.data-chart-scroll {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #c1d7f2 transparent;
+}
+
+.annual-cost-chart .forecast-chart {
+  margin-bottom: 4px;
+}
+
+.annual-cost-chart .chart-tooltip {
+  transform: none;
+  top: 4px;
+}
+
+.cost-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  margin: 12px 0 20px;
+  color: #526984;
+  font-size: 10px;
+}
+
+.cost-chart-legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.cost-chart-legend i {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.legend-base { background: #b6d0f2; }
+.legend-forecast { background: #006cf5; }
+.cost-chart-legend .legend-range {
+  width: 14px;
+  height: 9px;
+  border: 1px solid #174c9b;
+  border-radius: 0;
+  background: #174c9b12;
+}
 /* Шрифт диаграммы не зависит от крупных заголовков карточки. */
 .data-chart .forecast-chart text {
   font-family: inherit;

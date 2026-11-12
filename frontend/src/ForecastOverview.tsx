@@ -156,15 +156,17 @@ export function ForecastOverview({
                 variant="bar"
                 unit="₽"
                 label={`Базовая стоимость и прогноз на ${forecast.target_year} год, с диапазоном оценки`}
-                points={[
-                  { label: String(baseYear), value: base },
-                  {
-                    label: String(forecast.target_year),
-                    value: price,
-                    lower: budget?.lower_rub,
-                    upper: budget?.upper_rub,
-                  },
-                ]}
+                points={budget?.annual_series?.length
+                  ? budget.annual_series.map((point) => ({
+                      label: String(point.year), value: point.amount_rub,
+                      lower: point.year === baseYear ? null : point.lower_rub,
+                      upper: point.year === baseYear ? null : point.upper_rub,
+                    }))
+                  : [
+                      { label: String(baseYear), value: base },
+                      { label: String(forecast.target_year), value: price,
+                        lower: budget?.lower_rub, upper: budget?.upper_rub },
+                    ]}
               />
             ) : (
               <div className="forecast-chart-empty">
@@ -176,6 +178,11 @@ export function ForecastOverview({
                 </p>
               </div>
             )}
+            {comparable && <div className="cost-chart-legend">
+              <span><i className="legend-base" />Базовая стоимость</span>
+              <span><i className="legend-forecast" />Прогноз по годам</span>
+              <span><i className="legend-range" />Диапазон оценки</span>
+            </div>}
             <div className="forecast-range">
               <div>
                 <span>Диапазон оценки</span>
@@ -193,10 +200,31 @@ export function ForecastOverview({
             </div>
             {comparable && (
               <p className="forecast-chart-note">
-                Сравнение одной схемы при заданных условиях. Столбцы — полные
-                суммы сервера; вертикальная отметка — диапазон оценки.
-                Промежуточные годы не интерполируются.
+                Одна схема доставки и одинаковый объём груза. Для каждого года
+                стоимость пересчитана по индексам модели.
+                Вертикальная отметка показывает диапазон оценки.
+                {budget?.annual_series?.length
+                  ? " Наведите на столбец или нажмите на него, чтобы увидеть точную сумму."
+                  : " В этом сохранённом расчёте есть только крайние годы. Выполните прогноз заново, чтобы получить полный ряд."}
               </p>
+            )}
+            {budget?.annual_series && (
+              <details className="volume-periods cost-annual-values">
+                <summary>Все значения по годам</summary>
+                <div className="table-scroll">
+                  <table className="detail-table">
+                    <thead><tr><th>Год</th><th>Стоимость</th><th>Диапазон оценки</th></tr></thead>
+                    <tbody>{budget.annual_series.map((point) => <tr key={point.year}>
+                      <th>{point.year}{point.year === baseYear ? " · база" : ""}</th>
+                      <td>{money(point.amount_rub)}</td>
+                      <td>{point.year === baseYear ? "—"
+                        : point.lower_rub != null && point.upper_rub != null
+                          ? `${money(point.lower_rub)} – ${money(point.upper_rub)}`
+                          : "Нет рассчитанного диапазона"}</td>
+                    </tr>)}</tbody>
+                  </table>
+                </div>
+              </details>
             )}
           </div>
           {price != null && reconciled && (

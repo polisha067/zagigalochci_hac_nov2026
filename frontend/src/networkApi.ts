@@ -193,6 +193,12 @@ export interface Candidate {
   stop_actions: (Stop & { hub_id: string; settlement_id?: string })[];
   booking_confirmed?: boolean;
   forecast_price?: {
+    annual_series?: {
+      year: number;
+      amount_rub: number;
+      lower_rub: number | null;
+      upper_rub: number | null;
+    }[];
     base_rub: number | null;
     base_year: number | null;
     lower_rub: number | null;

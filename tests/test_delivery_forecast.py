@@ -23,6 +23,25 @@ class ForecastModelTests(unittest.TestCase):
     def calculate(self, indices=None, **changes):
         return calculate_forecast(ForecastRequest.model_validate(shipment(**changes)), indices=indices)
 
+    def test_annual_prices_include_intermediate_years_and_match_totals(self):
+        result = self.calculate(allowed_modes=["road"], target_year=2030)
+        row = recommended(result)
+        budget = row["forecast_price"]
+        series = budget["annual_series"]
+        self.assertEqual([point["year"] for point in series], list(range(budget["base_year"], 2031)))
+        self.assertEqual(series[0]["amount_rub"], budget["base_rub"])
+        self.assertEqual(series[-1]["amount_rub"], row["total_cost_rub"])
+        self.assertEqual(series[-1]["lower_rub"], budget["lower_rub"])
+        indices = load_indices()
+        for point in series:
+            expected = sum(
+                (Decimal(str(item["base_amount_rub"])) * indices.estimate(
+                    item["pricing"]["category"], item["pricing"]["effective_price_year"],
+                    point["year"]).central).quantize(Decimal(".01"))
+                for item in row["cost_items"]
+            )
+            self.assertAlmostEqual(point["amount_rub"], float(expected), places=2)
+
     def test_road_stop_uses_published_rates_on_both_legs(self):
         result = self.calculate(destination="Красноярск", allowed_modes=["road"], stops=[
             {"settlement": "Екатеринбург", "action": "visit", "dwell_hours": 2},

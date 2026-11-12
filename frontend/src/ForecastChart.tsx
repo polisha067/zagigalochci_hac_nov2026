@@ -32,7 +32,7 @@ export function ForecastChart({
 }) {
   const id = useId().replaceAll(":", "");
   const [hovered, setHovered] = useState<number | null>(null);
-  const width = 720,
+  const width = variant === "bar" ? Math.max(720, points.length * 90 + 100) : 720,
     height = 330,
     left = 76,
     right = 24,
@@ -54,10 +54,14 @@ export function ForecastChart({
     .map((p, i) => `${i ? "L" : "M"}${x(i)},${y(p.value)}`)
     .join(" ");
   const active = hovered == null ? null : points[hovered];
+  const barSlot = plotWidth / Math.max(1, points.length);
+  const barWidth = Math.min(72, barSlot * 0.56);
   return (
-    <div className="data-chart" onMouseLeave={() => setHovered(null)}>
+    <div className={`data-chart${variant === "bar" ? " annual-cost-chart" : ""}`} onMouseLeave={() => setHovered(null)}>
+      <div className="data-chart-scroll">
       <svg
         className="forecast-chart"
+        style={variant === "bar" ? { minWidth: width } : undefined}
         viewBox={`0 0 ${width} ${height}`}
         role="img"
         aria-label={label}
@@ -112,14 +116,19 @@ export function ForecastChart({
           const selected = i === hovered;
           return (
             <g key={p.label}>
+              {variant === "bar" && selected && (
+                <rect x={x(i) - barSlot / 2 + 3} y={top - 10}
+                  width={barSlot - 6} height={floor - top + 48}
+                  fill="#edf4ff" rx="10" />
+              )}
               {variant === "bar" ? (
                 <rect
-                  x={x(i) - 48}
+                  x={x(i) - barWidth / 2}
                   y={y(p.value)}
-                  width="96"
+                  width={barWidth}
                   height={Math.max(0, floor - y(p.value))}
                   rx="7"
-                  fill={i === 0 ? "#b6d0f2" : "#0271ff"}
+                  fill={i === 0 ? "#b6d0f2" : i === points.length - 1 ? "#006cf5" : "#6aa8fa"}
                 />
               ) : (
                 <circle
@@ -160,19 +169,19 @@ export function ForecastChart({
                   textAnchor="middle"
                   className="chart-value"
                 >
-                  {num(p.value, 2)} {unit}
+                  {points.length > 3 ? compact(p.value) : num(p.value, 2)}{points.length > 3 ? "" : ` ${unit}`}
                 </text>
               )}
               <rect
                 x={
                   variant === "bar"
-                    ? x(i) - 60
+                    ? x(i) - barSlot / 2
                     : x(i) - Math.max(12, plotWidth / points.length / 2)
                 }
                 y={top}
                 width={
                   variant === "bar"
-                    ? 120
+                    ? barSlot
                     : Math.max(24, plotWidth / points.length)
                 }
                 height={floor - top}
@@ -184,9 +193,13 @@ export function ForecastChart({
                 onFocus={() => setHovered(i)}
                 onBlur={() => setHovered(null)}
                 onMouseEnter={() => setHovered(i)}
-                onClick={() => setHovered(selected ? null : i)}
+                onClick={() => setHovered(i)}
                 onKeyDown={(e) => {
                   if (e.key === "Escape") setHovered(null);
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setHovered(i);
+                  }
                 }}
               />
             </g>
@@ -202,11 +215,12 @@ export function ForecastChart({
           />
         )}
       </svg>
+      </div>
       {active && (
         <div
           className="chart-tooltip"
           role="status"
-          style={{
+          style={variant === "bar" ? { right: 12, left: "auto" } : {
             left: `${Math.min(76, Math.max(12, (x(hovered!) / width) * 100))}%`,
           }}
         >
