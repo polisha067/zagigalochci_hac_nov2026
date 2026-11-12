@@ -116,6 +116,20 @@ def forecast_summary(result):
         air_lines.append("Оценка включает перелёт груза и авианакладную по базе «Якутии». "
                          "Терминальные и агентские сборы оплачиваются отдельно. Суммы служат ориентиром для бюджета.")
     if chosen is None:
+        if not rows and any(stop.get("no_reload") for stop in request["stops"]):
+            return "\n\n".join([header, "В данных проекта нет подходящей цепочки с остановкой без перегрузки. "
+                                         "Уточните сквозной маршрут у перевозчика."])
+        continuity = next((row for row in rows if any(
+            issue["code"] == "unconfirmed_stop_continuity" for issue in row["issues"]
+        )), None)
+        if continuity:
+            lines = [header, "Перевозка без перегрузки на остановке не подтверждена."]
+            if (subtotal := continuity["known_cost_subtotal_rub"]) is not None:
+                lines.append(f"Прогноз по опубликованным ставкам отдельных плеч — {number(subtotal)} ₽ "
+                             f"{VAT[request['cost_basis']]}. Это часть стоимости.")
+            lines.append("У перевозчика нужно подтвердить сохранение контейнера или машины, "
+                         "длительность стоянки и возможные сборы.")
+            return "\n\n".join(lines)
         if air_lines:
             return "\n\n".join([header, *air_lines])
         if not rows and request["allowed_modes"] == ["air"] and result.status == "no_route_in_dataset":

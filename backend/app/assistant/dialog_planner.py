@@ -470,6 +470,12 @@ def _explicit_cargo_properties(text, cargo):
         cargo["properties"] = defaults | (cargo.get("properties") or {})
 
 
+NO_RELOAD = re.compile(
+    r"без\s+(?:(?:погрузки\s+и\s+)?(?:выгрузки|разгрузки)|перегрузки)"
+    r"|не\s+(?:выгружать|разгружать|перегружать)\b"
+)
+
+
 def _explicit_stop(message):
     text = clean(message)
     if re.search(r"вместо|убери|удали|пропусти|исключи|переставь|\bне\s+(?:добав|заезж|останавл)", text):
@@ -477,12 +483,18 @@ def _explicit_stop(message):
     via = list(re.finditer(r"\bчерез\s+([^,;.!?]+)", message, re.I))
     if not via:
         via = list(re.finditer(r"\b(?:остановк\w*|заедем|заехать|заедь)\s+в\s+([^,;.!?]+)", message, re.I))
-    if len(via) != 1 or re.search(r"\s+и\s+", via[0][1]):
+    if len(via) != 1:
         return None
-    city = _city_prefix(via[0][1])
+    city_phrase = re.split(r"\s+(?:без\s|на\s+\d|не\s+(?:выгружать|разгружать|перегружать)\b)",
+                           via[0][1], maxsplit=1, flags=re.I)[0]
+    if re.search(r"\s+и\s+", city_phrase):
+        return None
+    city = _city_prefix(city_phrase)
     if city is None:
         return None
     row = {"city": city, "operation": "add"}
+    if NO_RELOAD.search(text):
+        row.update(action="visit", no_reload=True)
     if re.search(r"останов|задерж|пребыван|стоян", text) and len(hours := hour_values(text)) == 1 and 0 <= hours[0] <= 87600:
         row["dwell_hours"] = hours[0]
     return row
@@ -496,7 +508,7 @@ def visit_only_stop(message):
         message.strip(), re.I,
     )
     if match and (city := _city_prefix(match[1])):
-        return {"city": city, "operation": "add", "action": "visit"}
+        return {"city": city, "operation": "add", "action": "visit", "no_reload": True}
     return None
 
 
@@ -626,8 +638,10 @@ def plan_turn(planner, message, draft):
         if len(stops) <= 1 and (explicit := explicit_stop):
             if not stops:
                 stops.append(explicit)
-            elif _point_id(stops[0]["city"]) == _point_id(explicit["city"]) and "dwell_hours" in explicit:
-                stops[0]["dwell_hours"] = explicit["dwell_hours"]
+        if explicit_stop:
+            for stop in stops:
+                if stop["operation"] == "add" and _point_id(stop["city"]) == _point_id(explicit_stop["city"]):
+                    stop.update({k: explicit_stop[k] for k in ("dwell_hours", "action", "no_reload") if k in explicit_stop})
         if len(cargoes) < 2:
             changes.pop("replace_cargoes", None)
         if action == "new" and draft and not explicit_new and not full_shipment and not any(

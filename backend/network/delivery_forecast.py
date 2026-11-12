@@ -219,6 +219,8 @@ def _reprice(row, request, index, reference, indices):
                              "known_subtotal_rub": None, "range_status": "incomplete", "long_term": False}
     row.pop("published_tariff_estimate", None)
     known = [item for item in items if item["amount_rub"] is not None] if not air_connections or air_items else []
+    if row["status"] == "infeasible" and any(stop.no_reload for stop in request.stops):
+        known = []
     row["known_cost_subtotal_rub"] = float(_sum_items(known, "amount_rub")) if known else None
     row["forecast_price"]["known_subtotal_rub"] = row["known_cost_subtotal_rub"]
     if air_items and (air_total := _sum_items(air_items, "amount_rub")) is not None:
@@ -336,9 +338,13 @@ def calculate_forecast(request, network=None, indices=None):
     result["request"] = _normalized_request(request, network, result["settlements"])
     for row in result["candidates"]:
         _reprice(row, request, index, events[0], indices)
+    continuous = any(stop.no_reload for stop in request.stops)
     candidates = sorted(result["candidates"], key=lambda row: (
         row["status"] != "feasible", row["total_cost_rub"] if row["total_cost_rub"] is not None else float("inf"),
         row["forecast_price"].get("air_median_rub") is None,
+        -sum(edge["reference_metadata"].get("tariff_source_id") is not None for edge in row["connections"])
+        if continuous and row["known_cost_subtotal_rub"] is not None else 0,
+        row["known_cost_subtotal_rub"] if continuous and row["known_cost_subtotal_rub"] is not None else float("inf"),
         row["max_delivery_hours"] if row["max_delivery_hours"] is not None else float("inf"), row["id"]))
     visible = _visible_candidates(candidates, request.max_candidates)
     eligible = [row for row in visible if row["status"] == "feasible"]
@@ -374,7 +380,8 @@ def calculate_forecast(request, network=None, indices=None):
     result["forecast"] = dict(target_year=request.target_year, base_year=BASE_YEAR,
                               date_precision="date" if request.schedule else "year",
                               schedule_status="scenario" if request.schedule is None or best and best["schedule_status"] == "scenario" else "snapshot",
-                              coverage_status="estimated" if best else ("partial" if has_air_forecast else "insufficient_data"),
+                              coverage_status="estimated" if best else ("partial" if has_air_forecast or continuous and any(
+                                  row["known_cost_subtotal_rub"] is not None for row in visible) else "insufficient_data"),
                               indices_version=indices.version, model_version=MODEL_VERSION,
                               alternative=alternative, assumptions=assumptions)
     used_source_ids = {point["source_id"] for row in result["candidates"] for item in row["cost_items"] for point in item["index_factors"]}

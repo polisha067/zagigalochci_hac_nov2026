@@ -193,7 +193,9 @@ export function RouteMap({ candidates, recommendation, opened, onOpen }: {
                   ? `${money(candidate.known_cost_subtotal_rub)} · учтённые этапы`
                   : `${money(candidate.forecast_price.air_median_rub)} · перелёт и авианакладная`}
                   {airForecastFlightHours(candidate) != null && <> · Перелёт около {hours(airForecastFlightHours(candidate))}</>}</>
-              : <>{candidate.forecast_price
+              : candidate.issues.some(({ code }) => code === "unconfirmed_stop_continuity") && candidate.known_cost_subtotal_rub != null
+                ? `${money(candidate.known_cost_subtotal_rub)} · ставки отдельных плеч`
+                : <>{candidate.forecast_price
               ? forecastMoney(candidate.complete ? candidate.total_cost_rub : null, candidate.forecast_price.long_term)
               : money(candidate.complete ? candidate.total_cost_rub : null)} · {hours(candidate.max_delivery_hours)}</>}</span>
           </button>

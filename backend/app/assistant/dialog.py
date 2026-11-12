@@ -70,7 +70,11 @@ def known_conditions(snapshot):
         if f"stops.{index}.settlement" in draft.missing_fields or not stop.get("settlement"):
             continue
         name = _city_name(stop["settlement"])
-        stops.append(f"{name} (+{number(stop['dwell_hours'])} ч)" if stop.get("dwell_hours") else name)
+        if stop.get("dwell_hours"):
+            name += f" (+{number(stop['dwell_hours'])} ч)"
+        if stop.get("no_reload"):
+            name += " без перегрузки"
+        stops.append(name)
     if stops:
         known.append("Через " + " → ".join(stops))
     cargoes = values.get("cargoes", [])
@@ -131,7 +135,8 @@ def _edit_stops(arguments, edits, pending_remove):
             if position is None:
                 return pending_remove, edit
             stops.insert(position, {"settlement": city, "action": edit.get("action", "visit"),
-                                    "pickup_cargo_ids": [], "delivery_cargo_ids": [], "dwell_hours": edit.get("dwell_hours", 0)})
+                                    "pickup_cargo_ids": [], "delivery_cargo_ids": [], "dwell_hours": edit.get("dwell_hours", 0),
+                                    "no_reload": edit.get("no_reload", False)})
             continue
         if index is None:
             raise ToolQuestion(["stops"], f"Какую остановку изменить? «{city}» нет в текущем маршруте.")
@@ -159,6 +164,10 @@ def _edit_stops(arguments, edits, pending_remove):
             stop["dwell_hours"] = edit["dwell_hours"] or 0
         if edit.get("action"):
             stop["action"] = edit["action"]
+            if edit["action"] != "visit":
+                stop["no_reload"] = False
+        if "no_reload" in edit:
+            stop["no_reload"] = edit["no_reload"]
     return pending_remove, None
 
 
@@ -288,6 +297,8 @@ def _route_issue(arguments, pending_remove):
             path = f"cargoes.{positions[identifier]}.{field}" if identifier in positions else f"stops.{index}.cargoes"
             raise ToolQuestion([path], f"Где {label} грузовую позицию после удаления остановки «{_city_name(stop['settlement'])}»?")
         action = stop.get("action")
+        if stop.get("no_reload") and (pickup or delivery):
+            raise ToolQuestion([f"stops.{index}"], f"В пункте «{_city_name(stop['settlement'])}» указаны и остановка без перегрузки, и операции с грузом. Что оставить?")
         if (action in ("pickup", "pickup_delivery") and not pickup) or (action in ("delivery", "pickup_delivery") and not delivery):
             raise ToolQuestion([f"stops.{index}.cargoes"], f"Какой груз нужно загрузить или выгрузить в пункте «{_city_name(stop['settlement'])}»? Укажите позицию, массу и при необходимости объём.")
         stop["action"] = "pickup_delivery" if pickup and delivery else "pickup" if pickup else "delivery" if delivery else "visit"

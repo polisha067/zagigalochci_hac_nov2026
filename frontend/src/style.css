@@ -2606,7 +2606,8 @@ header.auth-header {
   padding-right: 10px;
 }
 /* Подпись вида транспорта и чекбокс стоят на одной строке. */
-.mode-choice label {
+.mode-choice label,
+.network-stop > small label {
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -2615,7 +2616,8 @@ header.auth-header {
   font-size: 10px;
 }
 /* Размер чекбоксов выбора видов транспорта. */
-.mode-choice input {
+.mode-choice input,
+.network-stop > small input[type="checkbox"] {
   width: 15px;
   height: 15px;
   accent-color: var(--blue);

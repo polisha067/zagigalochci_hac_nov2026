@@ -74,6 +74,7 @@ export const newStop = () => ({
   id: crypto.randomUUID(),
   city: null as Settlement | null,
   dwell: "",
+  noReload: false,
 });
 export interface Draft {
   origin: Settlement | null;
@@ -448,6 +449,8 @@ export function buildRequest(d: Draft, forecastOptions?: ForecastOptions): Calcu
       const dwell = s.dwell === "" ? 0 : Number(s.dwell);
       if (!Number.isFinite(dwell) || dwell < 0 || dwell > 87600)
         throw new Error("Проверьте дополнительное время остановки.");
+      if (s.noReload && (pickup.length || delivery.length))
+        throw new Error("Для остановки без перегрузки уберите погрузку и выгрузку грузовых позиций.");
       return {
         settlement: s.city!.id,
         action:
@@ -461,6 +464,7 @@ export function buildRequest(d: Draft, forecastOptions?: ForecastOptions): Calcu
         pickup_cargo_ids: pickup,
         delivery_cargo_ids: delivery,
         dwell_hours: dwell,
+        no_reload: Boolean(s.noReload),
       };
     }),
     cargoes,

@@ -291,7 +291,7 @@ function Conditions({ snapshot }: { snapshot: NetworkSnapshot }) {
                     <td>
                       {
                         {
-                          visit: "Обязательное посещение",
+                          visit: s.no_reload ? "Без перегрузки" : "Обязательное посещение",
                           pickup: "Погрузка",
                           delivery: "Выгрузка",
                           pickup_delivery: "Погрузка и выгрузка",
@@ -535,7 +535,8 @@ function CandidateReport({
             </p>
           </div>
         )}
-        {!c.published_tariff_estimate && !completePrice(c) && !r.forecast &&
+        {!c.published_tariff_estimate && !completePrice(c) && (!r.forecast ||
+          c.issues.some(({ code }) => code === "unconfirmed_stop_continuity")) &&
           c.known_cost_subtotal_rub != null && (
             <p className="table-note">
               Опубликованная часть стоимости · {money(c.known_cost_subtotal_rub)}
@@ -648,6 +649,7 @@ function CandidateReport({
                 </p>
                 <p className="table-note">
                   Дополнительное пребывание: {hours(s.dwell_hours)}
+                  {s.no_reload && " · Без перегрузки"}
                 </p>
               </div>
             ))}
@@ -779,6 +781,11 @@ function NetworkResults({
       value: (c: Candidate) => (
         <strong>{!completePrice(c) && c.forecast_price?.air_median_rub != null ? "Требуются ставки сборов" : candidatePrice(c)}</strong>
       ),
+    }] : []),
+    ...(candidates.some((c) => c.issues.some(({ code }) => code === "unconfirmed_stop_continuity")) ? [{
+      label: "По ставкам отдельных плеч",
+      value: (c: Candidate) => c.issues.some(({ code }) => code === "unconfirmed_stop_continuity")
+        ? money(c.known_cost_subtotal_rub) : "—",
     }] : []),
     ...(candidates.some((c) => c.multimodal && c.forecast_price?.air_median_rub != null) ? [{
       label: "Оценка учтённых этапов",

@@ -74,6 +74,7 @@ export interface Stop {
   pickup_cargo_ids: string[];
   delivery_cargo_ids: string[];
   dwell_hours: number;
+  no_reload?: boolean;
 }
 export interface CalculationRequest {
   engine: "russia";

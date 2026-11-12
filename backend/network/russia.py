@@ -51,9 +51,12 @@ class SettlementStop(InputModel):
     pickup_cargo_ids: List[Text] = Field(default_factory=list)
     delivery_cargo_ids: List[Text] = Field(default_factory=list)
     dwell_hours: NonnegativeHours = 0
+    no_reload: bool = False
 
     @model_validator(mode='after')
     def correct_action(self):
+        if self.no_reload and self.action not in (None, 'visit'):
+            raise ValueError('Остановка без перегрузки несовместима с забором или выгрузкой груза')
         if self.action is None:
             return self
         pickup, delivery = bool(self.pickup_cargo_ids), bool(self.delivery_cargo_ids)
@@ -526,6 +529,14 @@ class RussiaNetwork:
         forecast=price_weight is not None
         priced_air=forecast and 'air' in request.allowed_modes
         air_volume=all(cargo.volume_m3 is not None for cargo in request.cargoes)
+        continuous_hubs={hub for group,stop in zip(via,request.stops) if stop.no_reload for hub in group}
+
+        def compatible(left, right):
+            if left['to_hub'] not in continuous_hubs:
+                return True
+            return (left['mode']==right['mode'] and left['kind']!='connector' and right['kind']!='connector'
+                    and left.get('reference_metadata',{}).get('container_size_ft')
+                    ==right.get('reference_metadata',{}).get('container_size_ft'))
         def edge_active(edge):
             if (edge['kind']=='provider_rail' and request.cost_basis=='excluding_vat'
                     and edge['quote']['tax_rate'] is None):
@@ -597,19 +608,28 @@ class RussiaNetwork:
                     and (edge['from_hub'], edge['to_hub']) in published_rail
                 )]
                 options.sort(key=price_weight or (lambda e:e['travel_hours']))
-                # At most one direct service per physical mode for seeding.
                 selected={}
-                for edge in options:selected.setdefault(edge['mode'],edge)
+                for edge in options:
+                    key=edge['mode']
+                    if continuous_hubs:
+                        key=(key,edge['from_hub'],edge['to_hub'],edge.get('reference_metadata',{}).get('container_size_ft'))
+                    selected.setdefault(key,edge)
                 stage_options.append(list(selected.values()))
             chains=[]
             for number,path in enumerate(itertools.product(*stage_options)):
                 if number>=4096:break
-                if all(a['to_hub']==b['from_hub'] for a,b in zip(path,path[1:])):
+                if all(a['to_hub']==b['from_hub'] and compatible(a,b) for a,b in zip(path,path[1:])):
                     chains.append(list(path))
             chains.sort(key=lambda p:sum(price_weight(e) if price_weight else e['travel_hours'] for e in p))
             for mode in request.allowed_modes:
-                match=next((p for p in chains if {e['mode'] for e in p}=={mode}),None)
-                if match:seed(match)
+                matches=[p for p in chains if {e['mode'] for e in p}=={mode}]
+                if continuous_hubs:
+                    variants={}
+                    for path in matches:
+                        sizes=tuple(e.get('reference_metadata',{}).get('container_size_ft') for e in path)
+                        variants.setdefault(sizes,path)
+                    for path in variants.values():seed(path)
+                elif matches:seed(matches[0])
             for path in [p for p in chains if len({e['mode'] for e in p})>1][:2]:seed(path)
         if not via:
             for start in starts:
@@ -665,7 +685,8 @@ class RussiaNetwork:
                     if ids not in seen_paths:bucket.append(list(path));seen_paths.add(ids);accepted+=1
                     continue
                 if len(path)>=request.max_legs:continue
-                label=(node,progress,last_mode,frozenset(e['mode'] for e in path))
+                label=(node,progress,last_mode,frozenset(e['mode'] for e in path),
+                       path[-1]['kind'] if path and node in continuous_hubs else None)
                 if labels[label]>=3:continue
                 labels[label]+=1
                 for edge in self.outgoing.get(node,[]):
@@ -678,6 +699,7 @@ class RussiaNetwork:
                     # Cannot pass a future mandatory stop before its predecessor.
                     if any(destination in group for group in via[progress+1:]):continue
                     if not edge_active(edge):continue
+                    if path and not compatible(path[-1],edge):continue
                     penalty=4 if last_mode and last_mode!=edge['mode'] else 0
                     weight=(price_weight(edge) if price_weight else edge['travel_hours'])+penalty+1
                     heapq.heappush(heap,(score+weight,next(counter),destination,path+(edge,),visited|{destination},progress,edge['mode']))
@@ -750,6 +772,16 @@ class RussiaNetwork:
                                    'identity_status':self.hubs[identifier]['identity_status']} for identifier in [origin,*[e['to_hub'] for e in path]]]
                 row['connections']=[{'id':e['id'],'mode':e['mode'],'kind':e['kind'],'distance_km':e.get('distance_km'),
                                      'reference_metadata':e.get('reference_metadata',{}),'operational_status':'scenario'} for e in path]
+                if any(stop['no_reload'] for stop in stops):
+                    published={e['id'] for e in path if e.get('reference_metadata',{}).get('tariff_source_id')}
+                    row['cost_items']=[item for item in row['cost_items']
+                                       if item['kind']=='transport' and item['object_id'] in published]
+                    if row['status'] != 'infeasible':
+                        row.update(status='insufficient_data',complete=False,total_cost_rub=None,cost_rub_per_tonne=None,
+                                   max_delivery_hours=None)
+                        row['issues'].append({'code':'unconfirmed_stop_continuity','fields':['stops'],
+                            'message':'Нет сквозного подтверждения, что груз останется в том же контейнере или машине. '
+                                      'Время стоянки и возможные сборы нужно согласовать с перевозчиком.'})
                 pipeline_edges=[e for e in path if e['kind']=='pipeline']
                 if pipeline_edges:
                     subtotal=Decimal(0)

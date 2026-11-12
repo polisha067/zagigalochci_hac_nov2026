@@ -82,6 +82,42 @@ class AssistantDialogTests(unittest.TestCase):
         self.assertEqual(form.status_code, 200, form.text)
         self.assertEqual(calculation, form.json())
 
+    def test_rail_stop_without_reloading_matches_main_form_and_persists(self):
+        reply = self.send(
+            "Новый расчёт. Москва → Новосибирск → Красноярск, 2030 год. "
+            "Только ж/д. 10 т муки в мешках, 20 м³, партия делимая. "
+            "Остановка в Новосибирске на 2 часа без погрузки и выгрузки.",
+            "new", {"allowed_modes": ["rail"], "cargoes": [{
+                "name": "Мука", "weight_tonnes": 10, "volume_m3": 20,
+                "packaging": "bags", "splittable": True,
+            }]},
+        )["answer"]
+        self.assertEqual(reply["kind"], "calculation", reply)
+        result = reply["calculation"]
+        stop, = result["request"]["stops"]
+        self.assertEqual((stop["settlement"], stop["dwell_hours"], stop["no_reload"]), ("Новосибирск", 2, True))
+        self.assertIsNone(result["recommendation"])
+        candidate = result["candidates"][0]
+        self.assertIsNone(candidate["total_cost_rub"])
+        self.assertEqual(candidate["known_cost_subtotal_rub"], 262170.36)
+        self.assertIn("262 170,36 ₽", reply["reply"])
+        self.assertEqual(
+            [edge["reference_metadata"]["container_size_ft"] for edge in candidate["connections"]],
+            [40, 40],
+        )
+        self.assertEqual([(item["kind"], item["base_amount_rub"]) for item in candidate["cost_items"]],
+                         [("transport", 81390), ("transport", 75000)])
+        network = load_russia()
+        form = result["request"] | {
+            "origin": network.resolve(result["request"]["origin"]),
+            "destination": network.resolve(result["request"]["destination"]),
+            "stops": [stop | {"settlement": network.resolve(stop["settlement"])}],
+        }
+        self.assertEqual(self.client.post("/network/russia/forecasts", json=form).json(), result)
+        updated = self.send("А если в 2028 году?")["answer"]["calculation"]
+        self.assertEqual(updated["request"], result["request"] | {"target_year": 2028})
+        self.assertLess(updated["candidates"][0]["known_cost_subtotal_rub"], candidate["known_cost_subtotal_rub"])
+
     def test_air_and_land_share_one_comparison(self):
         dialog = self.send(
             "Как доставить 100 кг муки из Москвы в Новосибирск в 2030 году? "

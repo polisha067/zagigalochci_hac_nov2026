@@ -242,6 +242,16 @@ export function ConditionsForm({
                 ×
               </button>
               <small>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={Boolean(stop.noReload)}
+                    onChange={(e) => update({
+                      stops: draft.stops.map((s) => s.id === stop.id ? { ...s, noReload: e.target.checked } : s),
+                    })}
+                  />
+                  Без перегрузки
+                </label>
                 Погрузка и выгрузка определяются пунктами каждой позиции ниже;
                 без них — обязательное посещение.
               </small>

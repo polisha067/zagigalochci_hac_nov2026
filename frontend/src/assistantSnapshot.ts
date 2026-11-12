@@ -17,6 +17,7 @@ export function assistantSnapshot(result: DashboardCalculation, options: Options
     ...newStop(),
     city: settlement(stop.settlement, index + 1),
     dwell: String(stop.dwell_hours),
+    noReload: Boolean(stop.no_reload),
   }));
   const pickup = new Map(request.stops.flatMap((stop, index) =>
     stop.pickup_cargo_ids.map((id) => [id, stops[index].id] as const),
