@@ -3098,3 +3098,892 @@ header.auth-header {
   position: absolute;
   pointer-events: none;
 }
+.forecast-main {
+  --forecast-muted: #526984;
+}
+
+.forecast-page-heading {
+  margin-bottom: 28px;
+}
+
+.forecast-page-heading h1 {
+  font-size: clamp(28px, 3.1vw, 44px);
+  letter-spacing: -.035em;
+  line-height: 1.15;
+}
+
+.forecast-page-heading p {
+  color: var(--forecast-muted);
+  margin-top: 12px;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.forecast-workspace {
+  display: grid;
+  grid-template-columns: minmax(300px, 365px) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+  margin-bottom: 32px;
+}
+
+.forecast-workspace > * {
+  min-width: 0;
+}
+
+.forecast-workspace .network-form .ticket {
+  display: block;
+  border-radius: 22px;
+  background: #ffffffef;
+  padding: 24px;
+  box-shadow: 0 7px 24px #234c7a0c;
+  border: 1px solid #fff;
+}
+
+.forecast-workspace .network-form .paper {
+  padding: 0;
+  background: transparent;
+  border: 0;
+}
+
+.forecast-workspace .network-form .paper::before,
+.forecast-workspace .network-form aside::before,
+.forecast-workspace .network-form aside::after {
+  display: none;
+}
+
+.forecast-main .forecast-form-heading {
+  font-size: 21px;
+  margin: 0 0 22px;
+}
+
+.forecast-workspace .network-form .route,
+.forecast-workspace .network-form .columns {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: stretch;
+}
+
+.forecast-workspace .network-form .route .settlement-picker {
+  width: 100%;
+}
+
+.forecast-workspace .network-form aside {
+  mask: none;
+  border-radius: 0;
+}
+
+.forecast-workspace .network-form .route .addStop {
+  order: 0;
+  align-self: flex-start;
+  font-size: 12px;
+  padding: 7px 10px;
+}
+
+.forecast-workspace .network-form .columns {
+  padding-top: 20px;
+  margin-top: 20px;
+}
+
+.forecast-workspace .network-form .columns > section + section {
+  padding: 0;
+  border: 0;
+}
+
+.forecast-workspace .network-form .columns h2 {
+  font-size: 16px;
+  margin-bottom: 14px;
+}
+
+.forecast-workspace .network-form .network-cargo {
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 10px;
+}
+
+.forecast-workspace .network-form .network-cargo > * {
+  grid-column: 1 / -1;
+}
+
+.forecast-workspace .network-form .network-cargo > label:nth-of-type(2),
+.forecast-workspace .network-form .network-cargo > label:nth-of-type(3) {
+  grid-column: auto;
+}
+
+.forecast-workspace .network-form label,
+.forecast-workspace .network-form legend {
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.forecast-workspace .network-form input,
+.forecast-workspace .network-form select,
+.forecast-workspace .network-form textarea {
+  min-width: 0;
+  width: 100%;
+  font-size: 14px;
+  border-radius: 10px;
+  border: 1px solid #c6d8ed;
+  background: #f9fbff;
+  padding: 11px 12px;
+}
+
+.forecast-workspace .network-form input[type="checkbox"] {
+  width: 16px;
+}
+
+.forecast-workspace .network-form summary {
+  font-size: 13px;
+  padding: 12px 0;
+  color: #365476;
+}
+
+.forecast-workspace .network-form .mode-choice {
+  margin-top: 16px;
+}
+
+.forecast-workspace .network-form .mode-choice label {
+  font-size: 11px;
+}
+
+.forecast-workspace .network-form .position {
+  font-size: 12px;
+  color: var(--forecast-muted);
+}
+
+.forecast-workspace .network-form aside {
+  padding: 20px 0 0;
+  margin-top: 20px;
+  background: transparent;
+  border: 0;
+  border-top: 1px solid #dce7f5;
+}
+
+.forecast-workspace .network-coupon {
+  padding: 0;
+}
+
+.forecast-workspace .network-coupon .stub-title {
+  font-size: 12px;
+}
+
+.forecast-workspace .network-coupon .volume {
+  font-size: 30px;
+  margin: 12px 0;
+}
+
+.forecast-workspace .network-coupon .period,
+.forecast-workspace .network-coupon .action p,
+.forecast-workspace .network-coupon .summary {
+  font-size: 11px;
+}
+
+.forecast-workspace .network-coupon .primary {
+  min-height: 50px;
+  padding: 14px 12px;
+  font-size: 14px;
+  border-radius: 12px;
+}
+
+.forecast-workspace .network-form .schedule-toggle {
+  flex-wrap: wrap;
+}
+
+.forecast-workspace .network-form .schedule-toggle button {
+  font-size: 11px;
+  padding: 10px 8px;
+}
+
+.forecast-workspace .network-form .feedback {
+  font-size: 12px;
+}
+
+.forecast-year-control {
+  margin-bottom: 24px;
+}
+
+.forecast-workspace .forecast-year-control select {
+  color: #0060e6;
+  font-size: 30px;
+  font-weight: 700;
+  background: #e9f2ff;
+  margin-top: 6px;
+}
+
+.forecast-year-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.forecast-year-pills button {
+  flex: 1;
+  min-width: 42px;
+  padding: 8px 4px;
+  background: #edf4ff;
+  border: 1px solid #d6e5f9;
+  border-radius: 9px;
+  font-size: 12px;
+  color: #244974;
+}
+
+.forecast-year-pills button[aria-pressed="true"] {
+  background: var(--blue);
+  border-color: var(--blue);
+  color: white;
+}
+
+.forecast-overview {
+  padding: clamp(20px, 2.5vw, 32px);
+  border-radius: 22px;
+  background: #ffffffc9;
+  box-shadow: 0 7px 24px #234c7a0c;
+}
+
+.forecast-view-switch {
+  display: flex;
+  gap: 5px;
+  padding: 5px;
+  background: #eaf2fc;
+  border-radius: 13px;
+  width: fit-content;
+  margin-bottom: 24px;
+}
+
+.forecast-view-switch button {
+  padding: 11px 22px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  color: #436385;
+}
+
+.forecast-view-switch button[aria-pressed="true"] {
+  background: #006cf5;
+  color: white;
+  box-shadow: 0 3px 8px #006cf526;
+}
+
+.volume-controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin: 22px 0;
+}
+
+.volume-controls > label:first-child {
+  grid-column: 1 / -1;
+}
+
+.volume-controls label {
+  font-size: 12px;
+  color: #526984;
+}
+
+.volume-controls input,
+.volume-controls select {
+  min-width: 0;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #c6d8ed;
+  border-radius: 10px;
+  background: #fff;
+  font: inherit;
+  color: #1a3555;
+}
+
+.volume-coverage {
+  margin-top: 18px;
+  font-size: 12px;
+  line-height: 1.8;
+}
+
+.volume-periods summary {
+  font-size: 12px;
+  padding: 12px 0;
+  color: #006cf5;
+  cursor: pointer;
+}
+
+.forecast-overview-heading h2 {
+  font-size: clamp(23px, 2.5vw, 34px);
+  margin: 8px 0 12px;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.forecast-overview-heading p,
+.forecast-eyebrow {
+  color: var(--forecast-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.forecast-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 24px 0 20px;
+}
+
+.forecast-metrics > div {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-radius: 15px;
+  background: #eaf2fc;
+  padding: 18px 16px;
+}
+
+.forecast-metrics span {
+  font-size: 12px;
+}
+
+.forecast-metrics strong {
+  font-size: clamp(19px, 2.05vw, 30px);
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.forecast-metrics .forecast-metric-primary {
+  background: linear-gradient(120deg, #087aff, #0053ee);
+  color: #fff;
+}
+
+.forecast-chart-card {
+  background: white;
+  border: 1px solid #dae7f8;
+  padding: 22px;
+  border-radius: 18px;
+}
+
+.forecast-chart-card h3 {
+  font-size: 19px;
+  margin: 0;
+}
+
+.forecast-chart {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+}
+
+.forecast-chart text {
+  font-family: Arial, sans-serif;
+  font-size: 19px;
+  fill: #315373;
+}
+
+.forecast-grid-line {
+  stroke: #e0e9f5;
+}
+
+.forecast-chart-empty {
+  min-height: 235px;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 16px;
+  color: var(--forecast-muted);
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.forecast-chart-empty > span {
+  font-size: 65px;
+  color: #b3d1fa;
+}
+
+.forecast-range {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  border-radius: 12px;
+  background: #edf4ff;
+  padding: 16px;
+  font-size: 11px;
+  color: #526984;
+}
+
+.forecast-range div {
+  display: grid;
+  gap: 8px;
+}
+
+.forecast-range b {
+  font-size: 16px;
+  color: #1a3555;
+}
+
+.forecast-chart-note {
+  font-size: 10px;
+  line-height: 1.6;
+  color: var(--forecast-muted);
+  margin-top: 12px;
+}
+
+.forecast-recommendation {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-top: 20px;
+  padding: 22px;
+  background: #dcecff;
+  border-radius: 16px;
+}
+
+.forecast-recommendation-icon {
+  color: #006cf5;
+  font-size: 40px;
+}
+
+.forecast-recommendation span {
+  font-size: 12px;
+  color: #436385;
+}
+
+.forecast-recommendation h3 {
+  margin: 6px 0 10px;
+  font-size: 23px;
+}
+
+.forecast-recommendation p {
+  font-size: 12px;
+  line-height: 1.6;
+  color: #436385;
+}
+
+.forecast-saved-overview {
+  margin-bottom: 26px;
+}
+
+.forecast-stale {
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.forecast-main .report-total {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.forecast-main .report-total strong {
+  overflow-wrap: anywhere;
+}
+
+.forecast-workspace .conditions-form {
+  filter: none;
+}
+
+.history-year-filter {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 24px;
+  font-size: 13px;
+  color: #526984;
+}
+
+.history-year-filter select {
+  padding: 10px 16px;
+  border: 1px solid #c6d8ed;
+  background: #fff;
+  border-radius: 10px;
+  font-size: 13px;
+}
+
+/* Both columns use the page scroll: a forecast taller than the viewport must stay reachable. */
+.forecast-workspace .forecast-overview {
+  position: static;
+}
+
+@media (max-width: 1000px) {
+  .forecast-workspace {
+    grid-template-columns: minmax(280px, 330px) minmax(0, 1fr);
+    gap: 16px;
+  }
+  .forecast-metrics {
+    grid-template-columns: 1fr;
+  }
+  .forecast-metrics > div {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 720px) {
+  .page .app-header {
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+  .page .header-controls {
+    flex-wrap: wrap;
+    min-width: 0;
+    max-width: 100%;
+  }
+  .forecast-workspace {
+    grid-template-columns: 1fr;
+  }
+  .forecast-workspace .network-form .ticket {
+    padding: 20px;
+  }
+  .forecast-overview {
+    padding: 20px;
+  }
+  .forecast-chart-card {
+    padding: 16px;
+  }
+  .forecast-main .page-title {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+
+/* Прогноз стоимости и рабочая область */
+
+/* Общая обёртка выпадающих списков не расширяет колонку формы. */
+.custom-select {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  margin-top: 6px;
+}
+/* Кнопка выбора с читаемым текстом и стрелкой одинакового размера во всех разделах. */
+.custom-select .select-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 46px;
+  padding: 11px 12px;
+  border: 1px solid #c6d8ed;
+  border-radius: 11px;
+  background: #f9fbff;
+  color: #243c58;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: left;
+}
+/* Длинное значение переносится и не выталкивает стрелку. */
+.select-value {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+/* Стрелка сохраняет размер рядом с длинным текстом. */
+.select-trigger svg {
+  flex-shrink: 0;
+  transition: transform 0.15s;
+}
+/* Раскрытый список обозначен направлением стрелки и рамкой. */
+.select-trigger[aria-expanded="true"] {
+  border-color: #0271ff;
+  box-shadow: 0 0 0 3px #0271ff15;
+}
+/* Стрелка поворачивается при раскрытии. */
+.select-trigger[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+/* Наведение подсвечивает доступное поле выбора. */
+.select-trigger:hover:not(:disabled) {
+  border-color: #84ade0;
+  background: #f1f7ff;
+}
+/* Меню в портале остаётся поверх карточек и использует обычный размер шрифта. */
+.select-menu {
+  position: fixed;
+  z-index: 1000;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  padding: 6px;
+  border: 1px solid #cdddf1;
+  border-radius: 13px;
+  background: white;
+  color: #243c58;
+  box-shadow:
+    0 12px 36px #1c477a26,
+    0 2px 5px #1c477a0d;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+}
+/* Пункт меню: одинаковые отступы и место для отметки выбранного значения. */
+.select-option {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  min-height: 40px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+/* Подсветка пункта под курсором или при выборе с клавиатуры. */
+.select-option.highlighted {
+  background: #eef5ff;
+}
+/* Выбранное значение выделяется синим цветом и отметкой. */
+.select-option[aria-selected="true"] {
+  color: #0062e5;
+  background: #e4f0ff;
+  font-weight: 600;
+}
+/* Недоступные пункты не реагируют на указатель. */
+.select-option[aria-disabled="true"] {
+  opacity: 0.45;
+  cursor: default;
+}
+/* Год выглядит как компактное поле с календарным значением вместо огромного системного списка. */
+.forecast-workspace .forecast-year-control .select-trigger {
+  background: #edf5ff;
+  color: #005fdf;
+  font-size: 20px;
+  font-weight: 650;
+  min-height: 52px;
+  padding: 10px 14px;
+}
+/* Числовые поля в одной строке имеют общую линию ввода независимо от переноса подписи. */
+.forecast-workspace .network-form .numeric-field {
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
+  gap: 6px;
+}
+/* Подпись оставляет одинаковое место под две строки. */
+.forecast-workspace .numeric-field .field-caption {
+  display: block;
+  min-height: 38px;
+  line-height: 1.6;
+}
+/* Поля веса и объёма имеют одинаковую высоту и ровное внутреннее выравнивание. */
+.forecast-workspace .network-form .numeric-field input {
+  height: 46px;
+  margin: 0;
+  padding: 10px 12px;
+}
+/* Контейнер диаграммы удерживает подсказку над областью построения. */
+.data-chart {
+  position: relative;
+  margin-top: 16px;
+}
+
+.data-chart-scroll {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #c1d7f2 transparent;
+}
+
+.annual-cost-chart .forecast-chart {
+  margin-bottom: 4px;
+}
+
+.annual-cost-chart .chart-tooltip {
+  transform: none;
+  top: 4px;
+}
+
+.cost-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  margin: 12px 0 20px;
+  color: #526984;
+  font-size: 10px;
+}
+
+.cost-chart-legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.cost-chart-legend i {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.legend-base { background: #b6d0f2; }
+.legend-forecast { background: #006cf5; }
+.cost-chart-legend .legend-range {
+  width: 14px;
+  height: 9px;
+  border: 1px solid #174c9b;
+  border-radius: 0;
+  background: #174c9b12;
+}
+/* Шрифт диаграммы не зависит от крупных заголовков карточки. */
+.data-chart .forecast-chart text {
+  font-family: inherit;
+  font-size: 11px;
+  fill: #6b7f97;
+}
+/* Единицы измерения над шкалой. */
+.data-chart .forecast-chart .chart-unit {
+  font-size: 11px;
+  fill: #415975;
+}
+/* Точные значения над столбцами. */
+.data-chart .forecast-chart .chart-value {
+  fill: #1b3555;
+  font-size: 12px;
+  font-weight: 600;
+}
+/* Горизонтальная сетка помогает сопоставлять значения с нулевой шкалой. */
+.chart-grid {
+  stroke: #e3ebf6;
+  stroke-width: 1;
+}
+/* Интервал прогноза рисуется отдельно от центральной оценки. */
+.chart-interval {
+  stroke: #174c9b;
+  stroke-width: 2;
+  fill: none;
+  pointer-events: none;
+}
+/* Направляющая выделяет активный период без изменения данных. */
+.chart-guide {
+  stroke: #729ed3;
+  stroke-dasharray: 4 4;
+  pointer-events: none;
+}
+/* Область выбора точки доступна мышью и клавиатурой. */
+.chart-hit {
+  cursor: crosshair;
+}
+/* Видимый фокус при переходе между периодами с клавиатуры. */
+.chart-hit:focus-visible {
+  outline: none;
+  stroke: #0271ff;
+  stroke-dasharray: 4 4;
+}
+/* Подсказка показывает точные значения из ответа сервера. */
+.chart-tooltip {
+  position: absolute;
+  top: 12%;
+  transform: translateX(-50%);
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  max-width: 230px;
+  background: #163457;
+  color: white;
+  border-radius: 12px;
+  box-shadow: 0 6px 20px #13315224;
+  pointer-events: none;
+  font-size: 11px;
+}
+/* Основное значение подсказки крупнее подписи периода. */
+.chart-tooltip b {
+  font-size: 14px;
+}
+/* Разбивка стоимости продолжает график и использует фактические суммы начислений. */
+.cost-composition {
+  margin-top: 18px;
+  padding: 22px;
+  background: #fff;
+  border: 1px solid #dae7f8;
+  border-radius: 18px;
+}
+/* Заголовок разбивки согласован с диаграммой. */
+.cost-composition h3 {
+  font-size: 17px;
+  margin-bottom: 18px;
+}
+/* Строка начисления оставляет место для отдельной шкалы доли. */
+.cost-charge {
+  margin: 14px 0;
+}
+/* Подпись и сумма компонента выравниваются по разным краям. */
+.cost-charge > div:first-child,
+.cost-charge-total {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+/* Фоновая дорожка показывает долю от общей стоимости. */
+.cost-charge-track {
+  height: 6px;
+  background: #eaf1fb;
+  border-radius: 5px;
+  margin-top: 7px;
+  overflow: hidden;
+}
+/* Длина синей части равна доле начисления в сумме сервера. */
+.cost-charge-track span {
+  display: block;
+  height: 100%;
+  background: #4895fa;
+  border-radius: inherit;
+}
+/* Итог разбивки отделён от компонентов тонкой линией. */
+.cost-charge-total {
+  padding-top: 14px;
+  margin-top: 18px;
+  border-top: 1px solid #dae7f8;
+  font-weight: 600;
+  color: #005fdf;
+}
+/* Короткие подписи веса и объёма занимают одну строку, а поля остаются на общей линии. */
+.forecast-workspace .numeric-field .field-caption {
+  min-height: 20px;
+}
+/* Свободный ввод с подсказками занимает ширину поля. */
+.suggest-input {
+  position: relative;
+  display: block;
+  min-width: 0;
+  width: 100%;
+}
+/* Список грузов и профилей использует то же оформление, что и остальные меню. */
+.suggest-menu {
+  display: block;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 40;
+  max-height: 240px;
+  overflow: auto;
+  padding: 6px;
+  background: #fff;
+  border: 1px solid #cdddf1;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px #1c477a20;
+  font-size: 12px;
+}
+/* Активная точка получает аккуратный синий контур вместо стандартной чёрной рамки браузера. */
+.chart-hit:focus {
+  outline: none;
+  stroke: #0271ff;
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+}
+
+/* Dropdowns scroll independently without passing wheel/touch gestures to the page. */
+.select-menu,
+.suggest-menu,
+.settlement-menu {
+  overscroll-behavior: contain;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+.forecast-workspace,
+.forecast-overview,
+.forecast-overview > div {
+  min-width: 0;
+}
+.forecast-main { padding-bottom: 100px; }

@@ -140,6 +140,7 @@ export interface CostItem {
   base_amount_rub?: number;
   pricing?: {
     category: string; basis: string; quantity: number; rate_rub: number; base_year: number;
+    effective_price_year?: number;
     source_ids: string[]; valid_from?: string; valid_until?: string;
     tariff_version?: string; observed_on?: string; tariff_date_precision?: "year"; tariff_projected?: boolean;
   };
@@ -218,6 +219,12 @@ export interface Candidate {
   stop_actions: (Stop & { hub_id: string; settlement_id?: string })[];
   booking_confirmed?: boolean;
   forecast_price?: {
+    annual_series?: {
+      year: number;
+      amount_rub: number;
+      lower_rub: number | null;
+      upper_rub: number | null;
+    }[];
     base_rub: number | null;
     base_year: number | null;
     lower_rub: number | null;
@@ -281,6 +288,8 @@ export interface Calculation {
     transfers: number;
   } | null;
   forecast?: {
+    indices_version?: string;
+    model_version?: string;
     target_year: number;
     base_year: number;
     date_precision: "year" | "date";

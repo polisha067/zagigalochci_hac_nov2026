@@ -1,6 +1,7 @@
+import { SuggestInput } from "./SuggestInput";
+import { Select } from "./Select";
 import {
   useEffect,
-  useId,
   useMemo,
   useRef,
   useState,
@@ -40,7 +41,16 @@ export function ConditionsForm({
   onDraft: (d: Draft) => void;
   onResult: (r: Calculation, d: Draft) => void;
 }) {
-  const [draft, setDraft] = useState(() => structuredClone(initial));
+  const [draft, setDraft] = useState(() => {
+    const value = structuredClone(initial);
+    if (!value.origin && !value.destination && !value.forecastYear && options.delivery_forecast) {
+      value.forecastYear = String(options.delivery_forecast.min_year);
+      value.scheduleMode = "once";
+      value.start = "";
+      value.capacityBasis = "mass_and_volume";
+    }
+    return value;
+  });
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [questions, setQuestions] = useState<Clarification[]>([]);
@@ -48,8 +58,6 @@ export function ConditionsForm({
   const [now, setNow] = useState(Date.now());
   const inFlight = useRef<AbortController | null>(null);
   const form = useRef<HTMLFormElement>(null);
-  const cargoListId = useId(),
-    profilesId = useId();
   useEffect(() => () => inFlight.current?.abort(), []);
   useEffect(() => {
     onDraft(draft);
@@ -101,6 +109,11 @@ export function ConditionsForm({
     points.every((p) => p.city) &&
     draft.cargo.every((c) => c.name.trim() && Number(c.weight) > 0) &&
     (Number(draft.days) > 0 || Boolean(forecastYear && !draft.days));
+  function selectYear(year: string) {
+    update(year
+      ? { forecastYear: year, scheduleMode: "once", start: "", capacityBasis: "mass_and_volume" }
+      : { forecastYear: "", start: draft.start || initial.start });
+  }
   function removeStop(id: string) {
     setDraft((d) => ({
       ...d,
@@ -156,9 +169,10 @@ export function ConditionsForm({
     min = "0.000001",
   ) {
     return (
-      <label>
-        {label}
+      <label className="numeric-field">
+        <span className="field-caption">{label.replace(" за отправку", "")}</span>
         <input
+          aria-label={label}
           type="number"
           min={min}
           max="1000000"
@@ -178,7 +192,29 @@ export function ConditionsForm({
     >
       <fieldset className="ticket" disabled={busy}>
         <section className="paper">
-          <h1>Условия перевозки</h1>
+          <h2 className="forecast-form-heading">Условия прогноза</h2>
+          {forecastOptions && (
+            <div className="forecast-year-control">
+              <label>
+                Год прогноза
+                <Select aria-label="Год прогноза" value={draft.forecastYear ?? ""}
+                  onChange={(e) => selectYear(e.target.value)}>
+                  <option value="">По дате отправки</option>
+                  {Array.from({ length: forecastOptions.max_year - forecastOptions.min_year + 1 }, (_, index) => {
+                    const year = forecastOptions.min_year + index;
+                    return <option key={year} value={year}>{year}</option>;
+                  })}
+                </Select>
+              </label>
+              <div className="forecast-year-pills" aria-label="Быстрый выбор года">
+                {Array.from({ length: Math.min(5, forecastOptions.max_year - forecastOptions.min_year + 1) }, (_, index) => {
+                  const year = String(forecastOptions.min_year + index);
+                  return <button type="button" key={year} aria-pressed={draft.forecastYear === year}
+                    onClick={() => selectYear(year)}>{year}</button>;
+                })}
+              </div>
+            </div>
+          )}
           <div className="route">
             <SettlementPicker
               label="Откуда"
@@ -260,18 +296,6 @@ export function ConditionsForm({
           <div className="columns">
             <section>
               <h2>Состав партии</h2>
-              <datalist id={cargoListId}>
-                {options.cargo_types.map((c) => (
-                  <option key={c.id} value={c.name} />
-                ))}
-              </datalist>
-              <datalist id={profilesId}>
-                {options.cargo_input.handling_profiles.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </datalist>
               {draft.cargo.map((c, i) => {
                 const qs = questions.filter((q) => q.cargo_id === c.id);
                 const propsRequired = qs.some((q) =>
@@ -299,15 +323,13 @@ export function ConditionsForm({
                     </div>
                     <label>
                       Что перевозим?
-                      <input
+                      <SuggestInput
                         aria-label={`Название груза ${i + 1}`}
-                        list={cargoListId}
+                        options={options.cargo_types.map(c => ({ value: c.name, label: c.name }))}
                         maxLength={100}
                         placeholder="Введите название груза"
                         value={c.name}
-                        onChange={(e) =>
-                          cargoUpdate(c.id, { name: e.target.value })
-                        }
+                        onChange={(value) => cargoUpdate(c.id, { name: value })}
                       />
                     </label>
                     {qs.length > 0 && (
@@ -324,7 +346,7 @@ export function ConditionsForm({
                     {numberField(c, "volume", "Объём за отправку, м³")}
                     <label>
                       Упаковка
-                      <select
+                      <Select
                         aria-label="Упаковка"
                         value={c.packaging}
                         onChange={(e) =>
@@ -345,11 +367,11 @@ export function ConditionsForm({
                             {packagingNames[p] || p}
                           </option>
                         ))}
-                      </select>
+                      </Select>
                     </label>
                     <label>
                       Можно разделить позицию?
-                      <select
+                      <Select
                         aria-label="Можно разделить позицию?"
                         value={c.splittable}
                         onChange={(e) =>
@@ -363,13 +385,13 @@ export function ConditionsForm({
                           Да, между машинами / единицами
                         </option>
                         <option value="no">Нет, позиция неделимая</option>
-                      </select>
+                      </Select>
                     </label>
                     {draft.stops.length > 0 &&
                       (["from", "to"] as const).map((key) => (
                         <label key={key}>
                           {key === "from" ? "Погрузка" : "Выгрузка"}
-                          <select
+                          <Select
                             aria-label={`${key === "from" ? "Погрузка" : "Выгрузка"} груза ${i + 1}`}
                             value={c[key]}
                             onChange={(e) =>
@@ -381,7 +403,7 @@ export function ConditionsForm({
                                 {k + 1}. {p.city?.name || "Выберите пункт"}
                               </option>
                             ))}
-                          </select>
+                          </Select>
                         </label>
                       ))}
                     <details
@@ -411,7 +433,7 @@ export function ConditionsForm({
                       )}
                       <label>
                         Состояние
-                        <select
+                        <Select
                           aria-label="Состояние"
                           value={c.phase}
                           onChange={(e) =>
@@ -424,11 +446,11 @@ export function ConditionsForm({
                           <option value="solid">Твёрдый груз</option>
                           <option value="liquid">Жидкость</option>
                           <option value="gas">Газ</option>
-                        </select>
+                        </Select>
                       </label>
                       <label>
                         Опасный груз?
-                        <select
+                        <Select
                           aria-label="Опасный груз?"
                           value={c.hazardous}
                           onChange={(e) =>
@@ -440,18 +462,16 @@ export function ConditionsForm({
                           <option value="">Не указано</option>
                           <option value="yes">Да</option>
                           <option value="no">Нет</option>
-                        </select>
+                        </Select>
                       </label>
                       <label>
                         Условия обращения
-                        <input
-                          list={profilesId}
+                        <SuggestInput
+                          options={options.cargo_input.handling_profiles.map(p => ({ value: p.id, label: p.name }))}
                           maxLength={100}
                           placeholder="Выберите профиль или введите свой"
                           value={c.profile}
-                          onChange={(e) =>
-                            cargoUpdate(c.id, { profile: e.target.value })
-                          }
+                          onChange={(value) => cargoUpdate(c.id, { profile: value })}
                         />
                       </label>
                       <p className="table-note">
@@ -462,7 +482,7 @@ export function ConditionsForm({
                       </p>
                       <label>
                         Нужен температурный режим?
-                        <select
+                        <Select
                           aria-label="Нужен температурный режим?"
                           value={c.temperatureRequired}
                           onChange={(e) =>
@@ -475,7 +495,7 @@ export function ConditionsForm({
                           <option value="">Не указано</option>
                           <option value="yes">Да</option>
                           <option value="no">Нет</option>
-                        </select>
+                        </Select>
                       </label>
                       {c.temperatureRequired === "yes" && (
                         <div className="paired-fields">
@@ -525,27 +545,9 @@ export function ConditionsForm({
               </button>
             </section>
             <section>
-              <h2>График отправок</h2>
-              {forecastOptions && (
-                <label className="schedule-field">
-                  Год прогноза
-                  <select
-                    value={draft.forecastYear ?? ""}
-                    onChange={(e) => {
-                      const year = e.target.value;
-                      update(year
-                        ? { forecastYear: year, scheduleMode: "once", start: "", capacityBasis: "mass_and_volume" }
-                        : { forecastYear: "", start: draft.start || initial.start });
-                    }}
-                  >
-                    <option value="">По дате отправки</option>
-                    {Array.from({ length: forecastOptions.max_year - forecastOptions.min_year + 1 }, (_, index) => {
-                      const year = forecastOptions.min_year + index;
-                      return <option key={year} value={year}>{year}</option>;
-                    })}
-                  </select>
-                </label>
-              )}
+              <details className="forecast-schedule"
+                open={draft.scheduleMode !== "once" || undefined}>
+                <summary>График и даты отправок</summary>
               <div className="toggle schedule-toggle">
                 {(["once", "regular", "explicit"] as const).map((mode, i) => (
                   <button
@@ -596,7 +598,7 @@ export function ConditionsForm({
                     </label>
                     <label>
                       Единица интервала
-                      <select
+                      <Select
                         aria-label="Единица интервала"
                         value={draft.unit}
                         onChange={(e) =>
@@ -608,7 +610,7 @@ export function ConditionsForm({
                             {unitNames[u]}
                           </option>
                         ))}
-                      </select>
+                      </Select>
                     </label>
                   </div>
                   <div className="paired-fields">
@@ -624,7 +626,7 @@ export function ConditionsForm({
                     </label>
                     <label>
                       Единица периода
-                      <select
+                      <Select
                         aria-label="Единица периода"
                         value={draft.periodUnit}
                         onChange={(e) =>
@@ -640,7 +642,7 @@ export function ConditionsForm({
                             </option>
                           ),
                         )}
-                      </select>
+                      </Select>
                     </label>
                   </div>
                   <p className="table-note">
@@ -695,6 +697,7 @@ export function ConditionsForm({
                   </button>
                 </div>
               )}
+              </details>
               <label className="schedule-field">
                 Макс. срок, дней
                 <input
@@ -735,7 +738,7 @@ export function ConditionsForm({
                 <summary>Условия расчёта</summary>
                 <label>
                   Проверка вместимости
-                  <select
+                  <Select
                     aria-label="Проверка вместимости"
                     value={draft.capacityBasis}
                     onChange={(e) =>
@@ -746,7 +749,7 @@ export function ConditionsForm({
                   >
                     <option value="mass_only">По массе</option>
                     <option value="mass_and_volume">По массе и объёму</option>
-                  </select>
+                  </Select>
                 </label>
                 <p className="table-note">
                   При проверке только по массе известный объём всё равно
@@ -754,7 +757,7 @@ export function ConditionsForm({
                 </p>
                 <label>
                   Стоимость
-                  <select
+                  <Select
                     aria-label="Стоимость"
                     value={draft.costBasis}
                     onChange={(e) =>
@@ -765,11 +768,11 @@ export function ConditionsForm({
                   >
                     <option value="including_vat">С НДС</option>
                     <option value="excluding_vat">Без НДС</option>
-                  </select>
+                  </Select>
                 </label>
                 <label>
                   Допустимые данные
-                  <select
+                  <Select
                     aria-label="Допустимые данные"
                     value={draft.dataPolicy}
                     onChange={(e) =>
@@ -784,11 +787,11 @@ export function ConditionsForm({
                     <option value="verified_only">
                       Только подтверждённые данные
                     </option>
-                  </select>
+                  </Select>
                 </label>
                 <label>
                   Основа массы
-                  <select
+                  <Select
                     aria-label="Основа массы"
                     value={draft.massBasis}
                     onChange={(e) =>
@@ -800,7 +803,7 @@ export function ConditionsForm({
                     <option value="">Не указана</option>
                     <option value="gross">Брутто</option>
                     <option value="net">Нетто, без балласта</option>
-                  </select>
+                  </Select>
                 </label>
               </details>
             </section>
@@ -810,7 +813,7 @@ export function ConditionsForm({
           <div className="network-coupon">
             <div className="stub-title">
               <span className="target" aria-hidden="true" />
-              Плановый объём
+              Объём перевозки
             </div>
             <div
               className={`volume${volumeReady ? "" : " volume-empty"}`}
@@ -836,7 +839,7 @@ export function ConditionsForm({
                 <p className="plan-hint">{preview.error}</p>
               )}
             <div className="action">
-              <p>Расчёт по транспортной сети · до 64 отправок</p>
+              <p>{forecastYear ? "Прогноз стоимости по индексам Росстата" : "Расчёт по транспортной сети"} · до 64 отправок</p>
               <p>
                 {draft.dataPolicy === "allow_assumptions"
                   ? "Сценарные тарифы и ресурсы будут отмечены в отчёте."
@@ -851,7 +854,7 @@ export function ConditionsForm({
                   ? "Ищем варианты…"
                   : wait > 0
                     ? `Повторить через ${wait} с`
-                    : "Рассчитать"}{" "}
+                    : forecastYear ? "Получить прогноз" : "Рассчитать"}{" "}
                 <span aria-hidden="true">→</span>
               </button>
             </div>
@@ -862,8 +865,7 @@ export function ConditionsForm({
         <div className="feedback form-questions" role="status">
           <b>Для расчёта нужны уточнения</b>
           <p>
-            Заполненные условия сохранены. Ответьте на вопросы и нажмите
-            «Рассчитать» ещё раз.
+            Заполненные условия сохранены. Ответьте на вопросы и отправьте форму ещё раз.
           </p>
           {questions
             .filter((q) => !q.cargo_id)
