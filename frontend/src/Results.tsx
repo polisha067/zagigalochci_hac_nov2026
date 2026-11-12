@@ -1,3 +1,4 @@
+import { Select } from "./Select";
 import {
   Fragment,
   useEffect,
@@ -561,7 +562,7 @@ function CandidateReport({
               {batches.length > 1 && (
                 <label>
                   Партия
-                  <select
+                  <Select
                     value={batch}
                     onChange={(e) => setBatch(e.target.value)}
                   >
@@ -571,7 +572,7 @@ function CandidateReport({
                       </option>
                     ))}
                     <option value="all">Все партии</option>
-                  </select>
+                  </Select>
                 </label>
               )}
             </div>
@@ -1230,10 +1231,10 @@ export function History({
         />
       </label>
       {years.length > 0 && <label className="history-year-filter">Год прогноза
-        <select value={year} onChange={(e) => setYear(e.target.value)}>
+        <Select value={year} onChange={(e) => setYear(e.target.value)}>
           <option value="">Все годы</option>
           {years.map((value) => <option key={value} value={value}>{value}</option>)}
-        </select>
+        </Select>
       </label>}
       {!filtered.length && (
         <div className="empty-state perforated">

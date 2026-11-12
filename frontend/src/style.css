@@ -3647,3 +3647,280 @@ header.auth-header {
 
 
 /* Прогноз стоимости и рабочая область */
+
+/* Общая обёртка выпадающих списков не расширяет колонку формы. */
+.custom-select {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  margin-top: 6px;
+}
+/* Кнопка выбора с читаемым текстом и стрелкой одинакового размера во всех разделах. */
+.custom-select .select-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 46px;
+  padding: 11px 12px;
+  border: 1px solid #c6d8ed;
+  border-radius: 11px;
+  background: #f9fbff;
+  color: #243c58;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: left;
+}
+/* Длинное значение переносится и не выталкивает стрелку. */
+.select-value {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+/* Стрелка сохраняет размер рядом с длинным текстом. */
+.select-trigger svg {
+  flex-shrink: 0;
+  transition: transform 0.15s;
+}
+/* Раскрытый список обозначен направлением стрелки и рамкой. */
+.select-trigger[aria-expanded="true"] {
+  border-color: #0271ff;
+  box-shadow: 0 0 0 3px #0271ff15;
+}
+/* Стрелка поворачивается при раскрытии. */
+.select-trigger[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+/* Наведение подсвечивает доступное поле выбора. */
+.select-trigger:hover:not(:disabled) {
+  border-color: #84ade0;
+  background: #f1f7ff;
+}
+/* Меню в портале остаётся поверх карточек и использует обычный размер шрифта. */
+.select-menu {
+  position: fixed;
+  z-index: 1000;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  padding: 6px;
+  border: 1px solid #cdddf1;
+  border-radius: 13px;
+  background: white;
+  color: #243c58;
+  box-shadow:
+    0 12px 36px #1c477a26,
+    0 2px 5px #1c477a0d;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+}
+/* Пункт меню: одинаковые отступы и место для отметки выбранного значения. */
+.select-option {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  min-height: 40px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+/* Подсветка пункта под курсором или при выборе с клавиатуры. */
+.select-option.highlighted {
+  background: #eef5ff;
+}
+/* Выбранное значение выделяется синим цветом и отметкой. */
+.select-option[aria-selected="true"] {
+  color: #0062e5;
+  background: #e4f0ff;
+  font-weight: 600;
+}
+/* Недоступные пункты не реагируют на указатель. */
+.select-option[aria-disabled="true"] {
+  opacity: 0.45;
+  cursor: default;
+}
+/* Год выглядит как компактное поле с календарным значением вместо огромного системного списка. */
+.forecast-workspace .forecast-year-control .select-trigger {
+  background: #edf5ff;
+  color: #005fdf;
+  font-size: 20px;
+  font-weight: 650;
+  min-height: 52px;
+  padding: 10px 14px;
+}
+/* Числовые поля в одной строке имеют общую линию ввода независимо от переноса подписи. */
+.forecast-workspace .network-form .numeric-field {
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
+  gap: 6px;
+}
+/* Подпись оставляет одинаковое место под две строки. */
+.forecast-workspace .numeric-field .field-caption {
+  display: block;
+  min-height: 38px;
+  line-height: 1.6;
+}
+/* Поля веса и объёма имеют одинаковую высоту и ровное внутреннее выравнивание. */
+.forecast-workspace .network-form .numeric-field input {
+  height: 46px;
+  margin: 0;
+  padding: 10px 12px;
+}
+/* Контейнер диаграммы удерживает подсказку над областью построения. */
+.data-chart {
+  position: relative;
+  margin-top: 16px;
+}
+/* Шрифт диаграммы не зависит от крупных заголовков карточки. */
+.data-chart .forecast-chart text {
+  font-family: inherit;
+  font-size: 11px;
+  fill: #6b7f97;
+}
+/* Единицы измерения над шкалой. */
+.data-chart .forecast-chart .chart-unit {
+  font-size: 11px;
+  fill: #415975;
+}
+/* Точные значения над столбцами. */
+.data-chart .forecast-chart .chart-value {
+  fill: #1b3555;
+  font-size: 12px;
+  font-weight: 600;
+}
+/* Горизонтальная сетка помогает сопоставлять значения с нулевой шкалой. */
+.chart-grid {
+  stroke: #e3ebf6;
+  stroke-width: 1;
+}
+/* Интервал прогноза рисуется отдельно от центральной оценки. */
+.chart-interval {
+  stroke: #174c9b;
+  stroke-width: 2;
+  fill: none;
+  pointer-events: none;
+}
+/* Направляющая выделяет активный период без изменения данных. */
+.chart-guide {
+  stroke: #729ed3;
+  stroke-dasharray: 4 4;
+  pointer-events: none;
+}
+/* Область выбора точки доступна мышью и клавиатурой. */
+.chart-hit {
+  cursor: crosshair;
+}
+/* Видимый фокус при переходе между периодами с клавиатуры. */
+.chart-hit:focus-visible {
+  outline: none;
+  stroke: #0271ff;
+  stroke-dasharray: 4 4;
+}
+/* Подсказка показывает точные значения из ответа сервера. */
+.chart-tooltip {
+  position: absolute;
+  top: 12%;
+  transform: translateX(-50%);
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  max-width: 230px;
+  background: #163457;
+  color: white;
+  border-radius: 12px;
+  box-shadow: 0 6px 20px #13315224;
+  pointer-events: none;
+  font-size: 11px;
+}
+/* Основное значение подсказки крупнее подписи периода. */
+.chart-tooltip b {
+  font-size: 14px;
+}
+/* Разбивка стоимости продолжает график и использует фактические суммы начислений. */
+.cost-composition {
+  margin-top: 18px;
+  padding: 22px;
+  background: #fff;
+  border: 1px solid #dae7f8;
+  border-radius: 18px;
+}
+/* Заголовок разбивки согласован с диаграммой. */
+.cost-composition h3 {
+  font-size: 17px;
+  margin-bottom: 18px;
+}
+/* Строка начисления оставляет место для отдельной шкалы доли. */
+.cost-charge {
+  margin: 14px 0;
+}
+/* Подпись и сумма компонента выравниваются по разным краям. */
+.cost-charge > div:first-child,
+.cost-charge-total {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+/* Фоновая дорожка показывает долю от общей стоимости. */
+.cost-charge-track {
+  height: 6px;
+  background: #eaf1fb;
+  border-radius: 5px;
+  margin-top: 7px;
+  overflow: hidden;
+}
+/* Длина синей части равна доле начисления в сумме сервера. */
+.cost-charge-track span {
+  display: block;
+  height: 100%;
+  background: #4895fa;
+  border-radius: inherit;
+}
+/* Итог разбивки отделён от компонентов тонкой линией. */
+.cost-charge-total {
+  padding-top: 14px;
+  margin-top: 18px;
+  border-top: 1px solid #dae7f8;
+  font-weight: 600;
+  color: #005fdf;
+}
+/* Короткие подписи веса и объёма занимают одну строку, а поля остаются на общей линии. */
+.forecast-workspace .numeric-field .field-caption {
+  min-height: 20px;
+}
+/* Свободный ввод с подсказками занимает ширину поля. */
+.suggest-input {
+  position: relative;
+  display: block;
+  min-width: 0;
+  width: 100%;
+}
+/* Список грузов и профилей использует то же оформление, что и остальные меню. */
+.suggest-menu {
+  display: block;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 40;
+  max-height: 240px;
+  overflow: auto;
+  padding: 6px;
+  background: #fff;
+  border: 1px solid #cdddf1;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px #1c477a20;
+  font-size: 12px;
+}
+/* Активная точка получает аккуратный синий контур вместо стандартной чёрной рамки браузера. */
+.chart-hit:focus {
+  outline: none;
+  stroke: #0271ff;
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+}
