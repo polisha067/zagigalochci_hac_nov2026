@@ -12,7 +12,7 @@ from pydantic import Field, model_validator
 
 from backend.calculation_models import Hours, OnceSchedule, Schedule
 from backend.network.forecast_indices import load_indices
-from backend.network.provider_tariffs import FORECAST_BASE_SOURCES
+from backend.network.provider_tariffs import AIR_SOURCE, FORECAST_BASE_SOURCES
 from backend.network.russia import END, SCENARIO, START, RussiaRequest, RussiaResponse, load_russia
 from backend.schedule import build_schedule
 from backend.transport_calculator import money
@@ -20,8 +20,9 @@ from backend.transport_calculator import money
 
 TOOL = "estimate_future_delivery_cost"
 BASE_YEAR = datetime.fromisoformat(START).year
-MODEL_VERSION = "delivery-cost-v3"
-PROJECTED_MODES = frozenset(("road", "rail"))
+MODEL_VERSION = "delivery-cost-v4"
+PROJECTED_MODES = frozenset(("road", "rail", "air"))
+SCENARIO_CONNECTIONS = ("observation", "connector", "provider_rail", "provider_air")
 TECHNICAL_HOURS = 90 * 24
 MOSCOW = ZoneInfo("Europe/Moscow")
 CHARGES = {"road": "автоперевозка", "rail": "ж/д", "handling": "обработка", "storage": "хранение",
@@ -84,7 +85,7 @@ def project_catalog(catalog, simulation_end):
             _extend_evidence(service, end)
             service["windows"][0]["end"] = end
             quote = service["quote"]["evidence"]
-            if FORECAST_BASE_SOURCES.intersection(quote["source_ids"]):
+            if FORECAST_BASE_SOURCES.intersection(quote["source_ids"]) or AIR_SOURCE in quote["source_ids"]:
                 quote["valid_until"] = end
     return projected
 
@@ -115,7 +116,7 @@ def _search_weights(network, request, index):
 def _relative_calendar(row, reference, year_only):
     edges = {edge["id"]: edge for edge in row["connections"]}
     row["schedule_status"] = ("scenario" if any(
-        edge["kind"] in ("observation", "provider_rail") for edge in row["connections"]
+        edge["kind"] in SCENARIO_CONNECTIONS for edge in row["connections"]
     ) else "snapshot")
     for step in row["steps"]:
         beginning = step.get("departure_at") or step.get("start_at")
@@ -124,7 +125,7 @@ def _relative_calendar(row, reference, year_only):
             step["duration_hours"] = round((datetime.fromisoformat(ending) - datetime.fromisoformat(beginning)).total_seconds() / 3600, 6)
         if step["kind"] == "transport":
             edge = edges[step["service_id"]]
-            step["schedule_status"] = "scenario" if edge["kind"] in ("observation", "provider_rail") else "snapshot"
+            step["schedule_status"] = "scenario" if edge["kind"] in SCENARIO_CONNECTIONS else "snapshot"
     if not year_only:
         return
     for record in row["steps"] + row["deliveries"] + row["cost_items"]:
@@ -164,9 +165,33 @@ def _sum_items(items, key):
     return sum((Decimal(str(item[key])) for item in items), Decimal(0))
 
 
-def _reprice(row, request, index, reference):
+def _air_charge(item, request, indices, connection):
+    pricing = item["pricing"]
+    base = datetime.fromisoformat(pricing["valid_from"])
+    years = Decimal(request.target_year - base.year)
+    if request.schedule is not None:
+        event = datetime.fromisoformat(item["at"]).astimezone(base.tzinfo)
+        years = Decimal(event.year - base.year)
+        anniversary = base.replace(year=event.year)
+        if event < anniversary:
+            anniversary = anniversary.replace(year=event.year - 1)
+            years -= 1
+        end = anniversary.replace(year=anniversary.year + 1)
+        years += Decimal((event.date() - anniversary.date()).days) / (end.date() - anniversary.date()).days
+    pricing.update(valid_until=connection["reference_metadata"]["tariff_valid_until"], effective_price_year=base.year)
+    amount = Decimal(str(item["amount_rub"]))
+    item.update(base_amount_rub=float(amount), amount_rub=None, lower_rub=None, upper_rub=None,
+                index_factors=[], index_proxy=False, long_term=years > 3)
+    if scenario := indices.air_scenarios(base.year, years):
+        central, softened, points = scenario
+        item.update(amount_rub=float(money(amount * central)), index_factors=[point.as_dict() for point in points])
+        if softened is not None:
+            item["air_softened_rub"] = float(money(amount * softened))
+
+
+def _reprice(row, request, index, reference, indices):
     requires_date = request.schedule is None and any(
-        edge["mode"] not in PROJECTED_MODES or edge["kind"] not in ("observation", "provider_rail")
+        edge["mode"] not in PROJECTED_MODES or edge["kind"] not in SCENARIO_CONNECTIONS
         for edge in row["connections"]
     )
     if requires_date:
@@ -176,16 +201,34 @@ def _reprice(row, request, index, reference):
                               "message": "Для сезонного или датированного плеча укажите дату или период отправки."})
     feasible = row["status"] == "feasible"
     row["transport_status"] = row["status"]
+    air_connections = {edge["id"]: edge for edge in row["connections"] if edge["kind"] == "provider_air"}
     items = row["cost_items"]
+    if air_connections:
+        # The simulator uses generic airport operations for timing. The price
+        # estimate includes movement charges and the air waybill.
+        items = row["cost_items"] = [item for item in items if item["kind"] == "transport"]
+    air_items = []
     for item in items:
-        _calculate_charge(item, request.target_year, index)
+        if AIR_SOURCE in item["pricing"]["source_ids"]:
+            _air_charge(item, request, indices, air_connections[item["object_id"]])
+            air_items.append(item)
+        else:
+            _calculate_charge(item, request.target_year, index)
     _relative_calendar(row, reference, request.schedule is None)
     row["forecast_price"] = {"base_rub": None, "base_year": None, "lower_rub": None, "upper_rub": None,
                              "known_subtotal_rub": None, "range_status": "incomplete", "long_term": False}
     row.pop("published_tariff_estimate", None)
-    known = [item for item in items if item["amount_rub"] is not None]
+    known = [item for item in items if item["amount_rub"] is not None] if not air_connections or air_items else []
     row["known_cost_subtotal_rub"] = float(_sum_items(known, "amount_rub")) if known else None
     row["forecast_price"]["known_subtotal_rub"] = row["known_cost_subtotal_rub"]
+    if air_items and (air_total := _sum_items(air_items, "amount_rub")) is not None:
+        row["forecast_price"].update(
+            air_base_rub=float(_sum_items(air_items, "base_amount_rub")),
+            air_median_rub=float(air_total),
+            air_softened_rub=float(sum(Decimal(str(item.get("air_softened_rub", item["amount_rub"])))
+                                       for item in air_items)) if any("air_softened_rub" in item for item in air_items) else None,
+            long_term=any(item["long_term"] for item in air_items),
+        )
     missing = {item["pricing"]["category"] for item in items if item["amount_rub"] is None}
     if missing:
         labels = ", ".join(CHARGES.get(category, category) for category in sorted(missing))
@@ -230,13 +273,27 @@ def _alternative(best, other):
 
 
 def _visible_candidates(candidates, limit):
-    # Keep the cheapest representative of each pure mode and a mixed route.
-    # Fill remaining slots by forecast price, retaining the server's order.
+    if not candidates:
+        return []
+    # Preserve direct modes and both types of mixed route alongside the best
+    # priced option. Fill the remaining slots in the server's ranking order.
     representatives = {}
+    combinations = {}
     for row in candidates:
-        key = "multimodal" if row["multimodal"] else row["modes"][0]
-        representatives.setdefault(key, row["id"])
-    selected = set(list(representatives.values())[:limit])
+        key = ("multimodal_air" if "air" in row["modes"] else "multimodal_surface") if row["multimodal"] else row["modes"][0]
+        previous = representatives.get(key)
+        if previous is None or (
+            not row["multimodal"] and len(row["connections"]) == 1 and len(previous["connections"]) != 1
+            and row["status"] != "infeasible"
+        ):
+            representatives[key] = row
+        if row["multimodal"]:
+            combinations.setdefault(tuple(row["modes"]), row)
+    selected = set()
+    for row in (candidates[0], *representatives.values(), *combinations.values()):
+        if len(selected) == limit:
+            break
+        selected.add(row["id"])
     for row in candidates:
         if len(selected) == limit:
             break
@@ -278,9 +335,10 @@ def calculate_forecast(request, network=None, indices=None):
                                include_dated=request.schedule is not None)
     result["request"] = _normalized_request(request, network, result["settlements"])
     for row in result["candidates"]:
-        _reprice(row, request, index, events[0])
+        _reprice(row, request, index, events[0], indices)
     candidates = sorted(result["candidates"], key=lambda row: (
         row["status"] != "feasible", row["total_cost_rub"] if row["total_cost_rub"] is not None else float("inf"),
+        row["forecast_price"].get("air_median_rub") is None,
         row["max_delivery_hours"] if row["max_delivery_hours"] is not None else float("inf"), row["id"]))
     visible = _visible_candidates(candidates, request.max_candidates)
     eligible = [row for row in visible if row["status"] == "feasible"]
@@ -293,8 +351,8 @@ def calculate_forecast(request, network=None, indices=None):
     if candidates and result["input_status"] == "ready":
         result["status"] = "calculated" if best else "not_confirmed"
     assumptions = [
-        f"База {BASE_YEAR} года использует ставки ТЛМ на подходящих направлениях. "
-        "На остальных направлениях цена движения рассчитывается по сценарным ставкам. "
+        f"База {BASE_YEAR} года использует опубликованные ставки перевозчиков на подходящих направлениях. "
+        "Для авто и ж/д без опубликованной базы используются сценарные ставки. "
         "Частота и доступные мощности моделируются.",
         "Для обработки и хранения при отсутствии собственного ряда используется сводный индекс грузовых тарифов как сценарное приближение.",
         "НДС по модели базы сохраняется. Все начисления приведены к рублям выбранного года.",
@@ -307,12 +365,16 @@ def calculate_forecast(request, network=None, indices=None):
         assumptions.append("Задан только год. Для ж/д смоделирована фаза суточного интервала; даты рейсов не выводятся. Для сезонных и датированных услуг нужен период или дата.")
     if request.max_delivery_hours is None:
         assumptions.append("Срок доставки не задан; технический горизонт симуляции — 90 суток.")
+    has_air_forecast = any("air_median_rub" in row["forecast_price"] for row in visible)
+    if has_air_forecast:
+        assumptions.append("Авиа: прогноз по опубликованному тарифу «Якутии» и авианакладной. "
+                           "Терминальные и агентские сборы требуют отдельной ставки. Расписание и вместимость сценарные.")
     result["warnings"] = assumptions + [warning for warning in result["warnings"]
                                         if warning.startswith(("Нет цепочки", "Поиск ограничен"))]
     result["forecast"] = dict(target_year=request.target_year, base_year=BASE_YEAR,
                               date_precision="date" if request.schedule else "year",
                               schedule_status="scenario" if request.schedule is None or best and best["schedule_status"] == "scenario" else "snapshot",
-                              coverage_status="estimated" if best else "insufficient_data",
+                              coverage_status="estimated" if best else ("partial" if has_air_forecast else "insufficient_data"),
                               indices_version=indices.version, model_version=MODEL_VERSION,
                               alternative=alternative, assumptions=assumptions)
     used_source_ids = {point["source_id"] for row in result["candidates"] for item in row["cost_items"] for point in item["index_factors"]}

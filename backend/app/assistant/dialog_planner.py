@@ -432,6 +432,14 @@ def _explicit_quantities(message, cargo):
                           ("volume_m3", [decimal(number) for number in VOLUME.findall(message)])):
         if len(values) == 1 and values[0] > 0:
             cargo[field] = values[0]
+    dimensions = [match for match in DIMENSIONS.finditer(message)
+                  if re.search(r"(?:размер\w*|габарит\w*)[^\d.!?\n]{0,48}$",
+                               message[:match.start()], re.IGNORECASE)]
+    if len(dimensions) == 1:
+        *numbers, unit = dimensions[0].groups()
+        sizes = [decimal(number) / {"м": 1, "см": 100, "мм": 1000}[unit.lower()] for number in numbers]
+        if all(size > 0 for size in sizes):
+            cargo["max_piece_dimensions_m"] = sizes
 
 
 def _explicit_packing(message, cargo):

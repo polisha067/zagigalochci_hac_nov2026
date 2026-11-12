@@ -2,7 +2,7 @@ import { useEffect, useId, useState } from "react";
 import { StreetRouteMap } from "./StreetRouteMap";
 import { request } from "./api";
 import countriesUrl from "./assets/natural-earth-countries.json?url";
-import { candidateName, forecastMoney, hours, money } from "./model";
+import { airForecastFlightHours, candidateName, forecastMoney, hours, money } from "./model";
 import type { Candidate, Settlement, SettlementPage } from "./networkApi";
 
 type Hub = Candidate["route_hubs"][number];
@@ -188,9 +188,14 @@ export function RouteMap({ candidates, recommendation, opened, onOpen }: {
             className={candidate.id === recommendation ? "recommended" : undefined}>
             <b>{index + 1} · {candidateName(candidate)}</b>
             {candidate.id === recommendation && <small>Рекомендуем</small>}
-            <span>{candidate.forecast_price
+            <span>{candidate.total_cost_rub == null && candidate.forecast_price?.air_median_rub != null
+              ? <>{candidate.multimodal && candidate.known_cost_subtotal_rub != null
+                  ? `${money(candidate.known_cost_subtotal_rub)} · учтённые этапы`
+                  : `${money(candidate.forecast_price.air_median_rub)} · перелёт и авианакладная`}
+                  {airForecastFlightHours(candidate) != null && <> · Перелёт около {hours(airForecastFlightHours(candidate))}</>}</>
+              : <>{candidate.forecast_price
               ? forecastMoney(candidate.complete ? candidate.total_cost_rub : null, candidate.forecast_price.long_term)
-              : money(candidate.complete ? candidate.total_cost_rub : null)} · {hours(candidate.max_delivery_hours)}</span>
+              : money(candidate.complete ? candidate.total_cost_rub : null)} · {hours(candidate.max_delivery_hours)}</>}</span>
           </button>
         ))}
       </div>

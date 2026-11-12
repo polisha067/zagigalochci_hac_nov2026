@@ -11,6 +11,7 @@ import { RouteMap } from "./RouteMap";
 import { Results as LegacyResults } from "./LegacyResults";
 import type { Calculation, Candidate, Source } from "./networkApi";
 import {
+  airForecastFlightHours,
   candidateName,
   cargoLabel,
   date,
@@ -47,13 +48,17 @@ const kindName = (kind: string) =>
 const completePrice = (c: Candidate) =>
   c.status === "feasible" && c.complete && c.total_cost_rub != null;
 const candidateStatus = (c: Candidate, limit: number | null) =>
-  c.status === "insufficient_data"
+  !completePrice(c) && c.forecast_price?.air_median_rub != null
+    ? c.multimodal ? "Часть стоимости рассчитана" : "Авиатариф рассчитан"
+    : c.status === "insufficient_data"
     ? "Недостаточно данных"
     : c.status === "infeasible"
       ? (limit != null && c.max_delivery_hours != null && c.max_delivery_hours > limit) ||
         c.issues.some(({ code }) => code.endsWith("_deadline"))
         ? "Превышен срок"
-        : "Есть ограничение"
+        : c.issues.some(({ code }) => code === "stage_capacity")
+          ? "Партия превышает вместимость"
+          : "Есть ограничение"
       : c.complete
         ? "Соответствует условиям"
         : "Неполный расчёт";
@@ -331,12 +336,20 @@ function CandidateReport({
   );
   const hub = (id?: string) =>
     c.route_hubs.find((h) => h.id === id)?.name || id || "—";
+  const partialAir = !completePrice(c) && c.forecast_price?.air_median_rub != null;
+  const chargeName = (item: Candidate["cost_items"][number]) => {
+    const mode = item.pricing?.category as keyof typeof modeNames | undefined;
+    return c.multimodal && item.kind === "transport" && mode && modeNames[mode]
+      ? `Перевозка · ${modeNames[mode]}`
+      : kindName(item.kind);
+  };
   const costGroups = new Map<string, number>();
   for (const item of c.cost_items) {
     if (item.amount_rub == null) continue;
+    const label = chargeName(item);
     costGroups.set(
-      item.kind,
-      (costGroups.get(item.kind) || 0) + item.amount_rub,
+      label,
+      (costGroups.get(label) || 0) + item.amount_rub,
     );
   }
   const sum = c.cost_items.reduce((n, item) => n + (item.amount_rub ?? 0), 0);
@@ -376,33 +389,49 @@ function CandidateReport({
         <div className="report-total">
           <div>
             <small>
-              {r.forecast ? `Оценка на ${r.forecast.target_year} год` : "За весь период"} ·{" "}
+              {partialAir
+                ? c.multimodal ? "Учтённые этапы" : "Перелёт и авианакладная"
+                : r.forecast ? `Оценка на ${r.forecast.target_year} год` : "За весь период"} ·{" "}
               {r.request.cost_basis === "including_vat" ? "с НДС" : "без НДС"}
             </small>
-            <strong>{candidatePrice(c)}</strong>
+            <strong>{partialAir
+              ? money(c.multimodal ? c.known_cost_subtotal_rub : c.forecast_price?.air_median_rub)
+              : candidatePrice(c)}</strong>
           </div>
-          <div>
+          {!partialAir && <div>
             <small>За тонну</small>
             <strong>
               {money(completePrice(c) ? c.cost_rub_per_tonne : null)}
               {completePrice(c) && c.cost_rub_per_tonne != null ? "/т" : ""}
             </strong>
-          </div>
+          </div>}
         </div>
         <div className="report-metrics">
-          <p>
+          {partialAir ? (
+            airForecastFlightHours(c) != null && <p>Перелёт по модели <b>{hours(airForecastFlightHours(c))}</b></p>
+          ) : <p>
             Максимальный срок <b>{hours(c.max_delivery_hours)}</b>
             <span className="muted">
               {" "}
               {r.request.max_delivery_hours != null ? `при лимите ${hours(r.request.max_delivery_hours)}` : "без заданного лимита"}
             </span>
-          </p>
+          </p>}
           <p>
             Отправок в плане: <b>{r.shipments}</b> · Объём:{" "}
             <b>{num(totalVolume(r), 6)} т</b>
           </p>
         </div>
-        {c.forecast_price && (
+        {c.forecast_price?.air_median_rub != null ? (
+          <p className="table-note">
+            База тарифа «Якутии» · <b>{money(c.forecast_price.air_base_rub)}</b>.
+            {c.multimodal && <> Перелёт и авианакладная · <b>{money(c.forecast_price.air_median_rub)}</b>.</>}
+            {" "}Терминальные и агентские сборы оплачиваются отдельно.
+            {c.forecast_price.air_softened_rub != null && (
+              <> Авиатариф с ослаблением роста · <b>{money(c.forecast_price.air_softened_rub)}</b>.</>
+            )}
+            {c.forecast_price.long_term && " Долгосрочный ориентир для бюджета."}
+          </p>
+        ) : c.forecast_price && (
           <p className="table-note">
             {c.forecast_price.base_rub != null && <>База в ценах {c.forecast_price.base_year} года · <b>{money(c.forecast_price.base_rub)}</b> · </>}
             Диапазон бюджета · <b>{budgetRange(c)}</b>
@@ -421,12 +450,14 @@ function CandidateReport({
             <h3>
               {completePrice(c)
                 ? "Из чего складывается стоимость"
-                : "Учтённые компоненты — неполная стоимость"}
+                : c.forecast_price?.air_median_rub != null && !c.multimodal
+                  ? "Перелёт и авианакладная"
+                  : "Учтённые компоненты — неполная стоимость"}
             </h3>
             <div className="cost-components">
-              {[...costGroups].map(([kind, value]) => (
-                <div key={kind}>
-                  <span>{kindName(kind)}</span>
+              {[...costGroups].map(([label, value]) => (
+                <div key={label}>
+                  <span>{label}</span>
                   <b>{money(value)}</b>
                 </div>
               ))}
@@ -434,7 +465,7 @@ function CandidateReport({
                 <span>
                   {completePrice(c)
                     ? "Итого по ответу сервера"
-                    : "Сумма учтённых строк"}
+                    : c.forecast_price?.air_median_rub != null && !c.multimodal ? "Прогноз авиатарифа" : "Сумма учтённых строк"}
                 </span>
                 <b>{money(completePrice(c) ? c.total_cost_rub : costGroups.size ? sum : null)}</b>
               </div>
@@ -461,7 +492,7 @@ function CandidateReport({
                   <tbody>
                     {c.cost_items.map((item, i) => (
                       <tr key={i}>
-                        <th>{kindName(item.kind)}</th>
+                        <th>{chargeName(item)}</th>
                         <td>{item.batch == null ? "—" : item.batch + 1}</td>
                         <td>{displayedTime(item.at, item.offset_hours)}</td>
                         {r.forecast && <>
@@ -740,24 +771,43 @@ function NetworkResults({
       el?.removeEventListener("scroll", update);
     };
   }, [opened, filter]);
+  const hasAirTariff = candidates.some((c) => c.forecast_price?.air_median_rub != null);
+  const airTariffsOnly = hasAirTariff && candidates.every((c) => !completePrice(c) && c.forecast_price?.air_median_rub != null);
   const rows = [
-    {
-      label: r.forecast ? `Оценка на ${r.forecast.target_year} год` : "Стоимость за период",
+    ...(!airTariffsOnly ? [{
+      label: r.forecast ? `Полная оценка на ${r.forecast.target_year} год` : "Стоимость за период",
       value: (c: Candidate) => (
-        <strong>{candidatePrice(c)}</strong>
+        <strong>{!completePrice(c) && c.forecast_price?.air_median_rub != null ? "Требуются ставки сборов" : candidatePrice(c)}</strong>
       ),
-    },
+    }] : []),
+    ...(candidates.some((c) => c.multimodal && c.forecast_price?.air_median_rub != null) ? [{
+      label: "Оценка учтённых этапов",
+      value: (c: Candidate) => c.multimodal && c.forecast_price?.air_median_rub != null
+        ? money(c.known_cost_subtotal_rub) : "—",
+    }] : []),
+    ...(hasAirTariff ? [{
+      label: r.forecast ? `Перелёт и авианакладная · ${r.forecast.target_year}` : "Перелёт и авианакладная",
+      value: (c: Candidate) => <strong>{money(c.forecast_price?.air_median_rub)}</strong>,
+    }] : []),
     ...(r.forecast ? [
-      { label: "Диапазон бюджета", value: budgetRange },
-      { label: "Базовая стоимость", value: (c: Candidate) => c.forecast_price?.base_rub == null
-          ? "—" : `${money(c.forecast_price.base_rub)} · ${c.forecast_price.base_year}` },
+      ...(!airTariffsOnly ? [{ label: "Диапазон бюджета", value: budgetRange }] : []),
+      { label: "Базовая стоимость", value: (c: Candidate) => {
+        const budget = c.forecast_price;
+        if (budget?.air_base_rub != null) return `${money(budget.air_base_rub)} · база авиатарифа`;
+        return budget?.base_rub == null ? "—" : `${money(budget.base_rub)} · ${budget.base_year}`;
+      } },
     ] : []),
-    {
+    ...(candidates.some((c) => c.forecast_price?.air_softened_rub != null) ? [
+      { label: "Авиатариф с ослаблением роста", value: (c: Candidate) => money(c.forecast_price?.air_softened_rub) },
+    ] : []),
+    ...(candidates.some((c) => airForecastFlightHours(c) != null) ? [
+      { label: "Перелёт по модели", value: (c: Candidate) => hours(airForecastFlightHours(c)) },
+    ] : []),
+    ...(!airTariffsOnly ? [{
       label: "За тонну",
       value: (c: Candidate) =>
         money(completePrice(c) ? c.cost_rub_per_tonne : null),
-    },
-    {
+    }, {
       label: "Макс. срок доставки",
       value: (c: Candidate) => (
         <>
@@ -771,7 +821,7 @@ function NetworkResults({
             )}
         </>
       ),
-    },
+    }] : []),
     ...(base
       ? [
           {
@@ -897,6 +947,12 @@ function NetworkResults({
             Показано {candidates.length} из {r.candidates.length}. Смешанный
             маршрут может входить в несколько фильтров.
           </p>
+          {candidates.some((c) => !completePrice(c) && c.forecast_price?.air_median_rub != null) && (
+            <p className="table-note">
+              Для полной оценки авиаварианта нужны ставки терминальных и агентских сборов.
+              Рекомендация учитывает варианты с полной оценкой.
+            </p>
+          )}
           <p className="mobile-scroll-hint">
             Таблицу можно прокручивать вбок →
           </p>

@@ -61,6 +61,47 @@ class AssistantDialogTests(unittest.TestCase):
                                  "splittable": True, "packaging": "bags"}]},
         )
 
+    def test_air_forecast_matches_main_form(self):
+        message = ("Новый расчёт. Москва → Якутск, 2030 год. Сколько стоит перевезти "
+                   "100 кг муки в мешках по 25 кг? Общий объём 0,2 м³, партия делимая. "
+                   "Размер одного мешка 0,5 × 0,4 × 0,2 м.")
+        dialog = self.send(message, "new", {
+            "origin": "Москва", "destination": "Якутск", "target_year": 2030,
+            "cargoes": [{"name": "Мука", "weight_tonnes": .1, "volume_m3": .2, "packaging": "bags",
+                         "splittable": True, "max_piece_tonnes": .025}],
+        })
+        answer = dialog["answer"]
+        self.assertEqual(answer["kind"], "calculation", answer)
+        calculation = answer["calculation"]
+        self.assertEqual(calculation["request"]["cargoes"][0]["max_piece_dimensions_m"], [.5, .4, .2])
+        row = next(row for row in calculation["candidates"] if row["modes"] == ["air"])
+        self.assertIn("сценарий с ослаблением роста", answer["reply"])
+        self.assertEqual(row["forecast_price"]["air_median_rub"], 36999.47)
+        self.assertEqual(row["forecast_price"]["air_softened_rub"], 31603.64)
+        form = self.client.post("/network/russia/forecasts", json=calculation["request"])
+        self.assertEqual(form.status_code, 200, form.text)
+        self.assertEqual(calculation, form.json())
+
+    def test_air_and_land_share_one_comparison(self):
+        dialog = self.send(
+            "Как доставить 100 кг муки из Москвы в Новосибирск в 2030 году? "
+            "Мешки по 25 кг, партия делимая, объём 0,2 м³. Размер мешка 0,5 × 0,4 × 0,2 м.",
+            "new", {"origin": "Москва", "destination": "Новосибирск", "target_year": 2030,
+                    "cargoes": [{"name": "Мука", "weight_tonnes": .1}]},
+        )
+        answer = dialog["answer"]
+        self.assertEqual(answer["kind"], "calculation", answer)
+        result = answer["calculation"]
+        modes = {tuple(row["modes"]) for row in result["candidates"]}
+        self.assertTrue({("road",), ("rail",), ("air",)} <= modes)
+        self.assertTrue(any(set(chain) == {"road", "rail"} for chain in modes))
+        selected = next(row for row in result["candidates"] if row["id"] == result["recommendation"])
+        self.assertNotIn("air", selected["modes"])
+        self.assertIn("Авиа, базовый сценарий", answer["reply"])
+        form = self.client.post("/network/russia/forecasts", json=result["request"])
+        self.assertEqual(form.status_code, 200, form.text)
+        self.assertEqual(result, form.json())
+
     def test_partial_quote_clarification_year_and_form_parity(self):
         first = self.send(
             "Сколько стоит перевезти 100 тонн муки из Москвы в Новосибирск в 2030 году?",

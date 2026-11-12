@@ -100,7 +100,38 @@ def forecast_summary(result):
     if request.get("max_delivery_hours"):
         cargo_lines.append(f"Срок до {number(request['max_delivery_hours'])} ч")
     header = "\n".join([header, *cargo_lines])
+    air_row = next((row for row in rows if row["modes"] == ["air"] and "air_median_rub" in row["forecast_price"]), None)
+    if air_row is None:
+        air_row = next((row for row in rows if "air_median_rub" in row["forecast_price"]), None)
+    air_lines = []
+    if air_row:
+        air = air_row["forecast_price"]
+        vat = VAT[request["cost_basis"]]
+        label = "Авиа" if air_row["modes"] == ["air"] else "Авиаплечо маршрута " + " → ".join(MODE_LABELS[m] for m in air_row["modes"])
+        air_lines.append(f"{label}, базовый сценарий — {number(air['air_median_rub'])} ₽ {vat}.")
+        if air["air_softened_rub"] is not None:
+            air_lines.append(f"Авиа, сценарий с ослаблением роста — {number(air['air_softened_rub'])} ₽ {vat}.")
+        if air_row["multimodal"] and air["known_subtotal_rub"] is not None:
+            air_lines.append(f"Оценённые участки этого маршрута — {number(air['known_subtotal_rub'])} ₽ {vat}.")
+        air_lines.append("Оценка включает перелёт груза и авианакладную по базе «Якутии». "
+                         "Терминальные и агентские сборы оплачиваются отдельно. Суммы служат ориентиром для бюджета.")
     if chosen is None:
+        if air_lines:
+            return "\n\n".join([header, *air_lines])
+        if not rows and request["allowed_modes"] == ["air"] and result.status == "no_route_in_dataset":
+            return "\n\n".join([header, "Для этого направления в проекте нет прямого авиаплеча с применимой базовой ставкой."])
+        if any("max_piece_dimensions_m" in issue["fields"]
+               for row in rows if row["modes"] == ["air"] for issue in row["issues"]):
+            return "\n\n".join([header, "Для расчёта авиатарифа укажите длину, ширину и высоту одного грузового места."])
+        if rows and all("air" in row["modes"] for row in rows) and any(
+            issue["code"] == "stage_capacity" for row in rows for issue in row["issues"]
+        ):
+            return "\n\n".join([
+                header,
+                "Найденные авиаварианты упираются в ограничение вместимости на одно отправление. "
+                "Для этой партии нужно уточнить у перевозчика вместимость или задать несколько отдельных отправлений.",
+                "Наземных вариантов с расчётной ценой для этих условий в данных проекта нет.",
+            ])
         for cargo in result.request.get("cargoes", []):
             bounds = (cargo.get("properties") or {}).get("required_temperature_c") or cargo.get("temperature_c")
             if bounds is not None:
@@ -136,7 +167,7 @@ def forecast_summary(result):
     budget = chosen["forecast_price"]
     lines = [
         header,
-        f"Дешевле всего из рассчитанных вариантов — {name(chosen)}. "
+        f"Дешевле всего среди вариантов с полной оценкой — {name(chosen)}. "
         f"Около {price(chosen['total_cost_rub'], chosen)} {VAT[result.request['cost_basis']]}, {duration(chosen)}.",
     ]
     if scope := _tariff_scope(chosen):
@@ -154,6 +185,7 @@ def forecast_summary(result):
                  "Перед отправкой уточните цену и срок у перевозчика.")
     if forecast["date_precision"] == "year":
         lines.append("Срок сценарный. Для проверки рейсов нужна дата отправки.")
+    lines.extend(air_lines)
     return "\n\n".join(lines)
 
 

@@ -23,6 +23,62 @@ class ForecastModelTests(unittest.TestCase):
     def calculate(self, indices=None, **changes):
         return calculate_forecast(ForecastRequest.model_validate(shipment(**changes)), indices=indices)
 
+    def test_road_stop_uses_published_rates_on_both_legs(self):
+        result = self.calculate(destination="Красноярск", allowed_modes=["road"], stops=[
+            {"settlement": "Екатеринбург", "action": "visit", "dwell_hours": 2},
+        ])
+        row = next(row for row in result.candidates if row["modes"] == ["road", "road"] and row["complete"])
+        movement = [item for item in row["cost_items"] if item["kind"] == "transport"]
+        self.assertEqual([(item["pricing"]["source_ids"], item["base_amount_rub"]) for item in movement],
+                         [(["tlm-road-2026"], 200000), (["logistic-avto-road-2026"], 115787)])
+        self.assertEqual(row["total_cost_rub"], 513358.79)
+        self.assertTrue(any(step.get("dwell_hours") == 2 for step in row["steps"]))
+
+    def test_air_tariff_forecast_is_partial_and_respects_the_horizon(self):
+        payload = shipment(destination="Якутск", allowed_modes=["air"], max_legs=1)
+        payload["cargoes"][0].update(weight_tonnes=.1, volume_m3=.2)
+        for year, median, softened in ((2027, 29617.50, None), (2028, 31898.05, 30736.63),
+                                       (2030, 36999.47, 31603.64)):
+            with self.subTest(year=year):
+                result = self.calculate(**(payload | {"target_year": year}))
+                row, = result.candidates
+                self.assertIsNone(result.recommendation)
+                self.assertIsNone(row["total_cost_rub"])
+                self.assertEqual(row["forecast_price"]["air_base_rub"], 27500)
+                self.assertEqual(row["forecast_price"]["air_median_rub"], median)
+                self.assertEqual(row["forecast_price"]["air_softened_rub"], softened)
+                self.assertEqual([(item["kind"], item["amount_rub"]) for item in row["cost_items"]],
+                                 [("transport", median)])
+                self.assertIn("yakutia-air-cargo-q4-2026", row["source_ids"])
+                self.assertTrue(all("departure_at" not in step for step in row["steps"]))
+        dated = self.calculate(**(payload | {"target_year": 2027, "schedule": {
+            "mode": "once", "ready_at": "2027-04-01T08:00:00+03:00",
+        }}))
+        self.assertAlmostEqual(dated.candidates[0]["forecast_price"]["air_median_rub"], 28539, delta=15)
+        self.assertFalse(self.calculate(**(payload | {"destination": "Брянск"})).candidates)
+        payload["cargoes"][0].pop("max_piece_dimensions_m")
+        incomplete, = self.calculate(**payload).candidates
+        self.assertIn("max_piece_dimensions_m", incomplete["issues"][0]["fields"])
+        self.assertIsNone(incomplete["known_cost_subtotal_rub"])
+
+    def test_land_and_air_share_one_forecast_without_comparing_partial_totals(self):
+        payload = shipment(destination="Новосибирск", allowed_modes=["road", "rail", "air"])
+        payload["cargoes"][0].update(weight_tonnes=.1, volume_m3=.2)
+        result = self.calculate(**payload)
+        rows = result.candidates
+        self.assertTrue(any(row["modes"] == ["road"] and row["complete"] for row in rows))
+        self.assertTrue(any(row["modes"] == ["rail"] and "tlm-rail-2026" in row["source_ids"] for row in rows))
+        self.assertTrue(any(row["complete"] and row["multimodal"] for row in rows))
+        direct = next(row for row in rows if row["modes"] == ["air"])
+        mixed = next(row for row in rows if row["multimodal"] and "air" in row["modes"])
+        self.assertEqual(direct["forecast_price"]["air_median_rub"], 13185.27)
+        self.assertIsNone(direct["total_cost_rub"])
+        self.assertIsNone(mixed["total_cost_rub"])
+        self.assertGreater(mixed["known_cost_subtotal_rub"], mixed["forecast_price"]["air_median_rub"])
+        self.assertEqual({item["kind"] for item in mixed["cost_items"]}, {"transport"})
+        self.assertIn("partial_tariff", {issue["code"] for issue in mixed["issues"]})
+        self.assertTrue(recommended(result)["complete"])
+
     def test_real_scenarios_use_the_same_base_with_distinct_year_coefficients(self):
         first = self.calculate(destination="Владивосток", target_year=2028)
         second = self.calculate(destination="Владивосток")
@@ -105,6 +161,31 @@ class ForecastApiTests(unittest.TestCase):
         self.addCleanup(self.case.doCleanups)
         self.case.setUp()
         self.client = self.case.client
+
+    def test_air_forecast_agrees_in_chat_and_main_form(self):
+        payload = shipment(destination="Якутск", allowed_modes=["air"])
+        cargo = payload["cargoes"][0]
+        cargo.update(weight_tonnes=.1, volume_m3=.2)
+        self.case.connect_ollama(self.case.domain_reply(
+            "estimate_future_delivery_cost", origin="Москва", destination="Якутск",
+            target_year=2030, allowed_modes=["air"], cargoes=[cargo],
+        ))
+        response = self.client.post("/assistant/chat", json={
+            "message": "Новый расчёт. Москва → Якутск, 2030 год. Только авиа. Сколько стоит перевезти "
+                       "100 кг муки в мешках по 25 кг? Общий объём 0,2 м³, партия делимая. "
+                       "Размер одного мешка 0,5 × 0,4 × 0,2 м.",
+        })
+        self.assertEqual(response.status_code, 200, response.text)
+        chat = response.json()
+        self.assertEqual(chat["kind"], "calculation", chat)
+        self.assertIn("сценарий с ослаблением роста", chat["reply"])
+        self.client.cookies.clear()
+        network = load_russia()
+        payload["origin"] = network.resolve(payload["origin"])
+        payload["destination"] = network.resolve(payload["destination"])
+        form = self.client.post("/network/russia/forecasts", json=payload)
+        self.assertEqual(form.status_code, 200, form.text)
+        self.assertEqual(chat["calculation"], form.json())
 
     def test_chat_clarifies_and_then_matches_guest_form_calculation(self):
         payload = shipment(destination="Владивосток")

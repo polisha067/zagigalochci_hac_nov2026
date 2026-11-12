@@ -7,11 +7,16 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1] / "data_sources/delivery_forecast"
 ROAD_SOURCE = "tlm-road-2026"
+LOGISTIC_AVTO_SOURCE = "logistic-avto-road-2026"
 RAIL_SOURCE = "tlm-rail-2026"
 SEA_SOURCE = "fesco-fpkl-tariff-2026"
 SEA_EQUIPMENT_SOURCE = "fesco-20dc-equipment"
 AIR_SOURCE = "yakutia-air-cargo-q4-2026"
-FORECAST_BASE_SOURCES = frozenset({ROAD_SOURCE, RAIL_SOURCE})
+FORECAST_BASE_SOURCES = frozenset({ROAD_SOURCE, LOGISTIC_AVTO_SOURCE, RAIL_SOURCE})
+
+
+def logistic_avto_tariffs():
+    return json.loads((ROOT / "logistic_avto_road_2026.json").read_text(encoding="utf-8"))
 
 
 @lru_cache(maxsize=1)

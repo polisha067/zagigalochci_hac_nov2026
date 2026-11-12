@@ -22,7 +22,8 @@ from backend.network.engine import calculate_network
 from backend.network.graph import FreightNetwork
 from backend.network.models import NetworkCargo, NetworkRequest, Mode
 from backend.network.provider_tariffs import (
-    AIR_SOURCE, RAIL_SOURCE, ROAD_SOURCE, SEA_EQUIPMENT_SOURCE, SEA_SOURCE, observations, rate_evidence,
+    AIR_SOURCE, LOGISTIC_AVTO_SOURCE, RAIL_SOURCE, ROAD_SOURCE, SEA_EQUIPMENT_SOURCE, SEA_SOURCE,
+    logistic_avto_tariffs, observations, rate_evidence,
     source as tariff_source, yakutia_tariffs,
 )
 from backend.network.river_tariffs import river_catalog
@@ -336,20 +337,28 @@ class RussiaNetwork:
             self.add_edge(dict(base,id=f'yakutia-air:{start}:{end}',kind='provider_air',quote=published,
                 cost_scope='published_component',missing_cost_components=['agent_fee','other_terminal_services'],
                 reference_metadata={**base['reference_metadata'],'tariff_source_id':AIR_SOURCE,
-                                    'published_airports':[origin,destination],'scope':'airline_and_awb_only'}))
+                                    'published_airports':[origin,destination],'scope':'airline_and_awb_only',
+                                    'tariff_valid_until':evidence['valid_until']}))
 
     def load_land_tariffs(self):
         collected_on, records, documents, road = observations()
-        self.register_source(tariff_source(ROAD_SOURCE, 'ТЛМ — цены на выделенную фуру из Москвы',
-                                    road['url'], 'market_reference'))
-        road_evidence = rate_evidence(ROAD_SOURCE, road['observed_on'], START, END, 'market_reference')
+        road_tariffs = (
+            (ROAD_SOURCE, 'ТЛМ — цены на выделенную фуру из Москвы', road),
+            (LOGISTIC_AVTO_SOURCE, 'Логистик Авто — ориентир за автомобиль 20 т', logistic_avto_tariffs()),
+        )
+        for source_id, title, tariff in road_tariffs:
+            self.register_source(tariff_source(source_id, title, tariff['url'], 'market_reference'))
+            road_evidence = rate_evidence(source_id, tariff['observed_on'], START, END, 'market_reference')
+            origin = self.resolve(tariff['origin'])
+            for destination, rate in tariff['rub_per_vehicle'].items():
+                city = self.resolve(destination)
+                edge = self.edges.get(f'observation:road:{origin}:{city}')
+                if edge is not None:
+                    edge['quote'] = quote('transport', rate, 'per_unit', road_evidence, 'including_vat',
+                                          tariff['vat_percent'] / 100)
+                    edge['reference_metadata'].update(movement_tariff='market_reference', tariff_source_id=source_id)
+
         origin = self.resolve(road['origin'])
-        for destination, rate in road['rub_per_vehicle'].items():
-            city = self.resolve(destination)
-            edge = self.edges.get(f'observation:road:{origin}:{city}')
-            if edge is not None:
-                edge['quote'] = quote('transport', rate, 'per_unit', road_evidence, 'including_vat')
-                edge['reference_metadata'].update(movement_tariff='market_reference', tariff_source_id=ROAD_SOURCE)
 
         rail = records['tlm-moscow-container-rail']
         self.register_source(tariff_source(RAIL_SOURCE, 'ТЛМ — ж/д тарифы от станции до станции',
@@ -423,7 +432,7 @@ class RussiaNetwork:
             'travel_hours':edge['travel_hours'],'distance_km':edge.get('distance_km'),'cutoff_hours':0 if pipe or mode=='road' else 6,
             'booking':'flow' if pipe else 'dedicated','capacity_scope':'fleet' if mode=='road' else 'departure',
             'resource_id':identifier,'available_units':None if pipe else 8,'evidence':ev(),
-            'connection_status':'observation_based_scenario' if edge['kind'] in ('observation','provider_rail') else 'scenario',
+            'connection_status':'observation_based_scenario' if edge['kind'] in ('observation','connector','provider_rail','provider_air') else 'scenario',
             'reference_metadata':edge.get('reference_metadata',{}),
             'terminal_handling_included':edge.get('terminal_handling_included',False),
             'allowed_phases':['liquid'] if pipe else ['solid'],
@@ -481,21 +490,57 @@ class RussiaNetwork:
         first_ready=min(events)
         seeds=[]
         replaced_direct=set()
+        forecast=price_weight is not None
+        priced_air=forecast and 'air' in request.allowed_modes
+        air_volume=all(cargo.volume_m3 is not None for cargo in request.cargoes)
         def edge_active(edge):
+            if forecast and edge['mode']=='air' and edge['kind']!='provider_air':
+                return False
+            if forecast and edge['kind']=='provider_air':
+                return air_volume
             if edge['kind'] in ('provider_rail','provider_air'):
                 evidence = edge['quote']['evidence']
                 direct = not via and edge['from_hub'] in starts and edge['to_hub'] in targets
                 in_period = (datetime.fromisoformat(evidence['valid_from']) <= first_ready
                              and max(events) < datetime.fromisoformat(evidence['valid_until']))
-                return (direct and all(cargo.volume_m3 is not None for cargo in request.cargoes)
-                        and (in_period or edge['kind']=='provider_rail' and price_weight is not None))
+                return direct and air_volume and (in_period or forecast)
             departure = edge.get('departure_at')
             return not departure or include_dated and first_ready <= datetime.fromisoformat(departure) <= last_ready
 
         def seed(path):
+            if priced_air and not via and len(path)>1 and any(edge['mode']=='air' for edge in path) and not has_intercity_land(path):
+                return
             ids=tuple(e['id'] for e in path)
             if ids not in seen_paths and len(path)<=request.max_legs:
                 seeds.append(path);seen_paths.add(ids)
+
+        def has_intercity_land(path):
+            return any(edge['mode'] in ('road','rail') and edge['kind']!='connector' for edge in path)
+
+        def seed_air_land():
+            if request.max_legs < 3 or 'road' not in request.allowed_modes:
+                return
+            land_modes={'road','rail'} & set(request.allowed_modes)
+            options=[]
+            for endpoint_hubs, opposite_hubs, outward in ((starts,targets,True),(targets,set(starts),False)):
+                adjacent = self.outgoing if outward else self.incoming
+                far = 'to_hub' if outward else 'from_hub'
+                for hub in endpoint_hubs:
+                    for flight in adjacent[hub]:
+                        if flight['kind']!='provider_air' or flight[far] in opposite_hubs:
+                            continue
+                        for connector in adjacent[flight[far]]:
+                            if connector['kind']!='connector':
+                                continue
+                            for land in adjacent[connector[far]]:
+                                if (land['kind']!='connector' and land['mode'] in land_modes and land[far] in opposite_hubs
+                                        and (land['kind']=='provider_rail' or edge_active(land))):
+                                    options.append([flight,connector,land] if outward else [land,connector,flight])
+            selected={}
+            for path in sorted(options,key=lambda p:sum(price_weight(edge) for edge in p)):
+                selected.setdefault(tuple(edge['mode'] for edge in path if edge['kind']!='connector'),path)
+            for path in selected.values():
+                seed(path)
         # Always preserve direct alternatives. Two-leg mixed joins avoid losing modal
         # diversity in the dense observation graph before the bounded search completes.
         if via:
@@ -542,7 +587,14 @@ class RussiaNetwork:
                         if not edge_active(left) or not edge_active(right):continue
                         if left['from_hub'] in starts and left['mode'] in request.allowed_modes and left['mode']!=right['mode'] and right['from_hub'] not in starts and right['from_hub'] not in targets:
                             mixed.append([left,right])
-            for path in sorted(mixed,key=lambda p:sum(price_weight(e) if price_weight else e['travel_hours'] for e in p))[:2]:seed(path)
+            ordered_mixed=sorted(mixed,key=lambda p:sum(price_weight(e) if price_weight else e['travel_hours'] for e in p))
+            if priced_air:
+                for modes in (('road','rail'),('rail','road')):
+                    match=next((p for p in ordered_mixed if tuple(edge['mode'] for edge in p)==modes),None)
+                    if match:seed(match)
+            for path in ordered_mixed[:2]:seed(path)
+            if priced_air and air_volume:
+                seed_air_land()
         # Search per physical mode and mixed, so dense road observations cannot hide all rail/sea options.
         searches=[{m} for m in request.allowed_modes]+[set(request.allowed_modes)]
         seed_groups=defaultdict(list)
@@ -566,6 +618,7 @@ class RussiaNetwork:
                 if node in targets and progress==len(via) and path:
                     ids=tuple(e['id'] for e in path)
                     if mixed and len({e["mode"] for e in path})<2:continue
+                    if priced_air and mixed and any(e['mode']=='air' for e in path) and not has_intercity_land(path):continue
                     if ids not in seen_paths:bucket.append(list(path));seen_paths.add(ids);accepted+=1
                     continue
                 if len(path)>=request.max_legs:continue
@@ -573,7 +626,9 @@ class RussiaNetwork:
                 if labels[label]>=3:continue
                 labels[label]+=1
                 for edge in self.outgoing.get(node,[]):
-                    if edge['kind'] in ('provider_rail','provider_air') or not path and edge['id'] in replaced_direct:
+                    if edge['kind']=='provider_rail' or (edge['kind']=='provider_air' and not priced_air) or not path and edge['id'] in replaced_direct:
+                        continue
+                    if edge['kind']=='provider_air' and 'air' in label[3]:
                         continue
                     if edge['mode'] not in allowed or edge['to_hub'] in visited:continue
                     destination=edge['to_hub']

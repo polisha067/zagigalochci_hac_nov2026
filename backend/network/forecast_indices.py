@@ -4,7 +4,7 @@ import json
 from dataclasses import dataclass
 from decimal import Decimal
 from functools import cached_property, lru_cache
-from math import prod
+from math import ceil, prod
 from pathlib import Path
 from statistics import median
 
@@ -160,6 +160,22 @@ class ForecastIndices:
             central, central * band[0] if band else None, central * band[1] if band else None,
             tuple(points), category if proxy else None, bool(estimated_years and not band),
         )
+
+    def air_scenarios(self, base_year, years):
+        series = self.series.get("air")
+        if series is None:
+            return None
+        end = min(series.last_actual, base_year - 1)
+        history = [series.actual.get(year) for year in range(end - 2, end + 1)]
+        if not all(history):
+            return None
+        factor = median(point.factor for point in history)
+        shares = [min(Decimal(1), years - offset) for offset in range(ceil(years))]
+        points = tuple(IndexPoint(base_year + offset + 1, factor ** share, series.model_source, "estimated")
+                       for offset, share in enumerate(shares))
+        softened = (factor ** sum(share / 2 ** offset for offset, share in enumerate(shares))
+                    if years >= 2 else None)
+        return prod((point.factor for point in points), start=Decimal(1)), softened, points
 
 
 @lru_cache(maxsize=1)

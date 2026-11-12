@@ -408,7 +408,7 @@ def _calculate(run_tool, draft, options):
         return question(_year_range(year), ["target_year"])
     unsupported_modes = set(arguments.get("allowed_modes", [])) - PROJECTED_MODES if forecast else set()
     if unsupported_modes and not PROJECTED_MODES.intersection(arguments["allowed_modes"]):
-        return question("Годовая оценка доступна для авто и ж/д. Какой из этих видов транспорта можно использовать?", ["allowed_modes"])
+        return question("Годовая оценка доступна для авто, ж/д и авиа на направлениях с опубликованной ставкой. Какой транспорт можно использовать?", ["allowed_modes"])
     if (schedule := arguments.get("schedule")) and schedule.get("mode") != "once":
         return question("Для расчёта разовой перевозки укажите дату, время и часовой пояс готовности.", ["schedule.ready_at"])
     if schedule and (ready_at := schedule.get("ready_at")):

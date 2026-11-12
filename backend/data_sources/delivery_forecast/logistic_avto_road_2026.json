@@ -1,0 +1,11 @@
+{
+  "url": "https://logistic-avto.ru/gruzoperevozki-po-rf/ekaterinburg-krasnoyarsk/",
+  "observed_on": "2026-11-12",
+  "year": 2026,
+  "origin": "Екатеринбург",
+  "vat_percent": 22,
+  "scope": "Ориентировочная ставка за автомобиль в колонке 20 тонн. Стоимость промежуточной остановки и отдельные услуги не подтверждены.",
+  "rub_per_vehicle": {
+    "Красноярск": 115787
+  }
+}

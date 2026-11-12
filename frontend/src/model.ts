@@ -1,6 +1,7 @@
 import type {
   Calculation,
   CalculationRequest,
+  Candidate,
   CargoItem,
   FrequencyUnit,
   ForecastOptions,
@@ -12,6 +13,10 @@ import type {
 import type { Snapshot as LegacySnapshot } from "./legacyModel";
 import { money } from "./legacyModel";
 export { num, money, hours, date } from "./legacyModel";
+export const airForecastFlightHours = (candidate: Candidate) =>
+  candidate.forecast_price?.air_median_rub == null
+    ? null
+    : candidate.steps.find((step) => step.kind === "transport" && step.mode === "air")?.duration_hours ?? null;
 export const modeNames: Record<Mode, string> = {
   road: "Авто",
   rail: "Ж/д",

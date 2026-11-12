@@ -198,6 +198,9 @@ export interface Candidate {
     lower_rub: number | null;
     upper_rub: number | null;
     known_subtotal_rub: number | null;
+    air_base_rub?: number;
+    air_median_rub?: number;
+    air_softened_rub?: number | null;
     range_status: "available" | "not_calibrated" | "incomplete";
     long_term: boolean;
   };
