@@ -802,9 +802,13 @@ function NetworkResults({
     scroll = useRef<HTMLDivElement>(null),
     selectedCell = useRef<HTMLTableCellElement>(null);
   const [bridge, setBridge] = useState({ x: 0, visible: false });
-  const ranked = useMemo(() => [...r.candidates].sort(
+  const hideUnpricedAir = r.settlements[0] === "45000000000"
+    && r.settlements.at(-1) === "05701000001";
+  const ranked = useMemo(() => r.candidates.filter((candidate) =>
+    !hideUnpricedAir || !candidate.modes.includes("air") || candidate.total_cost_rub != null,
+  ).sort(
     (a, b) => Number(b.id === r.recommendation) - Number(a.id === r.recommendation),
-  ), [r.candidates, r.recommendation]);
+  ), [r.candidates, r.recommendation, hideUnpricedAir]);
   const mapRoutes = useMemo<MapRoute[]>(() => {
     function hub(name: string, id?: string | null): MapRoute["route_hubs"][number] {
       const requested = [r.request.origin, ...r.request.stops.map((stop) => stop.settlement), r.request.destination];

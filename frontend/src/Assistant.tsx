@@ -270,6 +270,13 @@ export function Assistant({ onResult, onVolumeResult, onSaveResult, hidden, embe
                   }}>Нужно перевезти 10 тонн муки из Москвы в Красноярск через Екатеринбург</button>
                   <div className="assistant-example-tags"><span>2030 год</span><span>До 5 дней</span></div>
                 </div>
+                <div className="assistant-example-block">
+                  <button type="button" className="assistant-example" onClick={() => {
+                    setMessage("Новый расчёт. Сколько стоит перевезти 100 тонн муки из Москвы во Владивосток в 2030 году? Отправка разовая, мука в коробках, объём 20 м³, партию можно разделить. Покажи варианты авто, ж/д и авиа.");
+                    input.current?.focus({ preventScroll: true });
+                  }}>Москва → Владивосток · 100 тонн муки</button>
+                  <div className="assistant-example-tags"><span>2030 год</span><span>Авто · Ж/д · Авиа</span></div>
+                </div>
               </>
             )}
             {known.length > 0 && (
