@@ -113,6 +113,7 @@ class DialogState(InputModel):
     comparison_years: Years | None = None
     previous: list[DialogSnapshot] = Field(default_factory=list, max_length=5)
     proposed_split: DialogSnapshot | None = None
+    volume_forecast: ToolState | None = None
 
 
 class ScenarioReply(InputModel):

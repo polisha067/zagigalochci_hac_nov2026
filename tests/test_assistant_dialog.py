@@ -69,6 +69,29 @@ class AssistantDialogTests(unittest.TestCase):
                                  "splittable": True, "packaging": "bags"}]},
         )
 
+    def test_volume_forecast_uses_same_model_as_volume_screen(self):
+        answer = self.send(
+            "Построй прогноз объёма грузоперевозок из Челябинска в Омск на 2027–2035 годы."
+        )["answer"]
+        self.assertEqual(answer["tool"], "calculate_corridor_forecast")
+        data = answer["result"]
+        api = self.client.get("/network/forecast", params={
+            "route_id": data["details"]["route_id"], "start_year": 2027, "end_year": 2035,
+        })
+        self.assertEqual(api.status_code, 200, api.text)
+        self.assertEqual(data["rows"], api.json()["periods"])
+        self.assertIn("синтетические", answer["reply"])
+        updated = self.send("А если на 2030 год по месяцам?")["answer"]
+        self.assertEqual(len(updated["result"]["rows"]), 12)
+        self.assertEqual(updated["result"]["rows"][0]["period"], "2030-01")
+        self.model.chat.assert_not_called()
+
+    def test_volume_forecast_clarifies_route_and_does_not_reverse_it(self):
+        answer = self.send("Прогноз объёма Омск → Челябинск на 2030 год")["answer"]
+        self.assertEqual(answer["kind"], "clarification")
+        answer = self.send("Челябинск → Омск")["answer"]
+        self.assertEqual(answer["result"]["details"]["forecast_tonnes"], 1269.0)
+
     def test_air_forecast_matches_main_form(self):
         message = ("Новый расчёт. Москва → Якутск, 2030 год. Сколько стоит перевезти "
                    "100 кг муки в мешках по 25 кг? Общий объём 0,2 м³, партия делимая. "
@@ -524,7 +547,7 @@ class AssistantDialogTests(unittest.TestCase):
         self.assertEqual(self.send("Объём 25 м³", turn_id=failed_id, revision=invalid["revision"]), updated)
         self.assertEqual(self.send("Иное сообщение", revision=invalid["revision"], status=409)["error"]["code"], "assistant_revision_conflict")
         self.assertEqual(self.send("Иное сообщение", turn_id=failed_id, status=409)["error"]["code"], "assistant_turn_reused")
-        unsupported = self.send("Как вырастет объём грузоперевозок в Москве в 2030 году?", "unsupported")
+        unsupported = self.send("Можно забронировать перевозку?", "unsupported")
         self.assertIsNone(unsupported["answer"]["calculation"])
         self.assertEqual(unsupported["known"], updated["known"])
 

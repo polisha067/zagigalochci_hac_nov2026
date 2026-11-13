@@ -10,10 +10,22 @@ export interface AssistantSource {
   date: string | null;
 }
 
+export interface VolumeForecastSelection {
+  routeId: string;
+  startYear: number;
+  endYear: number;
+  granularity: "year" | "quarter" | "month";
+}
+
 interface ReplyBase {
   reply: string;
   missing_fields: string[];
   sources: AssistantSource[];
+  tool?: string | null;
+  result?: {
+    rows: { period: string; forecast_tonnes: number }[];
+    details: { granularity?: string; route_id?: string };
+  } | null;
 }
 
 export type AssistantReply = ReplyBase & (
@@ -25,6 +37,19 @@ export type AssistantReply = ReplyBase & (
 export function dashboardResult(answer: AssistantReply): Calculation | null {
   const result = answer.calculation;
   return result?.engine === "russia" && result.input_status === "ready" ? result : null;
+}
+
+export function assistantVolumeSelection(answer: AssistantReply): VolumeForecastSelection | null {
+  if (answer.tool !== "calculate_corridor_forecast" || !answer.result?.rows.length) return null;
+  const { rows, details } = answer.result;
+  const { granularity, route_id: routeId } = details;
+  if (!routeId || (granularity !== "year" && granularity !== "quarter" && granularity !== "month")) return null;
+  return {
+    routeId,
+    granularity,
+    startYear: Number(rows[0].period.slice(0, 4)),
+    endYear: Number(rows[rows.length - 1].period.slice(0, 4)),
+  };
 }
 
 export interface DialogScenario {

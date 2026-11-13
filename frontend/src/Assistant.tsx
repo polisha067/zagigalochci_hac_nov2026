@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { ApiError, errorText, post, request } from "./api";
-import { dashboardResult, type AssistantDialog, type AssistantReply, type AssistantSource, type DashboardCalculation, type DialogScenario } from "./assistantApi";
+import { assistantVolumeSelection, dashboardResult, type VolumeForecastSelection, type AssistantDialog, type AssistantReply, type AssistantSource, type DashboardCalculation, type DialogScenario } from "./assistantApi";
 import { AssistantData } from "./AssistantData";
 
 export function SourceLinks({ sources }: { sources: AssistantSource[] }) {
@@ -32,8 +32,9 @@ function fitPanel(x: number, y: number, { width, height }: DOMRect): PanelPositi
   };
 }
 
-export function Assistant({ onResult, onSaveResult, hidden }: {
+export function Assistant({ onResult, onVolumeResult, onSaveResult, hidden }: {
   onResult: (result: DashboardCalculation, settlementNames: Record<string, string>, candidateId?: string) => void;
+  onVolumeResult: (selection: VolumeForecastSelection) => void;
   onSaveResult?: (result: DashboardCalculation, settlementNames: Record<string, string>) => void;
   hidden?: boolean;
 }) {
@@ -153,6 +154,11 @@ export function Assistant({ onResult, onSaveResult, hidden }: {
       setSavedScenarios([]);
       setTurns((previous) => [...previous, { message: text, dialog, response: answer }]);
       setMessage("");
+      const volume = assistantVolumeSelection(answer);
+      if (volume) {
+        onVolumeResult(volume);
+        return;
+      }
       const scenario = dialog.scenarios.find(({ answer }) => dashboardResult(answer));
       if (scenario) showResult(scenario.answer, dialog.settlement_names);
       else showResult(answer, dialog.settlement_names, dialog.selected_candidate ?? undefined);
@@ -249,7 +255,9 @@ export function Assistant({ onResult, onSaveResult, hidden }: {
               <>
                 <span className="availability">Планирование перевозок</span>
                 <h3>Помощник по перевозкам</h3>
-                <p>Например, «Сколько стоит перевезти 10 т муки из Москвы в Нижний Новгород через Владимир в 2030 году?»</p>
+                <p>Ассистент прогнозирует стоимость доставки и объём грузоперевозок.</p>
+                <p><strong>Стоимость.</strong> «Сколько будет стоить доставка 10 т муки из Москвы в Нижний Новгород в 2030 году?»</p>
+                <p><strong>Объём.</strong> «Покажи прогноз объёма по направлению Челябинск → Омск на 2027–2035 годы».</p>
               </>
             )}
             {known.length > 0 && (

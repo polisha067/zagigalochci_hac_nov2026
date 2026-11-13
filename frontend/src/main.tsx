@@ -15,7 +15,7 @@ import { ForecastOverview } from "./ForecastOverview";
 import { History, Results } from "./Results";
 import { Assistant } from "./Assistant";
 import { assistantSnapshot } from "./assistantSnapshot";
-import type { DashboardCalculation } from "./assistantApi";
+import type { DashboardCalculation, VolumeForecastSelection } from "./assistantApi";
 import { Brand } from "./ui";
 import "./style.css";
 
@@ -40,6 +40,7 @@ function Workspace({
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [formVersion, setFormVersion] = useState(0);
   const [current, setCurrent] = useState<Snapshot | null>(null);
+  const [assistantVolume, setAssistantVolume] = useState<{ selection: VolumeForecastSelection; revision: number } | null>(null);
   const [assistantSelection, setAssistantSelection] = useState<{ snapshot: string; candidate: string } | null>(null);
   const [pendingAssistantSave, setPendingAssistantSave] = useState<Snapshot | null>(null);
   const userId = user?.id;
@@ -125,6 +126,7 @@ function Workspace({
     document.title = `${inHistory ? (saved ? "Сохранённый прогноз" : "История прогнозов") : showing ? "Результат прогноза" : "Прогноз грузоперевозок"} · Попутно`;
   }, [inHistory, saved, showing]);
   function newCalculation() {
+    setAssistantVolume(null);
     setDraft(emptyDraft());
     setFormVersion((v) => v + 1);
     setCurrent(null);
@@ -318,7 +320,7 @@ function Workspace({
                 onDraft={setDraft}
                 onResult={completed}
               />
-              <ForecastOverview draft={draft} />
+              <ForecastOverview key={assistantVolume?.revision} draft={draft} volumeSelection={assistantVolume?.selection} />
             </div>
           </>
         ) : (
@@ -345,6 +347,10 @@ function Workspace({
       <Assistant
         key={userId ?? "guest"}
         onResult={showAssistantResult}
+        onVolumeResult={(selection) => {
+          setAssistantVolume((previous) => ({ selection, revision: (previous?.revision ?? 0) + 1 }));
+          navigate("#calculation");
+        }}
         onSaveResult={user ? undefined : saveGuestAssistantResult}
         hidden={needsAuth}
       />
