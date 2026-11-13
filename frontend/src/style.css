@@ -4435,7 +4435,9 @@ header.auth-header {
 @media (max-width: 650px) {
   .route-map-heading { align-items: flex-start; flex-direction: column; gap: 14px; }
   .route-map-layout { display: flex; flex-direction: column; }
-  .route-map-canvas { order: 0; height: 370px; min-height: 370px; width: 100%; }
+  .route-map-controls { flex-wrap: wrap; }
+  .route-map-controls button { min-height: 44px; font-size: 12px; }
+  .route-map-canvas { order: 0; height: clamp(250px, 42svh, 370px); min-height: 0; width: 100%; }
   .route-map-options { order: 1; max-height: 255px; grid-template-columns: repeat(2, minmax(0, 1fr)); padding-top: 6px; }
   .route-options-heading { grid-column: 1 / -1; }
   .route-map-options > button { padding: 11px; }
@@ -4444,7 +4446,7 @@ header.auth-header {
   .route-mode-icon { width: 24px; height: 26px; flex-basis: 24px; }
   .route-map-selection { align-items: stretch; flex-direction: column; gap: 14px; padding: 16px; }
   .route-map-selection .primary { width: 100%; }
-  .route-map-caption { font-size: 8px; }
+  .route-map-caption { font-size: 11px; }
 }
 
 /* Transparent 3D transport illustrations, shared by the map and its route list. */
@@ -4496,8 +4498,8 @@ header.auth-header {
 }
 .page::before {
   content: "";
-  position: absolute;
-  inset: 60px 0 0;
+  position: fixed;
+  inset: 0;
   z-index: -1;
   pointer-events: none;
   background-position: center top;
@@ -4667,7 +4669,7 @@ body:has(.forecast-intake) .select-menu, body:has(.forecast-intake) .settlement-
 
 /* Shared visual language for forecasts, history, account screens and dialogs. */
 :root { font-family: "Bounded", Arial, sans-serif; --blue: #0065f5; --ink: #102033; --line: #d2dbea; }
-.page:not(:has(.forecast-intake))::before { background-size: 100% auto; opacity: .65; }
+.page:not(:has(.forecast-intake))::before { opacity: .65; }
 .page h1, .page h2, .page h3 { font-family: "Bounded", Arial, sans-serif; font-weight: 800; letter-spacing: normal; line-height: 1.12; }
 .page h1 { font-size: clamp(32px, 3.5vw, 48px); }
 .page button, .page input, .page textarea, .page .select-trigger { font-family: "Bounded", Arial, sans-serif; }
@@ -4762,6 +4764,10 @@ body:has(.forecast-intake) .select-menu, body:has(.forecast-intake) .settlement-
   .page .page-title { align-items: start; }
   .page .page-title h1 { font-size: 32px; }
   .page .forecast-overview, .page .route-map { padding: 16px; }
+  .page .route-map h2 { font-size: 24px; }
+  .route-map-options { grid-template-columns: minmax(0, 1fr); }
+  .route-option-title b { font-size: 12px; overflow-wrap: anywhere; }
+  .route-map-selection .primary { min-height: 44px; }
   .page .forecast-metrics strong { font-size: 21px; }
   .page .history-recommendation { border-left: 0; border-top: 1px solid #d2dff1; padding: 14px 0 0; }
   .page .empty-state { padding: 26px 20px; }
