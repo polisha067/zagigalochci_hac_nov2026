@@ -16,7 +16,9 @@ import {
 export function ForecastOverview({
   snapshot,
   draft,
+  compact = false,
 }: {
+  compact?: boolean;
   snapshot?: NetworkSnapshot;
   draft?: Draft;
 }) {
@@ -69,7 +71,7 @@ export function ForecastOverview({
   const reconciled = price != null && Math.abs(chargeSum - price) < 0.011;
 
   return (
-    <section className="forecast-overview" aria-label="Прогноз">
+    <section className={`forecast-overview${compact ? " forecast-overview-compact" : ""}`} aria-label="Прогноз">
       <div
         className="forecast-view-switch"
         role="group"
@@ -156,6 +158,7 @@ export function ForecastOverview({
             {annual.loading ? <p role="status">Восстанавливаем прогноз по всем годам…</p> : comparable ? (
               <ForecastChart
                 variant="bar"
+                compact={compact}
                 unit="₽"
                 label={`Базовая стоимость и прогноз на ${forecast.target_year} год, с диапазоном оценки`}
                 points={annual.series?.length
@@ -200,7 +203,8 @@ export function ForecastOverview({
                   : "Сценарная оценка"}
               </span>
             </div>
-            {comparable && (
+            {comparable && <details className="forecast-chart-method" open={!compact}>
+              <summary>Как рассчитан прогноз</summary>
               <p className="forecast-chart-note">
                 Одна схема доставки и одинаковый объём груза. Для каждого года
                 стоимость пересчитана по индексам модели.
@@ -209,7 +213,7 @@ export function ForecastOverview({
                   ? " Наведите на столбец или нажмите на него, чтобы увидеть точную сумму."
                   : " В этом сохранённом расчёте есть только крайние годы. Выполните прогноз заново, чтобы получить полный ряд."}
               </p>
-            )}
+            </details>}
             {annual.error && <p role="alert" className="forecast-chart-note">Не удалось восстановить промежуточные годы: {annual.error}</p>}
             {annual.series && (
               <details className="volume-periods cost-annual-values">
@@ -231,8 +235,8 @@ export function ForecastOverview({
             )}
           </div>
           {price != null && reconciled && (
-            <div className="cost-composition">
-              <h3>Из чего складывается оценка</h3>
+            <details className="cost-composition" open={!compact}>
+              <summary>Из чего складывается оценка</summary>
               {Object.entries(charges).map(([kind, amount]) => (
                 <div className="cost-charge" key={kind}>
                   <div>
@@ -256,9 +260,9 @@ export function ForecastOverview({
                 Сумма компонентов совпадает с полной стоимостью. Изменение к
                 базе = (оценка / база − 1) × 100%.
               </p>
-            </div>
+            </details>
           )}
-          <div className="forecast-recommendation">
+          {!compact && <div className="forecast-recommendation">
             <span className="forecast-recommendation-icon" aria-hidden="true">
               ↗
             </span>
@@ -279,7 +283,7 @@ export function ForecastOverview({
                     : "Стоимость, сроки и подробные начисления появятся после расчёта."}
               </p>
             </div>
-          </div>
+          </div>}
         </div>
       </div>
     </section>

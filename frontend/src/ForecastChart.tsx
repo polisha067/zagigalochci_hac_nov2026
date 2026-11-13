@@ -1,4 +1,4 @@
-import { useId, useState } from "react";
+import { useId, useLayoutEffect, useRef, useState } from "react";
 import { num } from "./model";
 
 export interface ChartPoint {
@@ -24,7 +24,9 @@ export function ForecastChart({
   unit,
   label,
   variant = "line",
+  compact: dense = false,
 }: {
+  compact?: boolean;
   points: ChartPoint[];
   unit: string;
   label: string;
@@ -32,8 +34,19 @@ export function ForecastChart({
 }) {
   const id = useId().replaceAll(":", "");
   const [hovered, setHovered] = useState<number | null>(null);
-  const width = variant === "bar" ? Math.max(720, points.length * 90 + 100) : 720,
-    height = 330,
+  const container = useRef<HTMLDivElement>(null);
+  const [availableWidth, setAvailableWidth] = useState(0);
+  useLayoutEffect(() => {
+    if (!dense || !container.current) return;
+    const element = container.current;
+    const measure = () => setAvailableWidth(element.clientWidth);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [dense]);
+  const width = variant === "bar" ? Math.max(dense ? Math.max(480, availableWidth) : 720, points.length * (dense ? 66 : 90) + 100) : 720,
+    height = dense ? 250 : 330,
     left = 76,
     right = 24,
     top = 42,
@@ -57,7 +70,7 @@ export function ForecastChart({
   const barSlot = plotWidth / Math.max(1, points.length);
   const barWidth = Math.min(72, barSlot * 0.56);
   return (
-    <div className={`data-chart${variant === "bar" ? " annual-cost-chart" : ""}`} onMouseLeave={() => setHovered(null)}>
+    <div ref={container} className={`data-chart${variant === "bar" ? " annual-cost-chart" : ""}`} onMouseLeave={() => setHovered(null)}>
       <div className="data-chart-scroll">
       <svg
         className="forecast-chart"

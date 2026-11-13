@@ -32,11 +32,12 @@ function fitPanel(x: number, y: number, { width, height }: DOMRect): PanelPositi
   };
 }
 
-export function Assistant({ onResult, onRequireAuth }: {
+export function Assistant({ onResult, onRequireAuth, embedded = false }: {
+  embedded?: boolean;
   onResult: (result: DashboardCalculation, settlementNames: Record<string, string>, candidateId?: string) => void;
   onRequireAuth?: () => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(embedded);
   const [message, setMessage] = useState("");
   const [turns, setTurns] = useState<{ message: string; dialog: AssistantDialog; response: AssistantReply }[]>([]);
   const [known, setKnown] = useState<string[]>([]);
@@ -57,7 +58,7 @@ export function Assistant({ onResult, onRequireAuth }: {
   const retry = useRef<{ message: string; revision: number; turn_id: string } | null>(null);
   useEffect(() => () => active.current?.abort(), []);
   useEffect(() => {
-    if (!open) return;
+    if (!open || embedded) return;
     close.current?.focus({ preventScroll: true });
     function escape(e: KeyboardEvent) {
       if (e.key === "Escape") {
@@ -78,7 +79,7 @@ export function Assistant({ onResult, onRequireAuth }: {
       window.removeEventListener("keydown", escape);
       window.removeEventListener("resize", fitToViewport);
     };
-  }, [open]);
+  }, [open, embedded]);
   useEffect(() => {
     if (!open || !content.current) return;
     content.current.scrollTop = busy || error
@@ -87,7 +88,7 @@ export function Assistant({ onResult, onRequireAuth }: {
   }, [open, turns, busy, error]);
 
   useEffect(() => {
-    if (!open || revision.current !== null) return;
+    if (!open || onRequireAuth || revision.current !== null) return;
     const controller = new AbortController();
     request<AssistantDialog>("/assistant/dialog", { signal: controller.signal }).then((dialog) => {
       if (controller.signal.aborted || revision.current !== null) return;
@@ -97,7 +98,7 @@ export function Assistant({ onResult, onRequireAuth }: {
       setSavedNames(dialog.settlement_names);
     }).catch(() => { /* Отправка повторно загрузит состояние и покажет ошибку при сбое. */ });
     return () => controller.abort();
-  }, [open]);
+  }, [open, onRequireAuth]);
 
   function startDrag(event: PointerEvent<HTMLDivElement>) {
     if (event.button !== 0 || drag.current || (event.target as Element).closest("button")) return;
@@ -122,6 +123,7 @@ export function Assistant({ onResult, onRequireAuth }: {
   }
 
   async function send() {
+    if (onRequireAuth) { onRequireAuth(); return; }
     const text = message.trim();
     if (!text || active.current) return;
     const controller = new AbortController();
@@ -196,25 +198,27 @@ export function Assistant({ onResult, onRequireAuth }: {
         <section
           id="assistant-panel"
           ref={panel}
-          role="dialog"
+          role={embedded ? "region" : "dialog"}
           aria-labelledby="assistant-title"
-          className="assistant-panel"
-          style={position ? { left: position.x, top: position.y, right: "auto", bottom: "auto" } : undefined}
-          onPointerMove={movePanel}
+          className={`assistant-panel${embedded ? " assistant-embedded" : ""}`}
+          style={!embedded && position ? { left: position.x, top: position.y, right: "auto", bottom: "auto" } : undefined}
+          onPointerMove={embedded ? undefined : movePanel}
           onLostPointerCapture={(event) => {
             if (drag.current?.pointerId === event.pointerId) drag.current = null;
           }}
         >
-          <div className="assistant-drag-handle left" aria-hidden="true" onPointerDown={startDrag} />
-          <div className="assistant-drag-handle right" aria-hidden="true" onPointerDown={startDrag} />
-          <div className="assistant-heading" onPointerDown={startDrag}>
+          {!embedded && <>
+            <div className="assistant-drag-handle left" aria-hidden="true" onPointerDown={startDrag} />
+            <div className="assistant-drag-handle right" aria-hidden="true" onPointerDown={startDrag} />
+          </>}
+          <div className="assistant-heading" onPointerDown={embedded ? undefined : startDrag}>
             <h2 id="assistant-title">
               <svg className="chat-icon" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M21 11.5c0 5-4 8.5-9 8.5-1.5 0-3-.3-4.2-.9L3 21l1.5-4.4A8 8 0 0 1 3 11.5C3 6.8 7 3 12 3s9 3.8 9 8.5Z" />
               </svg>{" "}
-              ИИ-ассистент
+              {embedded ? "ИИ-агент" : "ИИ-ассистент"}
             </h2>
-            <button
+            {!embedded && <button
               className="icon-button"
               ref={close}
               aria-label="Закрыть ассистента"
@@ -224,16 +228,21 @@ export function Assistant({ onResult, onRequireAuth }: {
               }}
             >
               ×
-            </button>
+            </button>}
           </div>
           <div className="assistant-content" ref={content} role="region" aria-label="Переписка с ассистентом" aria-live="polite" tabIndex={0}>
             {!turns.length && (
               <>
                 <span className="availability">Планирование перевозок</span>
-                <h3>Помощник по перевозкам</h3>
+                <h3>Опишите перевозку своими словами</h3>
+                <p>Агент уточнит условия, запустит расчёт и откроет прогноз с вариантами доставки.</p>
                 <p>Например, «Сколько стоит перевезти 10 т муки из Москвы в Нижний Новгород через Владимир в 2030 году?»</p>
               </>
             )}
+            {onRequireAuth && <div className="assistant-signin">
+              <p>Для диалога с агентом войдите в аккаунт. Формой слева можно пользоваться без регистрации.</p>
+              <button type="button" className="outline-button" onClick={onRequireAuth}>Войти и начать диалог</button>
+            </div>}
             {known.length > 0 && (
               <details className="assistant-sources">
                 <summary>Текущие условия</summary>
@@ -277,10 +286,11 @@ export function Assistant({ onResult, onRequireAuth }: {
               }}
               maxLength={2000}
               readOnly={busy}
+              disabled={!!onRequireAuth}
             />
             <button
               type="submit"
-              disabled={busy || !message.trim()}
+              disabled={!!onRequireAuth || busy || !message.trim()}
               aria-label="Отправить сообщение"
             >
               →
@@ -288,7 +298,7 @@ export function Assistant({ onResult, onRequireAuth }: {
           </form>
         </section>
       )}
-      <button
+      {!embedded && <button
         ref={button}
         type="button"
         className="assistant"
@@ -297,7 +307,7 @@ export function Assistant({ onResult, onRequireAuth }: {
         onClick={onRequireAuth ?? (() => setOpen(!open))}
       >
         <i aria-hidden="true" /> ИИ-ассистент
-      </button>
+      </button>}
     </>
   );
 }

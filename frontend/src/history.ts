@@ -63,3 +63,25 @@ export function saveSnapshot(
     };
   }
 }
+
+// Keep only the current result in this tab, including guest calculations.
+// Persistent account history remains in localStorage and still requires sign-in.
+const activeKey = (userId?: string) => `poputno:active:v1:${apiBase}:${userId ?? "guest"}`;
+export function loadActiveSnapshot(userId?: string): Snapshot | null {
+  try {
+    const snapshot = JSON.parse(sessionStorage.getItem(activeKey(userId)) || "null") as Snapshot | null;
+    if (!snapshot || !snapshot.id || !snapshot.result?.request || !snapshot.draft || !snapshot.cargoNames ||
+        !Number.isFinite(Date.parse(snapshot.createdAt))) return null;
+    if (isNetwork(snapshot)) {
+      if (snapshot.result.engine !== "russia" || !Array.isArray(snapshot.result.candidates) ||
+          !Array.isArray(snapshot.result.request.cargoes) || !Array.isArray(snapshot.result.request.stops)) return null;
+    } else if (!snapshot.result.request.route?.length || !Array.isArray(snapshot.result.schemes)) return null;
+    return snapshot;
+  } catch { return null; }
+}
+export function storeActiveSnapshot(userId: string | undefined, snapshot: Snapshot | null) {
+  try {
+    if (snapshot) sessionStorage.setItem(activeKey(userId), JSON.stringify(snapshot));
+    else sessionStorage.removeItem(activeKey(userId));
+  } catch { /* A disabled/full session store must not block calculations or navigation. */ }
+}

@@ -7,7 +7,6 @@ import {
   useRef,
   useState,
   type CSSProperties,
-  type ReactNode,
 } from "react";
 import { RouteMap } from "./RouteMap";
 import { ForecastOverview } from "./ForecastOverview";
@@ -698,14 +697,10 @@ function NetworkResults({
   snapshot,
   initialCandidate,
   saved,
-  editor,
-  draftChanged,
   onEdit,
   onNew,
   onBack,
 }: {
-  editor?: ReactNode;
-  draftChanged?: boolean;
   snapshot: NetworkSnapshot;
   initialCandidate?: string;
   saved: boolean;
@@ -715,6 +710,7 @@ function NetworkResults({
 }) {
   const r = snapshot.result;
   const [filter, setFilter] = useState("all");
+  const [mapOpen, setMapOpen] = useState(false);
   const [opened, setOpened] = useState<string | null>(initialCandidate ?? null);
   const [reportNavigation, setReportNavigation] = useState(0);
   function openFromMap(id: string) {
@@ -889,7 +885,7 @@ function NetworkResults({
           </p>
         </div>
         <div className="title-actions">
-          {!saved && !editor && (
+          {(
             <button className="outline-button" onClick={onEdit}>
               Изменить условия
             </button>
@@ -899,24 +895,53 @@ function NetworkResults({
           </button>
         </div>
       </div>
-      {r.forecast && (
-        <>
-          {draftChanged && editor && <p className="notice forecast-stale" role="status">
-            Условия изменены. Нажмите «Получить прогноз», чтобы обновить стоимость, карту и варианты.
-          </p>}
-          <div className={editor ? "forecast-workspace" : "forecast-saved-overview"}>
-            {editor}
-            <ForecastOverview snapshot={snapshot} />
+      <div className={`forecast-result-grid${r.forecast ? "" : " without-forecast"}`}>
+        {r.forecast && <ForecastOverview snapshot={snapshot} compact />}
+        <section className="route-summary" aria-label="Варианты доставки">
+          <div className="route-summary-heading">
+            <div>
+              <span className="forecast-eyebrow">Шаг 2 из 2 · Результат</span>
+              <h2>Варианты доставки</h2>
+            </div>
+            <span className="route-count">{ranked.length}</span>
           </div>
-        </>
-      )}
-      {!r.forecast && editor && <details className="method-notes">
-        <summary>Изменить условия перевозки</summary>{editor}
-      </details>}
+          <p className="route-summary-note">Полная стоимость и срок для заданных условий. Нажмите на вариант, чтобы открыть расчёт.</p>
+          {r.search.truncated && <p className="route-search-note">Показаны варианты в пределах поиска.</p>}
+          {!r.recommendation && ranked.length > 0 && <p className="route-search-note">Рекомендации нет: проверьте ограничения вариантов.</p>}
+          <div className="route-summary-list">
+            {ranked.map((c, index) => <button
+              type="button"
+              key={c.id}
+              className={`route-summary-card${c.id === r.recommendation ? " is-recommended" : ""}`}
+              onClick={() => openFromMap(c.id)}
+              aria-label={`Открыть расчёт: вариант ${index + 1}, ${candidateName(c)}`}
+            >
+              <span className="route-summary-top">
+                <span>Вариант {index + 1}</span>
+                <span>{c.id === r.recommendation ? "Рекомендуем" : candidateStatus(c, r.request.max_delivery_hours)}</span>
+              </span>
+              <strong className="route-summary-name">{candidateName(c)}</strong>
+              <span className="route-summary-bottom">
+                <strong>{completePrice(c) ? money(c.total_cost_rub) : candidatePrice(c)}</strong>
+                <span>{hours(c.max_delivery_hours)}</span>
+                <span aria-hidden="true">↗</span>
+              </span>
+            </button>)}
+          </div>
+          {!ranked.length && <p className="notice">По заданным условиям вариантов не найдено. Попробуйте изменить условия перевозки.</p>}
+          <a className="route-table-link" href="#comparison" onClick={(event) => {
+            event.preventDefault();
+            document.getElementById("comparison")?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }}>Сравнить все показатели ↓</a>
+        </section>
+      </div>
       <Conditions snapshot={snapshot} />
       {r.candidates.length > 0 && (
-        <RouteMap candidates={ranked} recommendation={r.recommendation}
-          opened={opened} onOpen={openFromMap} />
+        <details className="result-map-disclosure" onToggle={(event) => setMapOpen(event.currentTarget.open)}>
+          <summary>Карта маршрутов <span>Посмотреть все варианты на карте</span></summary>
+          {mapOpen && <RouteMap candidates={ranked} recommendation={r.recommendation}
+            opened={opened} onOpen={openFromMap} />}
+        </details>
       )}
       <h2 id="comparison" className="comparison-title">
         Подробное сравнение вариантов
@@ -1165,14 +1190,10 @@ export function Results({
   snapshot,
   initialCandidate,
   saved = false,
-  editor,
-  draftChanged,
   onEdit,
   onNew,
   onBack,
 }: {
-  editor?: ReactNode;
-  draftChanged?: boolean;
   snapshot: Snapshot;
   initialCandidate?: string;
   saved?: boolean;
@@ -1184,8 +1205,6 @@ export function Results({
     <NetworkResults
       snapshot={snapshot}
       initialCandidate={initialCandidate}
-      editor={editor}
-      draftChanged={draftChanged}
       saved={saved}
       onEdit={onEdit}
       onNew={onNew}

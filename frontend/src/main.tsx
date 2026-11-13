@@ -8,10 +8,9 @@ import type {
   Options,
   SettlementPage,
 } from "./networkApi";
-import { loadHistory, saveSnapshot } from "./history";
+import { loadHistory, saveSnapshot, loadActiveSnapshot, storeActiveSnapshot } from "./history";
 import { Auth } from "./Auth";
 import { ConditionsForm } from "./ConditionsForm";
-import { ForecastOverview } from "./ForecastOverview";
 import { History, Results } from "./Results";
 import { Assistant } from "./Assistant";
 import { assistantSnapshot } from "./assistantSnapshot";
@@ -37,9 +36,9 @@ function Workspace({
   const [options, setOptions] = useState<Options | null>(null);
   const [catalogError, setCatalogError] = useState("");
   const [catalogAttempt, setCatalogAttempt] = useState(0);
-  const [draft, setDraft] = useState<Draft>(emptyDraft);
+  const [current, setCurrent] = useState<Snapshot | null>(() => loadActiveSnapshot(user?.id));
+  const [draft, setDraft] = useState<Draft>(() => current ? editableDraft(current) : emptyDraft());
   const [formVersion, setFormVersion] = useState(0);
-  const [current, setCurrent] = useState<Snapshot | null>(null);
   const [assistantSelection, setAssistantSelection] = useState<{ snapshot: string; candidate: string } | null>(null);
   const userId = user?.id;
   const [historyCache, setHistoryCache] = useState<{
@@ -50,6 +49,8 @@ function Workspace({
     ? historyCache?.userId === userId ? historyCache.state : loadHistory(userId)
     : { entries: [], warning: "" };
   const [hash, setHash] = useState(window.location.hash || "#calculation");
+  const [loginReturnHash, setLoginReturnHash] = useState("#calculation");
+  function openLogin() { setLoginReturnHash(hash); navigate("#login"); }
   const [logoutBusy, setLogoutBusy] = useState(false);
   const [logoutError, setLogoutError] = useState("");
   useEffect(() => {
@@ -124,6 +125,7 @@ function Workspace({
     setDraft(emptyDraft());
     setFormVersion((v) => v + 1);
     setCurrent(null);
+    storeActiveSnapshot(userId, null);
     navigate("#calculation");
   }
   function completed(result: Calculation, submitted: Draft) {
@@ -142,6 +144,8 @@ function Workspace({
   }
   function publishSnapshot(snapshot: Snapshot) {
     setCurrent(snapshot);
+    storeActiveSnapshot(userId, snapshot);
+    setDraft(editableDraft(snapshot, options || undefined));
     if (userId) {
       const savedHistory = saveSnapshot(userId, snapshot);
       setHistoryCache((previous) => ({
@@ -170,6 +174,7 @@ function Workspace({
     setLogoutError("");
     try {
       await post<void>("/auth/logout");
+      storeActiveSnapshot(userId, null);
       navigate("#calculation");
       onLogout();
     } catch (error) {
@@ -182,9 +187,9 @@ function Workspace({
     return (
       <Auth
         initialMessage={authMessage || (inHistory ? "Войдите или зарегистрируйтесь, чтобы открыть историю расчётов." : "")}
-        onBack={() => navigate(calculationHash)}
+        onBack={() => navigate(hash === "#login" ? loginReturnHash : calculationHash)}
         onUser={(authenticatedUser) => {
-          if (!inHistory) navigate(calculationHash);
+          if (!inHistory) navigate(loginReturnHash);
           onUser(authenticatedUser);
         }}
       />
@@ -197,7 +202,14 @@ function Workspace({
         <div className="header-controls">
           <nav aria-label="Разделы">
             <button
-              aria-current={!inHistory ? "page" : undefined}
+              aria-current={!inHistory && !showing ? "page" : undefined}
+              onClick={() => navigate("#calculation")}
+            >
+              Условия
+            </button>
+            <button
+              aria-current={!inHistory && !!showing ? "page" : undefined}
+              disabled={!current}
               onClick={() => navigate(calculationHash)}
             >
               Прогноз
@@ -235,7 +247,7 @@ function Workspace({
               </button>
             </div>
           </details> : (
-            <button className="text-button" onClick={() => navigate("#login")}>
+            <button className="text-button" onClick={openLogin}>
               Войти
             </button>
           )}
@@ -258,16 +270,12 @@ function Workspace({
             snapshot={showing}
             initialCandidate={assistantSelection?.snapshot === showing.id ? assistantSelection.candidate : undefined}
             saved={inHistory}
-            editor={!inHistory && options && isNetwork(showing) ? (
-              <ConditionsForm key={showing.id} initial={editableDraft(showing, options)}
-                options={options} onDraft={setDraft} onResult={completed} />
-            ) : undefined}
-            draftChanged={isNetwork(showing) && JSON.stringify(draft) !== JSON.stringify(showing.draft)}
             onNew={newCalculation}
             onEdit={() => {
               setDraft(editableDraft(showing, options || undefined));
               setFormVersion((v) => v + 1);
-              setCurrent(null);
+              setCurrent(showing);
+              storeActiveSnapshot(userId, showing);
               navigate("#calculation");
             }}
             onBack={() => navigate("#history")}
@@ -287,11 +295,15 @@ function Workspace({
           </>
         ) : options ? (
           <>
-            <div className="forecast-page-heading">
-              <h1>Прогноз грузоперевозок</h1>
-              <p>Оцените стоимость доставки и объём перевозок на выбранный год.</p>
+            <div className="forecast-page-heading intake-heading">
+              <div>
+                <span className="forecast-eyebrow">Шаг 1 из 2 · Условия перевозки</span>
+                <h1>Начните с вашей задачи</h1>
+                <p>Заполните форму или опишите перевозку агенту. Прогноз и сравнение маршрутов откроются на следующей странице.</p>
+              </div>
+              {current && <button className="outline-button" onClick={() => navigate(calculationHash)}>К результату →</button>}
             </div>
-            <div className="forecast-workspace">
+            <div className="forecast-workspace forecast-intake">
               <ConditionsForm
                 key={formVersion}
                 initial={draft}
@@ -299,7 +311,12 @@ function Workspace({
                 onDraft={setDraft}
                 onResult={completed}
               />
-              <ForecastOverview draft={draft} />
+              <Assistant
+                key={userId ?? "guest"}
+                embedded
+                onResult={showAssistantResult}
+                onRequireAuth={user ? undefined : openLogin}
+              />
             </div>
           </>
         ) : (
@@ -323,11 +340,6 @@ function Workspace({
           </section>
         )}
       </main>
-      <Assistant
-        key={userId ?? "guest"}
-        onResult={showAssistantResult}
-        onRequireAuth={user ? undefined : () => navigate("#login")}
-      />
     </div>
   );
 }
