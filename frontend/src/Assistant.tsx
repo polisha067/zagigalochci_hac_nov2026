@@ -45,7 +45,6 @@ export function Assistant({ onResult, onVolumeResult, onSaveResult, hidden, embe
   const open = embedded || floatingOpen;
   const [message, setMessage] = useState("");
   const [turns, setTurns] = useState<{ message: string; dialog: AssistantDialog; response: AssistantReply }[]>([]);
-  const [known, setKnown] = useState<string[]>([]);
   const [savedScenarios, setSavedScenarios] = useState<DialogScenario[]>([]);
   const [savedNames, setSavedNames] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
@@ -122,7 +121,6 @@ export function Assistant({ onResult, onVolumeResult, onSaveResult, hidden, embe
     loading.then((dialog) => {
       if (controller.signal.aborted || revision.current !== null) return;
       revision.current = dialog.revision;
-      setKnown(dialog.known);
       setSavedScenarios(dialog.scenarios);
       setSavedNames(dialog.settlement_names);
     }).catch(() => { /* Отправка повторно загрузит состояние и покажет ошибку при сбое. */ });
@@ -165,7 +163,6 @@ export function Assistant({ onResult, onVolumeResult, onSaveResult, hidden, embe
       if (revision.current === null) {
         const current = await (loadingDialog.current ?? request<AssistantDialog>("/assistant/dialog", { signal: controller.signal }));
         revision.current = current.revision;
-        setKnown(current.known);
       }
       if (retry.current?.message !== text) {
         retry.current = { message: text, revision: revision.current, turn_id: crypto.randomUUID() };
@@ -175,7 +172,6 @@ export function Assistant({ onResult, onVolumeResult, onSaveResult, hidden, embe
       if (controller.signal.aborted || !answer) return;
       revision.current = dialog.revision;
       retry.current = null;
-      setKnown(dialog.known);
       setSavedScenarios([]);
       setTurns((previous) => [...previous, { message: text, dialog, response: answer }]);
       setMessage("");
@@ -195,7 +191,6 @@ export function Assistant({ onResult, onVolumeResult, onSaveResult, hidden, embe
         const latest = await request<AssistantDialog>("/assistant/dialog", { signal: controller.signal }).catch(() => null);
         if (latest && !controller.signal.aborted) {
           revision.current = latest.revision;
-          setKnown(latest.known);
           setSavedScenarios(latest.scenarios);
           setSavedNames(latest.settlement_names);
         }
@@ -292,12 +287,6 @@ export function Assistant({ onResult, onVolumeResult, onSaveResult, hidden, embe
                   <div className="assistant-example-tags"><span>2030 год</span><span>Авто · Ж/д · Авиа</span></div>
                 </div>
               </>
-            )}
-            {known.length > 0 && (
-              <details className="assistant-sources">
-                <summary>Текущие условия</summary>
-                <ul>{known.map((condition, index) => <li key={index}>{condition}</li>)}</ul>
-              </details>
             )}
             {scenarioCards(savedScenarios, savedNames)}
             {turns.map(({ message, dialog, response }, index) => (
