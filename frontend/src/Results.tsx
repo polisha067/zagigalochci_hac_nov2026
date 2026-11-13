@@ -817,8 +817,10 @@ function NetworkResults({
       const first = route.legs[0];
       const points = [hub(first.origin, first.origin_id), ...route.legs.map((leg) => hub(leg.destination, leg.destination_id))];
       const modes = route.legs.map((leg) => leg.mode);
+      const label = r.land_market?.version.startsWith("reefer-market")
+        ? `Рефрижераторы × ${first.units}` : modes.map((mode) => modeNames[mode]).join(" → ");
       return [estimate(`market-land-${i}`, modes, points,
-        `${modes.map((mode) => modeNames[mode]).join(" → ")} · ${points.map((point) => point.name).join(" → ")}`, route.movement_rub)];
+        `${label} · ${points.map((point) => point.name).join(" → ")}`, route.movement_rub)];
     });
     const road = r.road_market_estimate;
     return [...ranked, ...air, ...land, ...(road && !land.some((route) => route.modes.every((mode) => mode === "road"))

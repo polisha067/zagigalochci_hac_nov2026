@@ -504,6 +504,22 @@ def _explicit_cargo_properties(text, cargo):
         cargo["properties"] = defaults | (cargo.get("properties") or {})
 
 
+def _explicit_temperature(text, cargo):
+    bounds = TEMPERATURE.findall(text)
+    if len(bounds) == 1:
+        low, high = map(decimal, bounds[0])
+        if low <= high:
+            cargo["temperature_c"] = (low, high)
+            return
+    single = re.findall(r"([+−-]?\d+(?:[.,]\d+)?)\s*°\s*[cс]?", text)
+    if not bounds and len(single) == 1 and not re.search(r"\b(?:до|ниже|выше)\s*[+−-]?\d", text):
+        value = decimal(single[0])
+        cargo["temperature_c"] = (value, value)
+    elif re.search(r"заморож|охлажд|рефрижератор|терморежим", text) and not _supported(
+            "temperature_control_required", False, text, None):
+        cargo["properties"] = (cargo.get("properties") or {}) | {"temperature_control_required": True}
+
+
 NO_RELOAD = re.compile(
     r"без\s+(?:(?:погрузки\s+и\s+)?(?:выгрузки|разгрузки)|перегрузки)"
     r"|не\s+(?:выгружать|разгружать|перегружать)\b"
@@ -694,6 +710,8 @@ def plan_turn(planner, message, draft):
             uncatalogued = position.get("name") and not _catalogue_name(position["name"])
             if pending_properties or (full_shipment and uncatalogued):
                 _explicit_cargo_properties(text, position)
+            if full_shipment or pending_properties or TEMPERATURE.search(text):
+                _explicit_temperature(text, position)
             cargoes = [position] if position else []
         if _supported("capacity_basis", "mass_only", text, now):
             changes["capacity_basis"] = "mass_only"

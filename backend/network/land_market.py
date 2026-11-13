@@ -10,7 +10,7 @@ import json
 from math import ceil
 from statistics import median
 
-from backend.network.cargo import normalized_name
+from backend.network.cargo import named_temperature_cargo, normalized_name
 from backend.network.coverage_catalog import ROOT
 from backend.network.market_assumptions import market_snapshot
 from backend.network.published_land import hub_catalog, truck_path
@@ -146,6 +146,114 @@ def calibration():
 
 
 @cache
+def reefer_market():
+    return json.loads((ROOT / "reefer_market.json").read_text(encoding="utf-8"))
+
+
+@cache
+def regional_reefer_rates(network):
+    rows = json.loads((ROOT / "reefer_ekaterinburg.json").read_text(encoding="utf-8"))
+    return {identifier: amounts for name, amounts in rows.items() if (identifier := network.resolve(name))}
+
+
+def reefer_options(network, ids, request, indices):
+    cargo = request.cargoes[0]
+    props = cargo.properties
+    known = next((row for key, row in network.cargo_types.items()
+                  if key == cargo.cargo_type or cargo.name and normalized_name(cargo.name) in
+                  {normalized_name(name) for name in (row["name"], *row["aliases"])}), {})
+    bounds = [value for value in (cargo.temperature_c, props.required_temperature_c if props else None,
+                                  known.get("required_temperature_c")) if value is not None]
+    if not bounds or "road" not in request.allowed_modes or (props and (props.hazardous or props.phase == "gas")) \
+            or known.get("hazardous") or not cargo.volume_m3 or cargo.max_piece_dimensions_m:
+        return None
+    data = reefer_market()
+    low, high = data["temperature_c"]
+    if max(low, *(value[0] for value in bounds)) > min(high, *(value[1] for value in bounds)):
+        return None
+    tonnes, cubic = data["capacity"]
+    units = ceil(max(Decimal(str(cargo.weight_tonnes)) / tonnes, Decimal(str(cargo.volume_m3)) / cubic))
+    factor = indices.estimate("road", data["base_year"], request.target_year)
+    if factor is None or cargo.max_piece_tonnes and cargo.max_piece_tonnes > tonnes or units > 1 and not cargo.splittable:
+        return None
+    if len(ids) == 2 and ids[0] == network.resolve("Екатеринбург") and (
+            amounts := regional_reefer_rates(network).get(ids[1])):
+        # Use the lower published volume across the carrier's 20 t fleet.
+        volume = 68
+        count = ceil(max(Decimal(str(cargo.weight_tonnes)) / tonnes, Decimal(str(cargo.volume_m3)) / volume))
+        if count == 1 or cargo.splittable:
+            net = request.cost_basis == "excluding_vat"
+            base = amounts[int(net)]
+            source = {"name": "ИнтерТрансАвто · рефрижератор 20 т из Екатеринбурга",
+                      "url": "https://www.intertransavto.ru/services/gruzoperevozki-refrizheratorom/"}
+            part = {"origin": network.settlements[ids[0]]["name"], "destination": network.settlements[ids[1]]["name"],
+                    "origin_id": ids[0], "destination_id": ids[1], "mode": "road", "equipment": "Рефрижератор 20 т",
+                    "units": count, "unit_tonnes": tonnes, "unit_m3": volume, "base_year": data["base_year"],
+                    "base_unit_rub": base, "forecast_rub": float(money(base * count * factor.central)),
+                    "kind": "published_base", "vat": "excluded" if net else "included",
+                    "distance_km": None, "distance_source": None, "confidence": None, "sources": [source]}
+            return {"version": "reefer-market-2026-11", "target_year": request.target_year,
+                    "routes": [{"legs": [part], "transfer_count": 0, "vat": part["vat"],
+                                "movement_rub": part["forecast_rub"],
+                                "scenario_note": "Прогноз по специализированному прайсу. Дата начала действия ставки не указана. "
+                                                 "Доступность машины и заданный режим нужно подтвердить у перевозчика."}],
+                    "legs": [[part]]}
+    legs = []
+    missing = []
+    for left, right in zip(ids, ids[1:]):
+        path = truck_path([network.settlements[left], network.settlements[right]])
+        if path["status"] in {"path_not_found", "ferry_required"}:
+            missing.append((left, right))
+            continue
+        km = path.get("distance_km")
+        source = "truck_graph"
+        if not km:
+            pair = (left, right)
+            km = road_reference_graph(network).get(left, {}).get(right)
+            source = "market_direct_distance"
+            if not km and (ref := road_distance_references(network).get(pair)):
+                km, source = ref["distance_km"], "regional_carrier_reference"
+            if not km:
+                km, source = road_reference_distance(network, *pair), "market_distance_chain"
+        if not km:
+            missing.append((left, right))
+            continue
+        legs.append((left, right, Decimal(str(km)), source))
+    if not legs:
+        return None
+    total_km = sum(row[2] for row in legs)
+    # The same dedicated vehicles carry the shipment throughout the itinerary.
+    # Allocate the minimum order price by distance so it is applied once.
+    base = max(total_km * data["rub_per_km"], Decimal(data["minimum_rub"]))
+    parts = []
+    for left, right, km, source in legs:
+        unit_base = base * km / total_km
+        refs = [data]
+        if source == "regional_carrier_reference":
+            refs.append(road_distance_references(network)[left, right])
+        parts.append({
+            "origin": network.settlements[left]["name"], "destination": network.settlements[right]["name"],
+            "origin_id": left, "destination_id": right, "mode": "road", "equipment": "Рефрижератор 20 т",
+            "units": units, "unit_tonnes": tonnes, "unit_m3": cubic, "base_year": data["base_year"],
+            "base_unit_rub": float(money(unit_base)), "forecast_rub": float(money(unit_base * units * factor.central)),
+            "kind": "model", "vat": "unknown", "distance_km": float(km), "distance_source": source,
+            "confidence": None, "sources": [{key: row[key] for key in ("name", "url")} for row in refs],
+        })
+    note = ("Ориентир по рефрижератору на весь маршрут по опубликованной ставке «от». "
+            "Режим, фактический проезд и наличие машин подтверждает перевозчик.")
+    if request.stops:
+        note += " На остановках груз остаётся в том же кузове с работающей установкой. Плата за стоянку требует котировки."
+    if missing:
+        by_pair = {(row["origin_id"], row["destination_id"]): row for row in parts}
+        return {"version": "reefer-market-2026-11", "target_year": request.target_year, "routes": [],
+                "legs": [[part] if (part := by_pair.get(pair)) else [] for pair in zip(ids, ids[1:])]}
+    return {"version": "reefer-market-2026-11", "target_year": request.target_year,
+            "routes": [{"legs": parts, "transfer_count": 0, "vat": "unknown", "scenario_note": note,
+                        "movement_rub": float(sum(Decimal(str(row["forecast_rub"])) for row in parts))}],
+            "legs": [[part] for part in parts]}
+
+
+@cache
 def rail_corridors():
     return json.loads((ROOT / "land_market_corridors.json").read_text(encoding="utf-8"))
 
@@ -198,7 +306,8 @@ def dry_cargo(network, request, *, allow_piece_dimensions=False):
     props = cargo.properties
     profiles = {"dry_food", "dry_general"}
     if (cargo.packaging not in ("bags", "boxes") or not cargo.volume_m3 or cargo.temperature_c
-            or cargo.max_piece_dimensions_m and not allow_piece_dimensions or (not known and not props)
+            or cargo.max_piece_dimensions_m and not allow_piece_dimensions
+            or (not known and not props and named_temperature_cargo(cargo.name))
             or (known and (known["handling_profile"] not in profiles or cargo.packaging not in known["packagings"]))
             or (props and (props.phase != "solid" or props.hazardous or props.temperature_control_required
                            or props.handling_profile not in profiles
@@ -321,7 +430,13 @@ def rail_connections(network, ids, request, indices, snapshot, services, covered
 def land_options(network, result, request, indices):
     if (request.data_policy != "allow_assumptions" or not network.registry or result["clarifications"]
             or len(request.stops) + 1 > request.max_legs or result["shipments"] != 1
-            or not all(result["settlements"]) or any(stop.action != "visit" or stop.no_reload for stop in request.stops)):
+            or not all(result["settlements"]) or any(stop.action not in (None, "visit") for stop in request.stops)):
+        return None
+    if len(request.cargoes) == 1:
+        cargo = request.cargoes[0]
+        if cargo.temperature_c or cargo.properties and cargo.properties.temperature_control_required:
+            return reefer_options(network, result["settlements"], request, indices)
+    if any(stop.action != "visit" or stop.no_reload for stop in request.stops):
         return None
     snapshot = calibration()
     modes = [mode for mode in BANDS if mode in request.allowed_modes]

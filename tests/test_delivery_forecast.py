@@ -22,6 +22,39 @@ def recommended(result):
 
 
 class ForecastModelTests(unittest.TestCase):
+    def test_reefer_market_preserves_cold_chain_across_stops(self):
+        for origin, stop, destination, bounds in (
+            ("Ижевск", None, "Иваново", [-20, -18]),
+            ("Москва", "Екатеринбург", "Красноярск", [-20, -18]),
+            ("Новосибирск", "Красноярск", "Иркутск", [2, 6]),
+            ("Воронеж", "Ростов-на-Дону", "Краснодар", [2, 6]),
+        ):
+            with self.subTest(origin=origin, destination=destination):
+                stops = [{"settlement": stop, "action": "visit", "dwell_hours": 2}] if stop else []
+                payload = shipment(origin=origin, destination=destination, stops=stops,
+                                   allowed_modes=["road", "rail", "air"])
+                payload["cargoes"][0].update(name="Рыба", cargo_type=None, weight_tonnes=25, volume_m3=35,
+                                            packaging="boxes", splittable=True, temperature_c=bounds,
+                                            max_piece_tonnes=None, max_piece_dimensions_m=None)
+                result = calculate_forecast(ForecastRequest.model_validate(payload))
+                route = result.land_market["routes"][0]
+                self.assertEqual(route["transfer_count"], 0)
+                self.assertEqual([(leg["equipment"], leg["units"]) for leg in route["legs"]],
+                                 [("Рефрижератор 20 т", 2)] * (len(stops) + 1))
+                self.assertGreater(route["movement_rub"], 0)
+                self.assertIsNone(result.published_reference)
+                self.assertTrue(all(row["complete"] for row in result.candidates))
+        direct = payload | {"origin": "Екатеринбург", "destination": "Красноярск", "stops": []}
+        published = calculate_forecast(ForecastRequest.model_validate(direct))
+        part = published.land_market["routes"][0]["legs"][0]
+        self.assertEqual((part["kind"], part["base_unit_rub"], part["vat"]),
+                         ("published_base", 237600, "included"))
+        payload["cargoes"][0]["temperature_c"] = [-30, -25]
+        self.assertIsNone(calculate_forecast(ForecastRequest.model_validate(payload)).land_market)
+        payload["cargoes"][0].pop("temperature_c")
+        result = calculate_forecast(ForecastRequest.model_validate(payload))
+        self.assertTrue(any(row["code"] == "missing_temperature_range" for row in result.clarifications))
+
     def test_regional_air_market_prices_both_legs_at_the_requested_stop(self):
         payload = shipment(origin="Новосибирск", destination="Иркутск", allowed_modes=["air"],
                            stops=[{"settlement": "Красноярск", "action": "visit", "dwell_hours": 2}])

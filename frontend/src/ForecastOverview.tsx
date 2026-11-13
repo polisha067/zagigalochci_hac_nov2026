@@ -39,7 +39,8 @@ export function ForecastOverview({
     year: airBaseYear, base: air.legs.every((leg) => leg.base_year === airBaseYear)
       ? air.legs.reduce((sum, leg) => sum + leg.base_rub, 0) : null,
   } : land ? {
-    price: land.movement_rub, label: "Оценка по учтённым транспортным плечам",
+    price: land.movement_rub, label: result?.land_market?.version.startsWith("reefer-market")
+      ? "Оценка перевозки рефрижераторами" : "Оценка по учтённым транспортным плечам",
     year: landBaseYear, base: land.legs.every((leg) => leg.base_year === landBaseYear)
       ? land.legs.reduce((sum, leg) => sum + leg.base_unit_rub * leg.units, 0) : null,
   } : road ? {

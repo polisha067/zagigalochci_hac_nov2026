@@ -260,7 +260,9 @@ def engine_summary(result):
             has_bulk_budget = any(row.get("scenario_note") for row in market["routes"])
             for route in market["routes"][:4 if has_bulk_budget else 3]:
                 parts = route["legs"]
-                scheme = " → ".join(MODE_LABELS[leg["mode"]] for leg in parts)
+                reefer = market["version"].startswith("reefer-market")
+                scheme = (f"Рефрижераторы 20 т × {parts[0]['units']}" if reefer
+                          else " → ".join(MODE_LABELS[leg["mode"]] for leg in parts))
                 if route.get("scenario_note"):
                     path = [parts[0]["origin"], *(leg["destination"] for leg in parts if leg["origin"] != leg["destination"])]
                     equipment = next((leg["equipment"] for leg in parts if leg["mode"] == "rail"), None)
@@ -269,7 +271,7 @@ def engine_summary(result):
                         scheme += f" · {equipment}"
                 if route.get("rail_transfer"):
                     scheme += f" через {route['rail_transfer']}, стыковка по согласованию"
-                if len(parts) == 1:
+                if len(parts) == 1 and not reefer:
                     scheme += f" ({parts[0]['equipment']})"
                     if parts[0].get("distance_source") in {"market_distance_chain", "regional_carrier_reference"}:
                         leg = parts[0]
@@ -291,7 +293,11 @@ def engine_summary(result):
                        for leg in parts):
                     variants.append("  Километраж справочный, проезд и срок требуют проверки.")
             if has_bulk_budget:
-                variants.append("Суммы служат ориентиром по учтённым плечам. График, вместимость и условия стыковки уточняются.")
+                notes = [row["scenario_note"] for row in market["routes"] if row.get("scenario_note")]
+                if market["version"].startswith("reefer-market"):
+                    variants.append(notes[0])
+                else:
+                    variants.append("Суммы служат ориентиром по учтённым плечам. График, вместимость и условия стыковки уточняются.")
             if variants:
                 reply += "\n\nПрогноз по вариантам перевозки:\n" + "\n".join(variants)
             elif any(market["legs"]):

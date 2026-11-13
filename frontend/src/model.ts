@@ -370,7 +370,6 @@ export function buildRequest(d: Draft, forecastOptions?: ForecastOptions): Calcu
       c.phase,
       c.hazardous,
       c.profile.trim(),
-      c.temperatureRequired,
     ];
     if (props.some(Boolean) && !props.every(Boolean))
       throw new Error(
@@ -378,12 +377,13 @@ export function buildRequest(d: Draft, forecastOptions?: ForecastOptions): Calcu
       );
     if (props.every(Boolean)) {
       item.properties = {
-        phase: c.phase as "solid" | "liquid" | "gas",
-        hazardous: c.hazardous === "yes",
-        handling_profile: c.profile.trim(),
+        phase: props[0] as "solid" | "liquid" | "gas",
+        hazardous: props[1] === "yes",
+        handling_profile: props[2],
         temperature_control_required: c.temperatureRequired === "yes",
       };
-      if (c.temperatureRequired === "yes" && (c.minTemp || c.maxTemp)) {
+    }
+    if (c.temperatureRequired === "yes") {
         if (
           c.minTemp === "" ||
           c.maxTemp === "" ||
@@ -392,11 +392,11 @@ export function buildRequest(d: Draft, forecastOptions?: ForecastOptions): Calcu
           Number(c.minTemp) > Number(c.maxTemp)
         )
           throw new Error("Укажите корректный диапазон температур.");
-        item.properties.required_temperature_c = [
+        item.temperature_c = [
           Number(c.minTemp),
           Number(c.maxTemp),
         ];
-      }
+        if (item.properties) item.properties.required_temperature_c = item.temperature_c;
     }
     if (c.pieceWeight) {
       item.max_piece_tonnes = positive(c.pieceWeight, "Масса одного места");

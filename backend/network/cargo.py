@@ -2,14 +2,19 @@
 from datetime import datetime, timezone
 import hashlib
 import json
+import re
 import unicodedata
 
 from backend.network.graph import FreightNetwork
-from backend.network.models import CargoType, Evidence, NetworkRequest
+from backend.network.models import CargoProperties, CargoType, Evidence, NetworkRequest
 
 
 def normalized_name(value):
     return ' '.join(unicodedata.normalize('NFKC', value).casefold().replace('ё', 'е').split())
+
+
+def named_temperature_cargo(name):
+    return bool(name and re.search(r'заморож|охлажд|морожен|молочн|\bрыб\w*', normalized_name(name)))
 
 
 def prepare_cargoes(request, network):
@@ -72,6 +77,10 @@ def prepare_cargoes(request, network):
             descriptions.append({'cargo_id':item.id, 'name':item.name, 'resolution':'recognized', 'resolved_type_id':identifier,
                                  'properties_status':known.evidence.status, 'source_ids':known.evidence.source_ids})
         elif item.name and not any(q['cargo_id']==item.id and q['code'] in ('ambiguous_cargo_name','conflicting_cargo_identity','unconfirmed_cargo_identity') for q in questions):
+            if item.properties is None and (item.packaging in ('bags', 'boxes') or named_temperature_cargo(item.name)):
+                item.properties = CargoProperties(phase='solid', hazardous=False, handling_profile='dry_general',
+                                                  temperature_control_required=item.temperature_c is not None or named_temperature_cargo(item.name),
+                                                  required_temperature_c=item.temperature_c)
             if item.properties is None:
                 ask(item, 'missing_cargo_properties', ['properties.phase','properties.hazardous','properties.handling_profile','properties.temperature_control_required'],
                     'Уточните состояние груза, опасность, условия обращения и необходимость температурного режима')

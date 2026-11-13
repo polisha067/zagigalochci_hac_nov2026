@@ -64,6 +64,7 @@ export interface CargoItem {
   packaging?: string;
   splittable?: boolean;
   properties?: CargoProperties;
+  temperature_c?: [number, number];
   max_piece_tonnes?: number;
   max_piece_dimensions_m?: [number, number, number];
   ready_offset_hours?: number;

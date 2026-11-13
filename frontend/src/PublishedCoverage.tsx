@@ -75,6 +75,7 @@ function MarketLeg({ leg }: { leg: LandMarketLeg }) {
     {leg.confidence === "exploratory" && " Ограниченная выборка для проверки цены."}
     {leg.distance_source === "observation" && " Расстояние из наблюдений о связности."}
     {leg.distance_source === "truck_graph" && " Расстояние по грузовому графу."}
+    {leg.distance_source === "market_direct_distance" && " Справочный километраж для данного направления."}
     {leg.distance_source === "market_distance_chain" && " Километраж оценён по цепочке рыночных направлений. Проезд и срок требуют проверки."}
     {leg.distance_source === "regional_carrier_reference" && " Километраж взят из справочного расчёта перевозчика."}
     {sources.map((source, i) => <span key={source.url}>{" "}
@@ -97,7 +98,8 @@ export function LandMarketOptions({ result, compact = false }: { result: Calcula
       Доступность оборудования и сквозной рейс уточняются у перевозчика.</p>
     {market.routes.length ? market.routes.slice(0, compact ? (market.routes.some(row => row.scenario_note) ? 4 : 3) : undefined).map((option, i) =>
       <div className="source-item" id={compact ? undefined : `market-land-${i}`} key={i}>
-        <b>{option.legs.map(leg => modeNames[leg.mode]).join(" → ")}
+        <b>{market.version.startsWith("reefer-market") ? `Рефрижераторы × ${option.legs[0].units}`
+          : option.legs.map(leg => modeNames[leg.mode]).join(" → ")}
           {option.movement_rub != null && option.vat && ` · ${money(option.movement_rub)} (${marketVat[option.vat]})`}</b>
         {option.legs.map((leg, j) => <MarketLeg key={j} leg={leg} />)}
         {option.scenario_note ? <p>{option.scenario_note}</p> : option.rail_transfer ? <p>Передача контейнера в узле <a href={option.rail_transfer_url}>{option.rail_transfer}</a>. Терминалы, сроки

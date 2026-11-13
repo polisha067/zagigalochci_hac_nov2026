@@ -5,7 +5,7 @@ from typing import Callable, Optional, Union
 from pydantic import ValidationError
 
 from backend.calculation_models import CalculationRequest, CalculationResponse
-from backend.network.cargo import normalized_name
+from backend.network.cargo import named_temperature_cargo, normalized_name
 from backend.network.chukotavia import ChukotaviaRequest
 from backend.network.models import NetworkRequest
 from backend.network.pipeline import PipelineRequest
@@ -243,10 +243,11 @@ def _complete_cargo_properties(arguments, catalogue, names):
         return arguments
     completed = []
     for cargo in cargoes:
-        if not isinstance(cargo, dict) or not isinstance(cargo.get("properties"), dict):
+        if not isinstance(cargo, dict):
             completed.append(cargo)
             continue
-        props = {field: value for field, value in cargo["properties"].items() if value is not None}
+        raw = cargo.get("properties") or {}
+        props = {field: value for field, value in raw.items() if value is not None}
         name = cargo.get("name") or cargo.get("cargo_type")
         matches = names.get(normalized_name(name), set()) if isinstance(name, str) else set()
         if len(matches) == 1:
@@ -256,6 +257,16 @@ def _complete_cargo_properties(arguments, catalogue, names):
             props = defaults | props
             if props["temperature_control_required"] and known.get("required_temperature_c") and not cargo.get("temperature_c"):
                 props.setdefault("required_temperature_c", known["required_temperature_c"])
+            if not raw and not cargo.get("temperature_c"):
+                completed.append(cargo)
+                continue
+        elif name and (cargo.get("packaging") in ("bags", "boxes") or props.get("temperature_control_required")
+                       or named_temperature_cargo(name)):
+            props = {"phase": "solid", "hazardous": False, "handling_profile": "dry_general",
+                     "temperature_control_required": bool(cargo.get("temperature_c")) or named_temperature_cargo(name)} | props
+        if not props:
+            completed.append(cargo)
+            continue
         if props.get("temperature_control_required") is True and props.get("required_temperature_c") is None and cargo.get("temperature_c"):
             props["required_temperature_c"] = cargo["temperature_c"]
         completed.append(cargo | {"properties": props})

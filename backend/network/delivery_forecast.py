@@ -16,6 +16,7 @@ from backend.network.air_market import air_options
 from backend.network.connection_pilot import ConnectionConditions, connection_pilot
 from backend.network.forecast_indices import load_indices
 from backend.network.land_market import land_options
+from backend.network.cargo import named_temperature_cargo
 from backend.network.market_assumptions import road_budget
 from backend.network.provider_tariffs import AIR_SOURCE, FORECAST_BASE_SOURCES
 from backend.network.published_land import calculate_published
@@ -453,6 +454,20 @@ def calculate_forecast(request, network=None, indices=None):
                                include_dated=request.schedule is not None,
                                published_forecast_year=request.target_year, indices=indices)
     result["request"] = _normalized_request(request, network, result["settlements"])
+    temperature_controlled = False
+    for cargo in request.cargoes:
+        props = cargo.properties
+        needs_temperature = props.temperature_control_required if props else named_temperature_cargo(cargo.name)
+        temperature_controlled |= bool(needs_temperature or cargo.temperature_c or
+                                       props and props.required_temperature_c)
+        if needs_temperature and not (cargo.temperature_c or props and props.required_temperature_c):
+            if not any(row.get("code") == "missing_temperature_range" and row.get("cargo_id") == cargo.id
+                       for row in result["clarifications"]):
+                result["clarifications"].append({"code": "missing_temperature_range", "cargo_id": cargo.id,
+                                                 "fields": ["temperature_c"],
+                                                 "message": "Укажите допустимый температурный диапазон груза"})
+            result.update(input_status="needs_clarification", status="needs_clarification",
+                          candidates=[], recommendation=None)
     result["land_market"] = land_options(network, result, request, indices)
     bulk_routes = bulk_market_routes(network, result, request, indices)
     if bulk_routes:
@@ -462,7 +477,14 @@ def calculate_forecast(request, network=None, indices=None):
         market["routes"] = (bulk_routes + market["routes"])[:request.max_candidates]
         result["land_market"] = market
     result["air_market"] = air_options(network, result, request, indices)
-    if not strict_land and result.get("published_coverage") is None and network.registry and (
+    if temperature_controlled:
+        # General price lists carry no equipment/temperature admission metadata.
+        result["published_coverage"] = None
+        result["published_reference"] = None
+        result["candidates"] = [row for row in result["candidates"] if row["complete"]
+                                and row["status"] == "feasible" and not row.get("published_tariff_estimate")]
+        result["recommendation"] = None
+    if not temperature_controlled and not strict_land and result.get("published_coverage") is None and network.registry and (
         {"road", "rail"}.intersection(request.allowed_modes) and not result["clarifications"]
     ):
         published = calculate_published(network, {"settlements": result["settlements"], "clarifications": []},
@@ -479,7 +501,7 @@ def calculate_forecast(request, network=None, indices=None):
         has_air_market_price or has_land_market_price or any(air_market.get("weight_limits", ()))
     ):
         result["status"] = "not_confirmed"
-    market = road_budget(network, result, request, indices)
+    market = None if temperature_controlled else road_budget(network, result, request, indices)
     result["road_market_estimate"] = market
     if market:
         capacity_source = market["capacity_source"]
