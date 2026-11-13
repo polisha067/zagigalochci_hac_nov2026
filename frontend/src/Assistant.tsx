@@ -265,9 +265,9 @@ export function Assistant({ onResult, onVolumeResult, onSaveResult, hidden, embe
                 <div className="assistant-example-block">
                   <span>Например</span>
                   <button type="button" className="assistant-example" onClick={() => {
-                    setMessage("Нужно перевезти 10 тонн муки из Москвы в Нижний Новгород в 2030 году, срок до 5 дней");
+                    setMessage("Нужно перевезти 10 тонн муки из Москвы в Красноярск через Екатеринбург в 2030 году, срок до 5 дней");
                     input.current?.focus({ preventScroll: true });
-                  }}>Нужно перевезти 10 тонн муки из Москвы в Нижний Новгород</button>
+                  }}>Нужно перевезти 10 тонн муки из Москвы в Красноярск через Екатеринбург</button>
                   <div className="assistant-example-tags"><span>2030 год</span><span>До 5 дней</span></div>
                 </div>
               </>
