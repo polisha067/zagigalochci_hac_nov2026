@@ -372,7 +372,7 @@ function Workspace({
                   assistantSlot?.scrollIntoView({ block: "start", behavior: reduceMotion ? "instant" : "smooth" });
                 }}
               >
-                К ИИ-чату ↓
+                ИИ-чат
               </button>
             </div>
           </>
