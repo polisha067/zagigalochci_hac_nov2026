@@ -1245,14 +1245,14 @@ header.auth-header {
 .conditions-summary {
   background: var(--paper);
   border-radius: 15px;
-  margin-bottom: 28px;
+  margin-bottom: 16px;
 }
 /* Строка открытия условий с маршрутом, объёмом и ограничением срока. */
 .conditions-summary > summary {
   display: flex;
   gap: 22px;
   align-items: center;
-  padding: 20px 26px;
+  padding: 12px 20px;
   font-size: 15px;
 }
 /* Пунктирные разделители и отступы между краткими показателями условий. */
@@ -4690,7 +4690,7 @@ body:has(.forecast-intake) .select-menu, body:has(.forecast-intake) .settlement-
 .page .route-summary-card.is-recommended:hover { background: #0054d2; }
 .page .route-map { padding: 24px; }
 .page .route-map h2 { font-size: 30px; }
-.page .conditions-summary { padding: 22px; }
+.page .conditions-summary { padding: 4px 8px; }
 .page .comparison-table { filter: none; border-radius: 22px; }
 .page .comparison-table :is(td, th) { font-family: "Bounded", Arial, sans-serif; }
 .page .comparison-table .recommended { background: #e5efff; }

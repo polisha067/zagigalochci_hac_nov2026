@@ -753,7 +753,7 @@ function NetworkResults({
   function openFromMap(id: string) {
     if (id.startsWith("market-")) {
       setOpened(id);
-      document.getElementById(id)?.scrollIntoView({ block: "center" });
+      requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView({ block: "center" }));
       return;
     }
     if (!candidates.some((candidate) => candidate.id === id)) setFilter("all");
@@ -850,8 +850,6 @@ function NetworkResults({
       c.modes.includes(filter as keyof typeof modeNames),
   );
   const selected = candidates.find((c) => c.id === opened);
-  const alternative = r.forecast?.alternative;
-  const alternativeCandidate = r.candidates.find((c) => c.id === alternative?.id);
   const base = r.candidates
     .filter((c) => completePrice(c) && c.modes.every((m) => m === "road"))
     .sort((a, b) => a.total_cost_rub! - b.total_cost_rub!)[0];
@@ -980,6 +978,7 @@ function NetworkResults({
           </button>
         </div>
       </div>
+      <Conditions snapshot={snapshot} />
       <div className={`forecast-result-grid${r.forecast ? "" : " without-forecast"}`}>
         {r.forecast && <ForecastOverview snapshot={snapshot} compact />}
         <section className="route-summary" aria-label="Варианты доставки">
@@ -1024,37 +1023,16 @@ function NetworkResults({
             </button>)}
           </div>
           {!mapRoutes.length && <p className="notice">По заданным условиям вариантов не найдено. Попробуйте изменить условия перевозки.</p>}
-          <a className="route-table-link" href="#comparison" onClick={(event) => {
-            event.preventDefault();
-            document.getElementById("comparison")?.scrollIntoView({ behavior: "smooth", block: "start" });
-          }}>Сравнить все показатели ↓</a>
+
         </section>
       </div>
-      <Conditions snapshot={snapshot} />
       {mapRoutes.length > 0 && (
         <RouteMap candidates={mapRoutes} recommendation={r.recommendation}
           opened={opened} onOpen={openFromMap} />
       )}
-      <section className="route-comparison" aria-labelledby="comparison">
-      <h2 id="comparison" className="comparison-title">
-        Подробное сравнение вариантов
-      </h2>
-      {alternative && alternativeCandidate && (
-        <div className="notice">
-          <b>Запасной вариант · {candidateName(alternativeCandidate)}</b>
-          <p>
-            {alternative.difference_rub ? `${money(alternative.difference_rub)} дороже` : "Та же цена"} ·{" "}
-            {alternative.difference_hours
-              ? `${hours(Math.abs(alternative.difference_hours))} ${alternative.difference_hours < 0 ? "быстрее" : "дольше"}`
-              : "Тот же срок"}
-            {alternative.ranges_overlap && " · Диапазоны пересекаются"}
-          </p>
-        </div>
-      )}
-      <RoadMarketEstimate result={r} anchor="market-road" />
-      <LandMarketOptions result={r} />
-      <AirMarketOptions result={r} />
-      {r.published_reference && <PublishedCoverage result={r} />}
+      {opened === "market-road" && <RoadMarketEstimate result={r} anchor="market-road" />}
+      {opened?.startsWith("market-land-") && <LandMarketOptions result={r} />}
+      {opened?.startsWith("market-air-") && <AirMarketOptions result={r} />}
       {r.published_coverage ? <PublishedCoverage result={r} /> : r.candidates.length === 0 ? (mapRoutes.length ? null :
         <section className="empty-state perforated">
           <h2>{r.air_market?.weight_limits?.some(Boolean) ? "Для этой партии нужна котировка" :
@@ -1114,7 +1092,7 @@ function NetworkResults({
           <div ref={frame} className="comparison-frame">
             <div ref={scroll} className="comparison-scroll">
               <table
-                className="comparison-table"
+                id="comparison" className="comparison-table"
                 style={{ minWidth: `${190 + candidates.length * 260}px` }}
               >
                 <caption className="sr-only">
@@ -1282,7 +1260,6 @@ function NetworkResults({
         Цены и ресурсы могут включать явно указанные сценарные допущения. Расчёт
         не является предложением перевозчика или бронированием.
       </p>
-      </section>
     </div>
   );
 }

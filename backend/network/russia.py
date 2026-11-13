@@ -162,7 +162,7 @@ class RussiaNetwork:
                      'Связность пассажирских поездок не подтверждает грузовое сообщение.',
                      'Нет новых морских/речных соединений по одной лишь близости портов.']}}
         self.cargo_types = {
-            'flour':{'name':'Мука','aliases':['пшеничная мука'],'phase':'solid','hazardous':False,'handling_profile':'dry_food','packagings':['bags'],'evidence':ev()},
+            'flour':{'name':'Мука','aliases':['пшеничная мука'],'phase':'solid','hazardous':False,'handling_profile':'dry_food','packagings':['bags','boxes'],'evidence':ev()},
             'dry_general':{'name':'Сухой неопасный груз','aliases':[],'phase':'solid','hazardous':False,'handling_profile':'dry_general','packagings':['boxes','bags'],'evidence':ev()},
             'crude_oil':{'name':'Нефть','aliases':['сырая нефть','товарная нефть'],'phase':'liquid','hazardous':True,'handling_profile':'crude_oil','packagings':['bulk_liquid'],'evidence':ev()},
         }
