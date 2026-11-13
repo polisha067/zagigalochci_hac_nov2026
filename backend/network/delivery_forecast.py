@@ -12,10 +12,10 @@ from pydantic import BaseModel, Field, model_validator
 
 from backend.calculation_models import Hours, OnceSchedule, Schedule
 from backend.network.air_tariff import YAKUTSK
-from backend.network.air_market import air_options
+from backend.network.air_market import air_options, air_rates
 from backend.network.connection_pilot import ConnectionConditions, connection_pilot
 from backend.network.forecast_indices import load_indices
-from backend.network.land_market import land_options
+from backend.network.land_market import calibration, dry_cargo, land_options, price_leg, rail_services
 from backend.network.cargo import named_temperature_cargo
 from backend.network.market_assumptions import road_budget
 from backend.network.provider_tariffs import AIR_SOURCE, FORECAST_BASE_SOURCES
@@ -410,6 +410,48 @@ def _normalized_request(request, network, settlements):
     return payload
 
 
+def _vladivostok_three_mode(network, result, request, indices):
+    if (request.data_policy != "allow_assumptions" or request.stops or result["clarifications"]
+            or result["shipments"] != 1 or request.max_legs < 3 or request.max_delivery_hours is not None
+            or not {"air", "road", "rail"}.issubset(request.allowed_modes)
+            or dry_cargo(network, request) is None):
+        return None
+    origin, destination = result["settlements"]
+    if (origin, destination) != (network.resolve("Москва"), network.resolve("Владивосток")):
+        return None
+    ekb, novo = map(network.resolve, ("Екатеринбург", "Новосибирск"))
+    if not ekb or not novo:
+        return None
+    air = min((row for row in air_rates(network, request, indices).get((origin, ekb), ()) if not row["via"]),
+              key=lambda row: row["forecast_rub"], default=None)
+    if air is None:
+        return None
+    snapshot = calibration()
+    road = network.edges.get(f"observation:road:{ekb}:{novo}", {})
+    trucks = price_leg(network, (ekb, novo), "road", 20, request, indices, snapshot,
+                       road.get("distance_km"), "observation", None)
+    rail = network.edges.get(f"observation:rail:{novo}:{destination}", {})
+    service = rail_services(network).get((novo, destination))
+    trains = [leg for size in (20, 40) for leg in
+              price_leg(network, (novo, destination), "rail", size, request, indices, snapshot,
+                        rail.get("distance_km"), "observation", service, linehaul_only=True)]
+    if not trucks or not trains:
+        return None
+    flight = {key: air[key] for key in ("origin", "destination", "origin_id", "destination_id",
+                                       "base_year", "forecast_rub", "vat")}
+    flight.update(mode="air", equipment="Авиагруз по платному весу", units=air["shipment_count"],
+                  unit_tonnes=None, unit_m3=air["volume_m3_per_shipment"],
+                  base_unit_rub=air["base_rub"] / air["shipment_count"],
+                  kind="model" if air["shipment_count"] > 1 else "published_base",
+                  sources=[air["source"]], distance_km=None, distance_source=None, confidence=None)
+    parts = [flight, trucks[0], min(trains, key=lambda leg: leg["forecast_rub"])]
+    taxes = {leg["vat"] for leg in parts}
+    return {"legs": parts, "transfer_count": 2, "vat": taxes.pop() if len(taxes) == 1 else "mixed",
+            "movement_rub": float(sum(Decimal(str(leg["forecast_rub"])) for leg in parts)),
+            "scenario_note": "Сумма трёх транспортных плеч. Обработку в аэропорту, подачу на станцию, "
+                             "стыковки и наличие мест нужно подтвердить отдельно."}
+
+
 def calculate_forecast(request, network=None, indices=None):
     indices = indices or load_indices()
     if request.target_year > indices.max_year:
@@ -470,6 +512,8 @@ def calculate_forecast(request, network=None, indices=None):
                           candidates=[], recommendation=None)
     result["land_market"] = land_options(network, result, request, indices)
     bulk_routes = bulk_market_routes(network, result, request, indices)
+    if three_mode := _vladivostok_three_mode(network, result, request, indices):
+        bulk_routes.insert(0, three_mode)
     if bulk_routes:
         market = result["land_market"] or {
             "version": "bulk-market-2026-11", "target_year": request.target_year, "routes": [], "legs": [],

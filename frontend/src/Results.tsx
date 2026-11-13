@@ -853,6 +853,18 @@ function NetworkResults({
       (filter === "multimodal" && c.multimodal) ||
       c.modes.includes(filter as keyof typeof modeNames),
   );
+  const threeMode = mapRoutes.find((route) => route.id.startsWith("market-land-") &&
+    route.modes.join(",") === "air,road,rail" && route.estimatePrice != null);
+  const showThreeMode = threeMode && (filter === "all" || filter === "multimodal" ||
+    threeMode.modes.includes(filter as keyof typeof modeNames));
+  const threeModeLegs = threeMode
+    ? r.land_market?.routes[Number(threeMode.id.slice("market-land-".length))]?.legs
+    : undefined;
+  const threeModePrice = threeMode?.estimatePrice ?? null;
+  const threeModeBase = threeModeLegs?.length && threeModeLegs.every((leg) => leg.base_year === threeModeLegs[0].base_year)
+    ? `${money(threeModeLegs.reduce((sum, leg) => sum + leg.base_unit_rub * leg.units, 0))} · ${threeModeLegs[0].base_year}`
+    : "По плечам";
+  const tonnes = totalVolume(r);
   const selected = candidates.find((c) => c.id === opened);
   const base = r.candidates
     .filter((c) => completePrice(c) && c.modes.every((m) => m === "road"))
@@ -1034,9 +1046,6 @@ function NetworkResults({
         <RouteMap candidates={mapRoutes} recommendation={r.recommendation}
           opened={opened} onOpen={openFromMap} />
       )}
-      {opened === "market-road" && <RoadMarketEstimate result={r} anchor="market-road" />}
-      {opened?.startsWith("market-land-") && <LandMarketOptions result={r} />}
-      {opened?.startsWith("market-air-") && <AirMarketOptions result={r} />}
       {r.published_coverage ? <PublishedCoverage result={r} /> : r.candidates.length === 0 ? (mapRoutes.length ? null :
         <section className="empty-state perforated">
           <h2>{r.air_market?.weight_limits?.some(Boolean) ? "Для этой партии нужна котировка" :
@@ -1081,7 +1090,7 @@ function NetworkResults({
             ))}
           </div>
           <p className="table-note">
-            Показано {candidates.length} из {r.candidates.length}. Смешанный
+            Показано {candidates.length + Number(Boolean(showThreeMode))} из {ranked.length + Number(Boolean(threeMode))}. Смешанный
             маршрут может входить в несколько фильтров.
           </p>
           {candidates.some((c) => !completePrice(c) && c.forecast_price?.air_median_rub != null) && (
@@ -1097,7 +1106,7 @@ function NetworkResults({
             <div ref={scroll} className="comparison-scroll">
               <table
                 id="comparison" className="comparison-table"
-                style={{ minWidth: `${190 + candidates.length * 260}px` }}
+                style={{ minWidth: `${190 + (candidates.length + Number(Boolean(showThreeMode))) * 260}px` }}
               >
                 <caption className="sr-only">
                   Сравнение найденных вариантов перевозки
@@ -1107,6 +1116,7 @@ function NetworkResults({
                   {candidates.map((c) => (
                     <col key={c.id} />
                   ))}
+                  {showThreeMode && <col />}
                 </colgroup>
                 <thead>
                   <tr>
@@ -1135,6 +1145,10 @@ function NetworkResults({
                         <b>{candidateName(c)}</b>
                       </th>
                     ))}
+                    {showThreeMode && <th scope="col" className="scheme-head">
+                      <div><span className="scheme-badge">Оценка транспортных плеч</span></div>
+                      <b>{candidateName(threeMode)}</b>
+                    </th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -1151,6 +1165,16 @@ function NetworkResults({
                           {row.value(c)}
                         </td>
                       ))}
+                      {showThreeMode && <td>{
+                        row.label.startsWith("Полная оценка") || row.label === "Стоимость за период"
+                          ? <><strong>{money(threeModePrice)}</strong><p className="table-note">Сумма трёх плеч</p></>
+                          : row.label === "Базовая стоимость" ? threeModeBase
+                          : row.label === "За тонну" && threeModePrice != null && tonnes > 0 ? money(threeModePrice / tonnes)
+                          : row.label === "Макс. срок доставки" ? "По согласованию"
+                          : row.label === "Этапов маршрута" ? threeModeLegs?.length
+                          : row.label === "Группа консолидации" ? "По плечам"
+                          : "—"
+                      }</td>}
                     </tr>
                   ))}
                 </tbody>
@@ -1189,6 +1213,14 @@ function NetworkResults({
                         )}
                       </td>
                     ))}
+                    {showThreeMode && <td ref={opened === threeMode.id ? selectedCell : undefined}
+                      className={opened === threeMode.id ? "expanded-scheme" : undefined}>
+                      <button type="button" className="text-button" aria-expanded={opened === threeMode.id}
+                        aria-controls={opened === threeMode.id ? "scheme-report" : undefined}
+                        onClick={() => opened === threeMode.id ? setOpened(null) : openFromMap(threeMode.id)}>
+                        {opened === threeMode.id ? "Свернуть" : "Подробнее"}
+                      </button>
+                    </td>}
                   </tr>
                 </tfoot>
               </table>
@@ -1203,6 +1235,68 @@ function NetworkResults({
                 base={base}
               />
             )}
+            {showThreeMode && opened === threeMode.id && (
+              <section id="scheme-report" tabIndex={-1} className="scheme-report ticket-shadow"
+                aria-label="Подробный расчёт: Авиа → Авто → Ж/д"
+                style={{ "--bridge-x": `${bridge.x}px`, "--bridge-display": bridge.visible ? "block" : "none" } as CSSProperties}>
+                <svg className="report-bridge" viewBox="0 0 72 24" aria-hidden="true">
+                  <path d="M0 24C25 24 23 0 36 0S47 24 72 24Z" />
+                </svg>
+                <div className="report-card perforated">
+                  <div className="report-title">
+                    <h2>Подробный расчёт</h2>
+                    <h3>{candidateName(threeMode)}</h3>
+                  </div>
+                  <div className="report-total">
+                    <div><small>Базовая стоимость</small><strong>{threeModeBase}</strong></div>
+                    <div><small>Прогноз по трём плечам</small><strong>{money(threeModePrice)}</strong></div>
+                    <div><small>За тонну</small><strong>{threeModePrice != null && tonnes > 0 ? `${money(threeModePrice / tonnes)}/т` : "—"}</strong></div>
+                  </div>
+                  <div className="report-metrics">
+                    <p>Срок доставки <b>по согласованию</b></p>
+                    <p>Отправок в плане: <b>{r.shipments}</b> · Масса: <b>{num(tonnes)} т</b></p>
+                  </div>
+                  <section className="report-section">
+                    <h3>Из чего складывается стоимость</h3>
+                    <div className="cost-components">
+                      {threeModeLegs?.map((leg, i) => <div key={i}>
+                        <span>{modeNames[leg.mode]}</span><b>{money(leg.forecast_rub)}</b>
+                      </div>)}
+                      <div className="cost-total"><span>Сумма учтённых плеч</span><b>{money(threeModePrice)}</b></div>
+                    </div>
+                    <p className="formula">{threeModeLegs?.map((leg) => money(leg.forecast_rub)).join(" + ")} = {money(threeModePrice)}</p>
+                    <details><summary>Тарифы и источники</summary>
+                      <LandMarketOptions result={r} routeIndex={Number(threeMode.id.slice("market-land-".length))} inReport />
+                    </details>
+                  </section>
+                  <section className="report-section">
+                    <h3>Этапы перевозки</h3>
+                    <ol className="route-timeline">
+                      {threeModeLegs?.flatMap((leg, i) => [
+                        ...(i ? [<li key={`transfer-${i}`}>
+                          <div className="timeline-label"><b>Перегрузка</b></div>
+                          <p>{leg.origin} · стоимость и время по согласованию</p>
+                        </li>] : []),
+                        <li key={`leg-${i}`}>
+                          <div className="timeline-label"><b>{modeNames[leg.mode]}</b></div>
+                          <p>{leg.origin} → {leg.destination}</p>
+                          <p className="table-note">{leg.equipment} × {leg.units} · {money(leg.forecast_rub)}</p>
+                        </li>,
+                      ])}
+                    </ol>
+                  </section>
+                  <section className="report-section">
+                    <table className="detail-table">
+                      <caption>Доставка каждой позиции</caption>
+                      <thead><tr><th>Груз</th><th>Масса, т</th><th>Срок</th></tr></thead>
+                      <tbody>{r.request.cargoes.map((item) => <tr key={item.id}>
+                        <th>{item.name}</th><td>{num(item.weight_tonnes)}</td><td>По согласованию</td>
+                      </tr>)}</tbody>
+                    </table>
+                  </section>
+                </div>
+              </section>
+            )}
           </div>
         </>
       )}
@@ -1213,6 +1307,9 @@ function NetworkResults({
           удорожание.
         </p>
       )}
+      {opened === "market-road" && <RoadMarketEstimate result={r} anchor="market-road" />}
+      {opened?.startsWith("market-land-") && !(showThreeMode && opened === threeMode.id) && <LandMarketOptions result={r} routeIndex={Number(opened.slice("market-land-".length))} />}
+      {opened?.startsWith("market-air-") && <AirMarketOptions result={r} routeIndex={Number(opened.slice("market-air-".length))} />}
       <details className="method-notes">
         <summary>Допущения и ограничения расчёта</summary>
         <div className="method-body">

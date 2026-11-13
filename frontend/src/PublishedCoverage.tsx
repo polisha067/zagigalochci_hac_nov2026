@@ -37,7 +37,7 @@ function AirLeg({ leg }: { leg: AirMarketLeg }) {
   </p>;
 }
 
-export function AirMarketOptions({ result, compact = false }: { result: Calculation; compact?: boolean }) {
+export function AirMarketOptions({ result, compact = false, routeIndex }: { result: Calculation; compact?: boolean; routeIndex?: number }) {
   const market = result.air_market;
   if (!market) return null;
   return <section className="notice">
@@ -45,7 +45,7 @@ export function AirMarketOptions({ result, compact = false }: { result: Calculat
     {market.routes.length ? <>
       <p>Цена между аэропортами по опубликованным ставкам. Подвоз, довоз, дополнительные сборы,
         доступность мест и габариты упаковки уточняет перевозчик.</p>
-      {market.routes.slice(0, compact ? 2 : undefined).map((option, i) => <div className="source-item" id={compact ? undefined : `market-air-${i}`} key={i}>
+      {market.routes.slice(0, compact ? 2 : undefined).map((option, i) => (routeIndex == null || routeIndex === i) && <div className="source-item" id={compact ? undefined : `market-air-${i}`} key={i}>
         <b>{option.transfer_count ? "Сумма отдельных авиаплеч" : "Оценка по тарифу перевозчика"}
           {" · "}{money(option.forecast_rub)} ({marketVat[option.vat]})</b>
         {option.legs.map((leg, j) => <AirLeg key={j} leg={leg} />)}
@@ -86,17 +86,20 @@ function MarketLeg({ leg }: { leg: LandMarketLeg }) {
   </p>;
 }
 
-export function LandMarketOptions({ result, compact = false }: { result: Calculation; compact?: boolean }) {
+export function LandMarketOptions({ result, compact = false, routeIndex, inReport = false }: {
+  result: Calculation; compact?: boolean; routeIndex?: number; inReport?: boolean;
+}) {
   const market = result.land_market;
   if (!market) return null;
   if (!market.unpriced_rail?.length && result.road_market_estimate && market.routes.length === 1 && market.routes[0].legs.length === 1 &&
       market.routes[0].legs[0].mode === "road" &&
       market.routes[0].legs[0].forecast_rub === result.road_market_estimate.forecast_road_rub) return null;
-  return <section className="notice">
-    <h2>Оценка транспортных плеч · {market.target_year}</h2>
+  return <section className={inReport ? undefined : "notice"}>
+    {inReport ? <h3>Стоимость по этапам · {market.target_year}</h3>
+      : <h2>Оценка транспортных плеч · {market.target_year}</h2>}
     <p>Подвоз, довоз и терминальные операции учитываются только в пределах состава исходной ставки.
       Доступность оборудования и сквозной рейс уточняются у перевозчика.</p>
-    {market.routes.length ? market.routes.slice(0, compact ? (market.routes.some(row => row.scenario_note) ? 4 : 3) : undefined).map((option, i) =>
+    {market.routes.length ? market.routes.slice(0, compact ? (market.routes.some(row => row.scenario_note) ? 4 : 3) : undefined).map((option, i) => (routeIndex == null || routeIndex === i) &&
       <div className="source-item" id={compact ? undefined : `market-land-${i}`} key={i}>
         <b>{market.version.startsWith("reefer-market") ? `Рефрижераторы × ${option.legs[0].units}`
           : option.legs.map(leg => modeNames[leg.mode]).join(" → ")}
