@@ -751,7 +751,7 @@ function NetworkResults({
   const [opened, setOpened] = useState<string | null>(initialCandidate ?? null);
   const [reportNavigation, setReportNavigation] = useState(0);
   function openFromMap(id: string) {
-    if (id.startsWith("market-")) {
+    if (id.startsWith("market-") && id !== threeMode?.id) {
       setOpened(id);
       requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView({ block: "center" }));
       return;
@@ -967,6 +967,32 @@ function NetworkResults({
       value: (c: Candidate) => `${num(c.group_size)} отправок`,
     },
   ];
+  const threeModeValue = (label: string) => (
+    label.startsWith("Полная оценка") || label === "Стоимость за период"
+    ? <><strong>{money(threeModePrice)}</strong><p className="table-note">Сумма трёх плеч</p></>
+    : label === "Базовая стоимость" ? threeModeBase
+    : label === "За тонну" && threeModePrice != null && tonnes > 0 ? money(threeModePrice / tonnes)
+    : label === "Макс. срок доставки" ? "По согласованию"
+    : label === "Этапов маршрута" ? threeModeLegs?.length
+    : label === "Группа консолидации" ? "По плечам"
+    : "—"
+  );
+  const mobileOptions = [
+    ...candidates.map((c) => ({
+      id: c.id,
+      name: candidateName(c),
+      status: c.id === r.recommendation ? "Рекомендуем" : candidateStatus(c, r.request.max_delivery_hours),
+      number: ranked.indexOf(c) + 1,
+      value: (row: typeof rows[number]) => row.value(c),
+    })),
+    ...(showThreeMode ? [{
+      id: threeMode.id,
+      name: candidateName(threeMode),
+      status: "Оценка транспортных плеч",
+      number: ranked.length + 1,
+      value: (row: typeof rows[number]) => threeModeValue(row.label),
+    }] : []),
+  ];
   return (
     <div className="results network-results">
       {saved && (
@@ -1099,13 +1125,37 @@ function NetworkResults({
               Рекомендация учитывает варианты с полной оценкой.
             </p>
           )}
-          <p className="mobile-scroll-hint">
+          <p className="mobile-scroll-hint comparison-desktop-hint">
             Таблицу можно прокручивать вбок →
           </p>
-          <div ref={frame} className="comparison-frame">
+          <div id="comparison" ref={frame} className="comparison-frame network-comparison">
+            <div className="comparison-mobile">
+              {mobileOptions.map((option) => (
+                <article key={option.id} className={option.id === r.recommendation ? "recommended" : undefined}>
+                  <header>
+                    <small>Вариант {option.number} · {option.status}</small>
+                    <h3>{option.name}</h3>
+                  </header>
+                  <dl>
+                    {rows.map((row) => (
+                      <div key={row.label}>
+                        <dt>{row.label}</dt>
+                        <dd>{option.value(row)}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                  <button type="button" className="text-button"
+                    aria-expanded={opened === option.id}
+                    aria-controls={opened === option.id ? "scheme-report" : undefined}
+                    onClick={() => opened === option.id ? setOpened(null) : openFromMap(option.id)}>
+                    {opened === option.id ? "Свернуть" : "Подробнее"}
+                  </button>
+                </article>
+              ))}
+            </div>
             <div ref={scroll} className="comparison-scroll">
               <table
-                id="comparison" className="comparison-table"
+                className="comparison-table"
                 style={{ minWidth: `${190 + (candidates.length + Number(Boolean(showThreeMode))) * 260}px` }}
               >
                 <caption className="sr-only">
@@ -1166,14 +1216,7 @@ function NetworkResults({
                         </td>
                       ))}
                       {showThreeMode && <td>{
-                        row.label.startsWith("Полная оценка") || row.label === "Стоимость за период"
-                          ? <><strong>{money(threeModePrice)}</strong><p className="table-note">Сумма трёх плеч</p></>
-                          : row.label === "Базовая стоимость" ? threeModeBase
-                          : row.label === "За тонну" && threeModePrice != null && tonnes > 0 ? money(threeModePrice / tonnes)
-                          : row.label === "Макс. срок доставки" ? "По согласованию"
-                          : row.label === "Этапов маршрута" ? threeModeLegs?.length
-                          : row.label === "Группа консолидации" ? "По плечам"
-                          : "—"
+                        threeModeValue(row.label)
                       }</td>}
                     </tr>
                   ))}
