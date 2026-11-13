@@ -1,8 +1,11 @@
+import { transportMarkup } from "./mapTransportIcons";
 import { useEffect, useId, useState } from "react";
 import { StreetRouteMap } from "./StreetRouteMap";
+import { MapVehicle } from "./MapVehicle";
+import { sampleMapRoute, segmentPath } from "./mapRouteGeometry";
 import { request } from "./api";
 import countriesUrl from "./assets/natural-earth-countries.json?url";
-import { airForecastFlightHours, candidateName, forecastMoney, hours, money } from "./model";
+import { airForecastFlightHours, candidateName, hours, money } from "./model";
 import type { Candidate, Settlement, SettlementPage } from "./networkApi";
 
 type Hub = Candidate["route_hubs"][number];
@@ -75,24 +78,6 @@ function plotHubs(hubs: Hub[], settlements: Settlement[], endpoints: Hub[], coun
   };
 }
 
-function routePath(points: Point[], offset: number) {
-  return points.slice(1).reduce((path, end, index) => {
-    const start = points[index];
-    const dx = end.x - start.x, dy = end.y - start.y;
-    const length = Math.hypot(dx, dy);
-    if (length < 1) {
-      const radius = 20 + Math.abs(offset) / 2;
-      const side = offset < 0 ? -1 : 1;
-      return path + ` C ${start.x + radius} ${start.y + radius * side}, ${start.x - radius} ${start.y + radius * side}, ${end.x} ${end.y}`;
-    }
-    // Keep parallel options apart even when they use the same pair of cities.
-    const direction = dx < 0 || (dx === 0 && dy < 0) ? -1 : 1;
-    const x = (start.x + end.x) / 2 - (dy / length) * offset * direction;
-    const y = (start.y + end.y) / 2 + (dx / length) * offset * direction;
-    return path + ` Q ${x} ${y}, ${end.x} ${end.y}`;
-  }, `M ${points[0].x} ${points[0].y}`);
-}
-
 export function RouteMap({ candidates, recommendation, opened, onOpen }: {
   candidates: Candidate[];
   recommendation: string | null;
@@ -100,6 +85,18 @@ export function RouteMap({ candidates, recommendation, opened, onOpen }: {
   onOpen: (id: string) => void;
 }) {
   const gridId = useId();
+  const [selectedId, setSelectedId] = useState(opened ?? recommendation ?? candidates[0]?.id ?? null);
+  const [playing, setPlaying] = useState(true);
+  const [reducedMotion, setReducedMotion] = useState(false);
+  const [fitRequest, setFitRequest] = useState(0);
+  const [onlineReady, setOnlineReady] = useState(false);
+  useEffect(() => { if (opened) setSelectedId(opened); }, [opened]);
+  useEffect(() => {
+    const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setReducedMotion(preference.matches);
+    update(); preference.addEventListener("change", update);
+    return () => preference.removeEventListener("change", update);
+  }, []);
   const [settlements, setSettlements] = useState<Settlement[]>([]);
   const [countries, setCountries] = useState<Countries>([]);
   useEffect(() => {
@@ -141,13 +138,26 @@ export function RouteMap({ candidates, recommendation, opened, onOpen }: {
     index,
     points: (candidate.route_hubs || []).map((hub) => position.get(hubKey(hub))!),
   }));
+  const selected = candidates.find((candidate) => candidate.id === selectedId) ?? candidates.find((candidate) => candidate.id === recommendation) ?? candidates[0];
+  const selectedRoute = routes.find((route) => route.candidate.id === selected?.id);
+  const moving = playing && !reducedMotion && !selected?.modes.every((mode) => mode === "pipeline");
+  const selectedSegments = selectedRoute ? sampleMapRoute(selectedRoute.points,
+    selected.connections.map((leg) => leg.mode), (selectedRoute.index - (routes.length - 1) / 2) * 23) : [];
+
   const drawnRoutes = routes.filter((route) => route.points.length > 1)
-    .sort((a, b) => Number(a.candidate.id === recommendation) - Number(b.candidate.id === recommendation));
+    .sort((a, b) => Number(a.candidate.id === selected?.id) - Number(b.candidate.id === selected?.id));
 
   return (
     <section className="route-map" aria-label="Карта маршрутов">
-      <h2>Карта маршрутов</h2>
-      <p>{geographic ? "Линии схематично соединяют города." : "Схема связей между узлами."} Выберите маршрут, чтобы открыть подробный расчёт.</p>
+      <div className="route-map-heading">
+        <div><span className="forecast-eyebrow">География перевозки</span><h2>Ваш груз в пути</h2></div>
+        <div className="route-map-controls">
+          <button type="button" disabled={reducedMotion || selected?.modes.every((mode) => mode === "pipeline")} aria-pressed={moving}
+            onClick={() => setPlaying((value) => !value)}>{moving ? "Ⅱ Пауза" : "▶ Движение"}</button>
+          <button type="button" disabled={!onlineReady} onClick={() => setFitRequest((value) => value + 1)}>Весь маршрут ⤢</button>
+        </div>
+      </div>
+      <p className="route-map-intro">Выберите вариант на карте или в списке. Движение показывает последовательность участков маршрута.</p>
       <div className="route-map-layout">
       <div className="route-map-canvas">
         <svg viewBox={`0 0 ${width} ${height}`} aria-label="Схема маршрутов перевозки">
@@ -162,15 +172,22 @@ export function RouteMap({ candidates, recommendation, opened, onOpen }: {
               </g>
             : <rect width={width} height={height} fill={`url(#${gridId})`} />}
           {drawnRoutes.map(({ candidate, index, points: routePoints }) => {
-            const path = routePath(routePoints, (index - (routes.length - 1) / 2) * 26);
+            const segments = sampleMapRoute(routePoints, candidate.connections.map((leg) => leg.mode), (index - (routes.length - 1) / 2) * 23);
+            const path = segmentPath(segments);
             return <g key={candidate.id}
-              className={`route-map-line${candidate.id === recommendation ? " recommended" : ""}${candidate.id === opened ? " active" : ""}`}
-              onClick={() => onOpen(candidate.id)}>
+              className={`route-map-line${candidate.id === recommendation ? " recommended" : ""}${candidate.id === selected?.id ? " active" : ""}`}
+              role="button" tabIndex={0} aria-label={`Выбрать вариант ${index + 1}: ${candidateName(candidate)}`}
+              onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setSelectedId(candidate.id); } }}
+              onClick={() => setSelectedId(candidate.id)}>
               <title>Вариант {index + 1} · {candidateName(candidate)}</title>
-              <path className="route-map-hit" d={path} />
+              <path className="route-map-halo" d={path} />
+              {candidate.id === selected?.id && segments.filter((segment) => segment.mode === "rail").map((segment, leg) =>
+                <path key={leg} className="route-map-rail-ties" d={segmentPath([segment])} />)}
               <path className="route-map-stroke" d={path} />
+              <path className="route-map-hit" d={path} />
             </g>;
           })}
+          {selectedRoute && <MapVehicle key={selected!.id} segments={selectedSegments} playing={!!moving && !onlineReady} />}
           {points.map((point, index) => (
             <g className="route-map-point" key={hubKey(hubs[index])}>
               <circle cx={point.x} cy={point.y} r="6" />
@@ -179,29 +196,38 @@ export function RouteMap({ candidates, recommendation, opened, onOpen }: {
           ))}
         </svg>
         {geographic && <StreetRouteMap candidates={candidates} settlements={settlements}
-          recommendation={recommendation} opened={opened} onOpen={onOpen} />}
+          recommendation={recommendation} opened={selected?.id ?? null} onOpen={setSelectedId}
+          playing={!!moving} fitRequest={fitRequest} onReadyChange={setOnlineReady} />}
       </div>
       <div className="route-map-options" aria-label="Варианты на карте">
+        <div className="route-options-heading"><b>Маршруты</b><span>{routes.length} вариантов</span></div>
         {routes.map(({ candidate, index }) => (
-          <button type="button" key={candidate.id} onClick={() => onOpen(candidate.id)}
-            aria-pressed={opened === candidate.id}
+          <button type="button" key={candidate.id} onClick={() => setSelectedId(candidate.id)}
+            aria-pressed={selected?.id === candidate.id}
             className={candidate.id === recommendation ? "recommended" : undefined}>
-            <b>{index + 1} · {candidateName(candidate)}</b>
+            <span className="route-option-title"><span className="route-mode-icon" aria-hidden="true" dangerouslySetInnerHTML={{ __html: transportMarkup(candidate.connections[0]?.mode ?? candidate.modes[0] ?? "road", 36) }} /><b>{index + 1} · {candidateName(candidate)}</b></span>
             {candidate.id === recommendation && <small>Рекомендуем</small>}
             <span>{candidate.total_cost_rub == null && candidate.forecast_price?.air_median_rub != null
               ? <>{candidate.multimodal && candidate.known_cost_subtotal_rub != null
                   ? `${money(candidate.known_cost_subtotal_rub)} · учтённые этапы`
                   : `${money(candidate.forecast_price.air_median_rub)} · перелёт и авианакладная`}
                   {airForecastFlightHours(candidate) != null && <> · Перелёт около {hours(airForecastFlightHours(candidate))}</>}</>
-              : <>{candidate.forecast_price
-              ? forecastMoney(candidate.complete ? candidate.total_cost_rub : null, candidate.forecast_price.long_term)
-              : money(candidate.complete ? candidate.total_cost_rub : null)} · {hours(candidate.max_delivery_hours)}</>}</span>
+              : <>{money(candidate.complete ? candidate.total_cost_rub : null)} · {hours(candidate.max_delivery_hours)}</>}</span>
           </button>
         ))}
       </div>
       </div>
+      {selected && <div className="route-map-selection" aria-live="polite">
+        <div><span className="forecast-eyebrow">Выбранный маршрут{selected.id === recommendation ? " · Рекомендуем" : ""}</span>
+          <strong>{candidateName(selected)}</strong>
+          <span>{money(selected.complete ? selected.total_cost_rub : null)} · {hours(selected.max_delivery_hours)}</span>
+        </div>
+        <button type="button" className="primary" onClick={() => onOpen(selected.id)}>Подробный расчёт ↗</button>
+      </div>}
+      <div className="route-map-caption"><span><i /> Выбранный маршрут</span><span><i /> Другие варианты</span>
+        <span>{geographic ? "Схематичные линии между транспортными узлами" : "Схема связей между узлами"} · без точного дорожного трека</span></div>
       {geographic && <small className="route-map-credit route-map-credit-online">
-        © <a href="https://openmaptiles.org/">OpenMapTiles</a> · Данные ©{" "}
+        <a href="https://openfreemap.org/">OpenFreeMap</a> · © <a href="https://openmaptiles.org/">OpenMapTiles</a> · Данные ©{" "}
         <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>
       </small>}
       {land.length > 0 && <small className="route-map-credit route-map-credit-fallback">Подложка Natural Earth</small>}

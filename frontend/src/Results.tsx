@@ -710,7 +710,6 @@ function NetworkResults({
 }) {
   const r = snapshot.result;
   const [filter, setFilter] = useState("all");
-  const [mapOpen, setMapOpen] = useState(false);
   const [opened, setOpened] = useState<string | null>(initialCandidate ?? null);
   const [reportNavigation, setReportNavigation] = useState(0);
   function openFromMap(id: string) {
@@ -937,11 +936,8 @@ function NetworkResults({
       </div>
       <Conditions snapshot={snapshot} />
       {r.candidates.length > 0 && (
-        <details className="result-map-disclosure" onToggle={(event) => setMapOpen(event.currentTarget.open)}>
-          <summary>Карта маршрутов <span>Посмотреть все варианты на карте</span></summary>
-          {mapOpen && <RouteMap candidates={ranked} recommendation={r.recommendation}
-            opened={opened} onOpen={openFromMap} />}
-        </details>
+        <RouteMap candidates={ranked} recommendation={r.recommendation}
+          opened={opened} onOpen={openFromMap} />
       )}
       <h2 id="comparison" className="comparison-title">
         Подробное сравнение вариантов
