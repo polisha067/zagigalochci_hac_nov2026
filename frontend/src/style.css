@@ -2044,7 +2044,7 @@ header.auth-header {
 /* Область черновика сообщения ассистенту с кнопкой отправки. */
 .assistant-compose {
   display: grid;
-  grid-template-columns: 1fr 45px;
+  grid-template-columns: minmax(0, 1fr) 44px;
   gap: 8px;
   border: 1px solid #c2d3e8;
   border-radius: 16px;
@@ -2076,9 +2076,15 @@ header.auth-header {
   border: 0;
   color: white;
   border-radius: 10px;
-  font-size: 27px;
-  align-self: end;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  min-width: 0;
   height: 44px;
+  padding: 0;
+  font-size: 27px;
+  line-height: 1;
+  align-self: center;
 }
 /* Адаптация интерфейса для экранов шириной до 1150 пикселей. */
 @media (max-width: 1150px) {
@@ -4616,7 +4622,7 @@ header.auth-header {
 .forecast-intake .assistant-embedded .assistant-data a, .forecast-intake .assistant-embedded .assistant-scenario a { color: #0054d9; }
 .forecast-intake .assistant-embedded .assistant-compose { border: 0; background: #fff; padding: 8px 10px 8px 16px; border-radius: 18px; align-items: center; margin-top: auto; }
 .forecast-intake .assistant-embedded .assistant-compose textarea { background: #fff; color: #263952; border: 0; border-radius: 0; padding: 8px 4px; font: 14px/1.5 "Bounded", Arial, sans-serif; }
-.forecast-intake .assistant-embedded .assistant-compose button { background: #0065f5; width: 42px; height: 42px; border-radius: 50%; color: #fff; margin: 0; }
+.forecast-intake .assistant-embedded .assistant-compose button { background: #0065f5; border-radius: 50%; color: #fff; margin: 0; }
 .assistant-input-note { color: #e2efff; font-size: 11px; text-align: center; margin: 10px 0 0; }
 body:has(.forecast-intake) .select-menu, body:has(.forecast-intake) .settlement-menu, body:has(.forecast-intake) .suggest-menu { font-family: "Bounded", Arial, sans-serif; }
 @media (max-width: 1150px) {
