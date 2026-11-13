@@ -2055,16 +2055,14 @@ header.auth-header {
   font: inherit;
   font-size: 14px;
   resize: none;
-  scrollbar-width: none;
-  height: 65px;
+  overflow-y: auto;
+  min-height: 40px;
+  max-height: min(220px, 34dvh);
   min-width: 0;
   border: 0;
   padding: 3px;
   background: transparent;
   color: var(--ink);
-}
-.assistant-compose textarea::-webkit-scrollbar {
-  display: none;
 }
 .assistant-compose textarea:focus {
   outline: none;
@@ -4579,6 +4577,7 @@ header.auth-header {
 .forecast-intake .network-coupon .action { display: flex; flex-direction: column; width: 100%; margin: 0; }
 .forecast-intake .network-coupon .action .primary { order: -1; font-family: "Bounded", Arial, sans-serif; font-size: 19px; font-weight: 800; padding: 11px 20px; min-height: 48px; background: #0064f8; border-radius: 12px; margin: 0 0 7px; box-shadow: 0 3px 6px #0054db1a; }
 .forecast-intake .network-coupon .action p { font-size: 10px; line-height: 1.5; margin: 1px 0; text-align: center; color: #6b7c93; }
+.intake-assistant-slot { position: relative; }
 .forecast-intake .assistant-panel.assistant-embedded { background: #0068fa; border: 1px solid #4b9aff; border-radius: 29px; min-height: 650px; height: auto; max-height: none; padding: 24px 24px 16px; color: #fff; box-shadow: 0 7px 22px #0054c52b; }
 .forecast-intake .assistant-embedded .assistant-heading { border-bottom: 1px solid #ffffff6b; padding-bottom: 15px; }
 .forecast-intake .assistant-embedded .assistant-heading h2 { display: flex; align-items: center; gap: 8px; font-family: "Bounded", Arial, sans-serif; color: #fff; font-size: 27px; }
@@ -4614,7 +4613,7 @@ header.auth-header {
 .forecast-intake .assistant-embedded .assistant-sources a, .forecast-intake .assistant-embedded .assistant-sources > summary { color: #d8eaff; }
 .forecast-intake .assistant-embedded .assistant-data a, .forecast-intake .assistant-embedded .assistant-scenario a { color: #0054d9; }
 .forecast-intake .assistant-embedded .assistant-compose { border: 0; background: #fff; padding: 8px 10px 8px 16px; border-radius: 18px; align-items: center; margin-top: auto; }
-.forecast-intake .assistant-embedded .assistant-compose textarea { background: #fff; color: #263952; border: 0; border-radius: 0; padding: 8px 4px; min-height: 40px; height: 42px; max-height: 100px; font: 14px/1.5 "Bounded", Arial, sans-serif; resize: vertical; }
+.forecast-intake .assistant-embedded .assistant-compose textarea { background: #fff; color: #263952; border: 0; border-radius: 0; padding: 8px 4px; font: 14px/1.5 "Bounded", Arial, sans-serif; }
 .forecast-intake .assistant-embedded .assistant-compose button { background: #0065f5; width: 42px; height: 42px; border-radius: 50%; color: #fff; margin: 0; }
 .assistant-input-note { color: #e2efff; font-size: 11px; text-align: center; margin: 10px 0 0; }
 body:has(.forecast-intake) .select-menu, body:has(.forecast-intake) .settlement-menu, body:has(.forecast-intake) .suggest-menu { font-family: "Bounded", Arial, sans-serif; }
@@ -4634,8 +4633,9 @@ body:has(.forecast-intake) .select-menu, body:has(.forecast-intake) .settlement-
   .page .app-header nav button { min-width: 0; padding-inline: 11px; font-size: 12px; }
   .intake-heading { align-items: flex-start; gap: 14px; flex-direction: column; }
   .forecast-workspace.forecast-intake { grid-template-columns: 1fr; }
-  .forecast-intake .assistant-panel.assistant-embedded { min-height: 530px; }
-  .forecast-intake .assistant-embedded .assistant-content { max-height: 460px; }
+  .forecast-intake .assistant-panel.assistant-embedded { min-height: 0; }
+  .forecast-intake .assistant-embedded .assistant-content { min-height: 0; max-height: 460px; }
+  .forecast-intake .assistant-embedded .assistant-compose textarea { max-height: 340px; }
   .page .forecast-main { padding: 24px 20px 40px; }
 }
 @media (max-width: 520px) {
@@ -4735,9 +4735,22 @@ body:has(.forecast-intake) .select-menu, body:has(.forecast-intake) .settlement-
 .forecast-intake .network-form .mode-choice label { position: relative; min-height: 47px; font-size: 14px; }
 .forecast-intake .network-form .mode-choice label:has(input:focus-visible) { outline: 3px solid #173d80; outline-offset: 3px; }
 .forecast-intake .assistant-embedded.assistant-empty .assistant-content { flex: 0 0 auto; min-height: 0; max-height: none; padding-bottom: 16px; }
-.forecast-intake .assistant-embedded.assistant-empty .assistant-compose { margin-top: 4px; }
+
 .forecast-intake .assistant-embedded.assistant-empty .assistant-example-block { margin-top: 20px; }
-.forecast-intake .assistant-embedded.assistant-empty .assistant-input-note { margin-bottom: auto; }
+@media (min-width: 851px) {
+  .intake-assistant-slot > .assistant-panel.assistant-embedded {
+    position: absolute;
+    inset: 0;
+  }
+  .forecast-intake .intake-assistant-slot > .assistant-panel.assistant-embedded {
+    height: 100%;
+    min-height: 0;
+  }
+  .forecast-intake .assistant-embedded .assistant-content {
+    max-height: none;
+    min-height: 0;
+  }
+}
 @media (max-width: 850px) {
   .page .forecast-main { padding: 22px 18px 36px; }
   .page .auth-layout { padding: 36px 22px; gap: 30px; }

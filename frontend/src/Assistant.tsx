@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type PointerEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent } from "react";
 import { createPortal } from "react-dom";
 import { ApiError, errorText, post, request } from "./api";
 import { assistantVolumeSelection, dashboardResult, type VolumeForecastSelection, type AssistantDialog, type AssistantReply, type AssistantSource, type DashboardCalculation, type DialogScenario } from "./assistantApi";
@@ -62,6 +62,27 @@ export function Assistant({ onResult, onVolumeResult, onSaveResult, hidden, embe
   const revision = useRef<number | null>(null);
   const loadingDialog = useRef<Promise<AssistantDialog> | null>(null);
   const retry = useRef<{ message: string; revision: number; turn_id: string } | null>(null);
+  useLayoutEffect(() => {
+    const field = input.current;
+    if (!open || hidden || !field) return;
+
+    function fitDraft() {
+      if (!field) return;
+      field.style.height = "auto";
+      field.style.height = `${field.scrollHeight}px`;
+    }
+
+    fitDraft();
+    let width = field.clientWidth;
+    const observer = new ResizeObserver(() => {
+      if (width === field.clientWidth) return;
+      width = field.clientWidth;
+      fitDraft();
+    });
+    observer.observe(field);
+    return () => observer.disconnect();
+  }, [message, open, hidden, embedded]);
+
   useEffect(() => () => active.current?.abort(), []);
   useEffect(() => {
     if (!open || hidden || embedded) return;
@@ -265,13 +286,6 @@ export function Assistant({ onResult, onVolumeResult, onSaveResult, hidden, embe
                 <div className="assistant-example-block">
                   <span>Например</span>
                   <button type="button" className="assistant-example" onClick={() => {
-                    setMessage("Нужно перевезти 10 тонн муки из Москвы в Красноярск через Екатеринбург в 2030 году, срок до 5 дней");
-                    input.current?.focus({ preventScroll: true });
-                  }}>Нужно перевезти 10 тонн муки из Москвы в Красноярск через Екатеринбург</button>
-                  <div className="assistant-example-tags"><span>2030 год</span><span>До 5 дней</span></div>
-                </div>
-                <div className="assistant-example-block">
-                  <button type="button" className="assistant-example" onClick={() => {
                     setMessage("Новый расчёт. Сколько стоит перевезти 100 тонн муки из Москвы во Владивосток в 2030 году? Отправка разовая, мука в коробках, объём 20 м³, партию можно разделить. Покажи варианты авто, ж/д и авиа.");
                     input.current?.focus({ preventScroll: true });
                   }}>Москва → Владивосток · 100 тонн муки</button>
@@ -312,6 +326,7 @@ export function Assistant({ onResult, onVolumeResult, onSaveResult, hidden, embe
             </label>
             <textarea
               id="assistant-message"
+              rows={1}
               ref={input}
               placeholder="Расскажите о перевозке…"
               value={message}

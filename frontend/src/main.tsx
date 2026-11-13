@@ -349,7 +349,7 @@ function Workspace({
                 onDraft={setDraft}
                 onResult={completed}
               />
-              <div ref={setAssistantSlot} />
+              <div className="intake-assistant-slot" ref={setAssistantSlot} />
             </div>
           </>
         ) : (
