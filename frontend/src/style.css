@@ -4520,12 +4520,6 @@ header.auth-header {
 .intake-heading h1 { font-family: "Bounded", Arial, sans-serif; font-size: clamp(34px, 3.2vw, 48px); color: #101821; font-weight: 800; line-height: 1.08; letter-spacing: normal; margin: 6px 0 4px; }
 .intake-heading .forecast-eyebrow { text-transform: uppercase; font-size: 12px; letter-spacing: .025em; color: #42526b; }
 .intake-heading p { font-size: 15px; margin: 6px 0 0; line-height: 1.5; color: #4a5a71; }
-.intake-progress { display: flex; align-items: center; padding: 0; margin: 0 30px 0 0; list-style: none; gap: 22px; font-size: 12px; color: #5c6b83; }
-.intake-progress li { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
-.intake-progress b { display: inline-flex; width: 31px; height: 31px; border-radius: 50%; align-items: center; justify-content: center; background: #ffffffa6; color: #52627a; font-weight: 800; }
-.intake-progress li[aria-current] { color: #152b4c; font-weight: 800; }
-.intake-progress li[aria-current] b { background: #0066ff; color: #fff; }
-.intake-progress li + li::before { content: ""; width: 16px; height: 1px; background: #8a9ab2; margin-right: 6px; }
 .intake-return { position: absolute; top: -14px; right: 0; font-size: 10px; padding: 4px 9px; }
 .forecast-workspace.forecast-intake { grid-template-columns: minmax(0, 1.6fr) minmax(350px, 1fr); gap: 20px; align-items: stretch; margin-bottom: 0; }
 .forecast-intake .network-form .ticket { background: #f9fbffdc; border: 2px solid #ffffff; border-radius: 30px; box-shadow: 0 8px 24px #2d477325, inset 0 0 0 1px #d2dcf2; backdrop-filter: blur(14px); padding: 22px 25px 18px; }
@@ -4551,7 +4545,6 @@ header.auth-header {
 .forecast-intake .network-form .network-cargo > label:nth-of-type(5) { grid-column: auto; }
 .forecast-intake .network-form .network-cargo > label:nth-of-type(5) .select-trigger { font-size: 13px; line-height: 1.2; }
 .forecast-intake .network-form .network-cargo { padding-bottom: 0; margin-bottom: 0; }
-.intake-progress li { padding: 4px 7px; border-radius: 20px; background: #f3f7ffdb; }
 .forecast-intake .network-form .network-cargo > label { position: relative; display: flex; flex-direction: column; gap: 2px; border-radius: 12px; background: #fff; padding: 7px 12px; border: 1px solid #d2d9e7; box-shadow: 0 2px 4px #27466f0b; font-size: 10px; color: #53627a; line-height: 1.25; min-width: 0; }
 .forecast-intake .network-form .network-cargo > label > .field-caption { min-height: 0; font-size: 10px; line-height: 1.3; }
 .forecast-intake .network-form .network-cargo input,
@@ -4626,8 +4619,6 @@ header.auth-header {
 .assistant-input-note { color: #e2efff; font-size: 11px; text-align: center; margin: 10px 0 0; }
 body:has(.forecast-intake) .select-menu, body:has(.forecast-intake) .settlement-menu, body:has(.forecast-intake) .suggest-menu { font-family: "Bounded", Arial, sans-serif; }
 @media (max-width: 1150px) {
-  .intake-progress { gap: 10px; margin-right: 0; font-size: 10px; }
-  .intake-progress li + li::before { width: 10px; margin-right: 2px; }
   .intake-heading h1 { font-size: 36px; }
   .forecast-workspace.forecast-intake { grid-template-columns: minmax(0, 1.6fr) minmax(300px, 1fr); }
   .forecast-intake .network-form .ticket { padding: 20px; }
@@ -4642,7 +4633,6 @@ body:has(.forecast-intake) .select-menu, body:has(.forecast-intake) .settlement-
   .page .app-header nav { position: static; transform: none; gap: 4px; }
   .page .app-header nav button { min-width: 0; padding-inline: 11px; font-size: 12px; }
   .intake-heading { align-items: flex-start; gap: 14px; flex-direction: column; }
-  .intake-progress { font-size: 11px; }
   .forecast-workspace.forecast-intake { grid-template-columns: 1fr; }
   .forecast-intake .assistant-panel.assistant-embedded { min-height: 530px; }
   .forecast-intake .assistant-embedded .assistant-content { max-height: 460px; }
@@ -4653,10 +4643,6 @@ body:has(.forecast-intake) .select-menu, body:has(.forecast-intake) .settlement-
   .page .forecast-main { padding-inline: 14px; }
   .intake-heading h1 { font-size: 33px; }
   .intake-heading p { font-size: 13px; }
-  .intake-progress { gap: 6px; font-size: 10px; }
-  .intake-progress li { gap: 5px; }
-  .intake-progress b { width: 26px; height: 26px; }
-  .intake-progress li + li::before { width: 7px; }
   .forecast-intake .network-form .ticket { padding: 17px; border-radius: 23px; }
   .forecast-main .intake-form-title .forecast-form-heading { font-size: 23px; gap: 8px; }
   .draft-status { font-size: 10px; }

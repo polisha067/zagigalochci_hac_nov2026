@@ -339,11 +339,6 @@ function Workspace({
                 <h1>Куда отправим груз?</h1>
                 <p>Сравните способы доставки, сроки и бюджет.</p>
               </div>
-              <ol className="intake-progress" aria-label="Этапы планирования">
-                <li aria-current="step"><b>01</b><span>Условия</span></li>
-                <li><b>02</b><span>Сравнение</span></li>
-                <li><b>03</b><span>Прогноз</span></li>
-              </ol>
               {current && <button className="outline-button intake-return" onClick={() => navigate(calculationHash)}>К результату →</button>}
             </div>
             <div className="forecast-workspace forecast-intake">
