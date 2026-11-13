@@ -117,7 +117,7 @@ export const emptyDraft = (): Draft => ({
   capacityBasis: "mass_only",
   costBasis: "including_vat",
   dataPolicy: "allow_assumptions",
-  modes: ["road", "rail", "air", "sea", "river", "pipeline"],
+  modes: ["road", "rail", "air"],
   massBasis: "",
 });
 export interface NetworkSnapshot {

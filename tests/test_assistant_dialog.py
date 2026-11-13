@@ -69,7 +69,6 @@ class AssistantDialogTests(unittest.TestCase):
                                  "splittable": True, "packaging": "bags"}]},
         )
 
-<<<<<<< HEAD
     def test_new_forecast_compares_modes_even_when_planner_repeats_modes(self):
         dialog = self.send(
             "Новый расчёт. Сколько будет стоить перевезти 10 тонн муки из Москвы в Красноярск в 2030 году? "
@@ -83,7 +82,6 @@ class AssistantDialogTests(unittest.TestCase):
         calculation = answer["calculation"]
         self.assertEqual(calculation["request"]["allowed_modes"], ["rail", "road"])
         self.assertTrue(any(row.get("connection_pilot") for row in calculation["candidates"]))
-=======
     def test_volume_forecast_uses_same_model_as_volume_screen(self):
         answer = self.send(
             "Построй прогноз объёма грузоперевозок из Челябинска в Омск на 2027–2035 годы."
@@ -106,7 +104,6 @@ class AssistantDialogTests(unittest.TestCase):
         self.assertEqual(answer["kind"], "clarification")
         answer = self.send("Челябинск → Омск")["answer"]
         self.assertEqual(answer["result"]["details"]["forecast_tonnes"], 1269.0)
->>>>>>> origin/feature/forecast_detailed
 
     def test_air_forecast_matches_main_form(self):
         message = ("Новый расчёт. Москва → Якутск, 2030 год. Сколько стоит перевезти "

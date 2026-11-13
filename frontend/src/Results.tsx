@@ -7,7 +7,6 @@ import {
   useRef,
   useState,
   type CSSProperties,
-  type ReactNode,
 } from "react";
 import { RouteMap, type MapRoute } from "./RouteMap";
 import { ConnectionPilot } from "./ConnectionPilot";
@@ -83,7 +82,7 @@ function Issues({ c }: { c: Candidate }) {
   return (
     <>
       {c.issues.map((issue, i) => (
-        <p key={i}>{issue.message || issue.code}</p>
+        <p key={i}>{(issue.message || issue.code).replaceAll("max_piece_tonnes", "максимальная масса одного грузового места")}</p>
       ))}
     </>
   );
@@ -107,12 +106,13 @@ function ChargeSource({ result, id }: { result: Calculation; id: string }) {
 function Sources({ r, ids }: { r: Calculation; ids?: string[] }) {
   const sources = ids ? r.sources.filter((s) => ids.includes(s.id)) : r.sources;
   return (
-    <section className="network-sources">
-      <h3>Источники и допущения</h3>
+    <details className="network-sources disclosure-card">
+      <summary>Источники и допущения</summary>
+      <div className="disclosure-body">
       {sources.length ? (
         sources.map((s) => (
-          <article className="source-item" key={s.id}>
-            <b>{sourceTitle(s)}</b>
+          <details className="source-item" key={s.id}>
+            <summary><b>{sourceTitle(s)}</b>
             <span className="evidence-label">
               {s.status === "synthetic"
                 ? "Сценарные данные"
@@ -121,7 +121,8 @@ function Sources({ r, ids }: { r: Calculation; ids?: string[] }) {
                   : s.status === "fact"
                     ? "Опубликованные данные"
                     : "Источник данных"}
-            </span>
+            </span></summary>
+            <div className="source-body">
             {s.description && s.description !== sourceTitle(s) && (
               <p>{s.description}</p>
             )}
@@ -156,7 +157,8 @@ function Sources({ r, ids }: { r: Calculation; ids?: string[] }) {
                 </dl>
               </details>
             )}
-          </article>
+            </div>
+          </details>
         ))
       ) : (
         <p className="muted">Для этого варианта источники не указаны.</p>
@@ -164,7 +166,8 @@ function Sources({ r, ids }: { r: Calculation; ids?: string[] }) {
       <p className="table-note">
         Версия расчёта {r.schema_version} · Набор {r.network_id}
       </p>
-    </section>
+      </div>
+    </details>
   );
 }
 function Conditions({ snapshot }: { snapshot: NetworkSnapshot }) {
@@ -382,14 +385,10 @@ function CandidateReport({
           <h3>{candidateName(c)}</h3>
         </div>
         {!completePrice(c) && (
-          <div className="notice warning">
-            <b>{candidateStatus(c, r.request.max_delivery_hours)}</b>
-            <Issues c={c} />
-            <p>
-              Итоговая цена не подтверждена. Доступные этапы и компоненты ниже
-              не являются полной стоимостью.
-            </p>
-          </div>
+          <p className="report-status-line">
+            {candidateStatus(c, r.request.max_delivery_hours)} · Полная стоимость не подтверждена.
+            Подробности — в допущениях варианта.
+          </p>
         )}
         <div className="report-total">
           {r.forecast && completePrice(c) && c.forecast_price?.base_rub != null && (
@@ -694,9 +693,29 @@ function CandidateReport({
             </p>
           </section>
         )}
-        <section className="report-section">
+        <div className="report-disclosures">
+          {(c.issues.length > 0 || c.published_tariff_estimate) && <details className="disclosure-card">
+            <summary>Допущения и ограничения варианта</summary>
+            <div className="disclosure-body"><Issues c={c} />
+              {c.published_tariff_estimate && (
+                <div className="assumption-item">
+                  <b>Опубликованные тарифные компоненты</b>
+                  <p>
+                    {money(c.published_tariff_estimate.amount_excluding_vat_rub)} без
+                    НДС. Это не полная цена перевозки.
+                  </p>
+                  <p>
+                    Не хватает:{" "}
+                    {c.published_tariff_estimate.missing_components.join(", ") ||
+                      "см. ограничения варианта"}
+                    .
+                  </p>
+                </div>
+              )}
+            </div>
+          </details>}
           <Sources r={r} ids={c.source_ids} />
-        </section>
+        </div>
         <button
           className="text-button"
           type="button"
@@ -716,14 +735,10 @@ function NetworkResults({
   snapshot,
   initialCandidate,
   saved,
-  editor,
-  draftChanged,
   onEdit,
   onNew,
   onBack,
 }: {
-  editor?: ReactNode;
-  draftChanged?: boolean;
   snapshot: NetworkSnapshot;
   initialCandidate?: string;
   saved: boolean;
@@ -790,7 +805,7 @@ function NetworkResults({
   const ranked = useMemo(() => [...r.candidates].sort(
     (a, b) => Number(b.id === r.recommendation) - Number(a.id === r.recommendation),
   ), [r.candidates, r.recommendation]);
-  const mapRoutes = useMemo(() => {
+  const mapRoutes = useMemo<MapRoute[]>(() => {
     function hub(name: string, id?: string | null): MapRoute["route_hubs"][number] {
       const requested = [r.request.origin, ...r.request.stops.map((stop) => stop.settlement), r.request.destination];
       const index = requested.findIndex((point) => point === name);
@@ -823,7 +838,8 @@ function NetworkResults({
         `${label} · ${points.map((point) => point.name).join(" → ")}`, route.movement_rub)];
     });
     const road = r.road_market_estimate;
-    return [...ranked, ...air, ...land, ...(road && !land.some((route) => route.modes.every((mode) => mode === "road"))
+    return [...ranked.map((route) => ({ ...route, segmentModes: route.connections.map((leg) => leg.mode) })),
+      ...air, ...land, ...(road && !land.some((route) => route.modes.every((mode) => mode === "road"))
       ? [estimate("market-road", ["road"], [hub(road.origin, r.settlements[0]), hub(road.destination, r.settlements.at(-1))],
         "Авто · основное плечо", road.forecast_road_rub)] : [])];
   }, [r, ranked]);
@@ -954,7 +970,7 @@ function NetworkResults({
           </p>
         </div>
         <div className="title-actions">
-          {!saved && !editor && (
+          {(
             <button className="outline-button" onClick={onEdit}>
               Изменить условия
             </button>
@@ -964,20 +980,56 @@ function NetworkResults({
           </button>
         </div>
       </div>
-      {r.forecast && (
-        <>
-          {draftChanged && editor && <p className="notice forecast-stale" role="status">
-            Условия изменены. Нажмите «Получить прогноз», чтобы обновить стоимость, карту и варианты.
-          </p>}
-          <div className={editor ? "forecast-workspace" : "forecast-saved-overview"}>
-            {editor}
-            <ForecastOverview snapshot={snapshot} />
+      <div className={`forecast-result-grid${r.forecast ? "" : " without-forecast"}`}>
+        {r.forecast && <ForecastOverview snapshot={snapshot} compact />}
+        <section className="route-summary" aria-label="Варианты доставки">
+          <div className="route-summary-heading">
+            <div>
+              <span className="forecast-eyebrow">Шаг 2 из 2 · Результат</span>
+              <h2>Варианты доставки</h2>
+            </div>
+            <span className="route-count">{mapRoutes.length}</span>
           </div>
-        </>
-      )}
-      {!r.forecast && editor && <details className="method-notes">
-        <summary>Изменить условия перевозки</summary>{editor}
-      </details>}
+          <p className="route-summary-note">Полная стоимость и срок для заданных условий. Нажмите на вариант, чтобы открыть расчёт.</p>
+          {!r.recommendation && ranked.length > 0 && <p className="route-search-note">Рекомендации нет: проверьте ограничения вариантов.</p>}
+          <div className="route-summary-list">
+            {ranked.map((c, index) => <button
+              type="button"
+              key={c.id}
+              className={`route-summary-card${c.id === r.recommendation ? " is-recommended" : ""}`}
+              onClick={() => openFromMap(c.id)}
+              aria-label={`Открыть расчёт: вариант ${index + 1}, ${candidateName(c)}`}
+            >
+              <span className="route-summary-top">
+                <span>Вариант {index + 1}</span>
+                <span>{c.id === r.recommendation ? "Рекомендуем" : candidateStatus(c, r.request.max_delivery_hours)}</span>
+              </span>
+              <strong className="route-summary-name">{candidateName(c)}</strong>
+              <span className="route-summary-bottom">
+                <strong>{completePrice(c) ? money(c.total_cost_rub) : candidatePrice(c)}</strong>
+                <span>{hours(c.max_delivery_hours)}</span>
+                <span aria-hidden="true">↗</span>
+              </span>
+            </button>)}
+            {mapRoutes.filter((route) => route.estimateLabel).map((route) => <button
+              type="button" key={route.id} className="route-summary-card" onClick={() => openFromMap(route.id)}
+            >
+              <span className="route-summary-top">Оценка перевозки</span>
+              <strong className="route-summary-name">{route.estimateLabel}</strong>
+              <span className="route-summary-bottom">
+                <strong>{route.estimatePrice == null ? "Смета по плечам" : money(route.estimatePrice)}</strong>
+                <span>Срок по согласованию</span>
+                <span aria-hidden="true">↗</span>
+              </span>
+            </button>)}
+          </div>
+          {!mapRoutes.length && <p className="notice">По заданным условиям вариантов не найдено. Попробуйте изменить условия перевозки.</p>}
+          <a className="route-table-link" href="#comparison" onClick={(event) => {
+            event.preventDefault();
+            document.getElementById("comparison")?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }}>Сравнить все показатели ↓</a>
+        </section>
+      </div>
       <Conditions snapshot={snapshot} />
       {mapRoutes.length > 0 && (
         <RouteMap candidates={mapRoutes} recommendation={r.recommendation}
@@ -987,15 +1039,6 @@ function NetworkResults({
       <h2 id="comparison" className="comparison-title">
         Подробное сравнение вариантов
       </h2>
-      {r.search.truncated && (
-        <div className="notice warning">
-          <b>Поиск ограничен</b>
-          <p>
-            Показаны найденные варианты в пределах поиска. Глобально самый
-            дешёвый маршрут не гарантируется.
-          </p>
-        </div>
-      )}
       {alternative && alternativeCandidate && (
         <div className="notice">
           <b>Запасной вариант · {candidateName(alternativeCandidate)}</b>
@@ -1181,24 +1224,6 @@ function NetworkResults({
           </div>
         </>
       )}
-      {!r.published_coverage && <div className="result-notices">
-        {!r.recommendation && r.candidates.length > 0 && (
-          <div className="notice warning">
-            <b>Нет допустимого варианта для рекомендации</b>
-            <p>Посмотрите причины ограничений ниже или измените условия.</p>
-          </div>
-        )}
-        {ranked
-          .filter((c) => c.status !== "feasible" || !c.complete)
-          .map((c) => (
-            <div className="notice warning" key={c.id}>
-              <b>
-                Вариант {ranked.indexOf(c) + 1} · {candidateName(c)}
-              </b>
-              <Issues c={c} />
-            </div>
-          ))}
-      </div>}
       {base && (
         <p className="table-note">
           Разница к авто вычислена относительно самого дешёвого допустимого
@@ -1207,9 +1232,36 @@ function NetworkResults({
         </p>
       )}
       <details className="method-notes">
-        <summary>Источники, предупреждения и покрытие сети</summary>
+        <summary>Допущения и ограничения расчёта</summary>
         <div className="method-body">
-          <h3>Ограничения расчёта</h3>
+          {r.search.truncated && (
+            <div className="assumption-item">
+              <b>Поиск ограничен</b>
+              <p>
+                Показаны найденные варианты в пределах поиска. Глобально самый
+                дешёвый маршрут не гарантируется.
+              </p>
+            </div>
+          )}
+          <div className="result-notices">
+            {!r.recommendation && r.candidates.length > 0 && (
+              <div className="assumption-item">
+                <b>Нет допустимого варианта для рекомендации</b>
+                <p>Посмотрите причины ограничений ниже или измените условия.</p>
+              </div>
+            )}
+            {ranked
+              .filter((c) => c.status !== "feasible" || !c.complete)
+              .map((c) => (
+                <div className="assumption-item" key={c.id}>
+                  <b>
+                    Вариант {ranked.indexOf(c) + 1} · {candidateName(c)}
+                  </b>
+                  <Issues c={c} />
+                </div>
+              ))}
+          </div>
+          <h3>Покрытие и методика</h3>
           <ul>
             {r.warnings.map((w, i) => (
               <li key={"w" + i}>{w}</li>
@@ -1238,14 +1290,10 @@ export function Results({
   snapshot,
   initialCandidate,
   saved = false,
-  editor,
-  draftChanged,
   onEdit,
   onNew,
   onBack,
 }: {
-  editor?: ReactNode;
-  draftChanged?: boolean;
   snapshot: Snapshot;
   initialCandidate?: string;
   saved?: boolean;
@@ -1257,8 +1305,6 @@ export function Results({
     <NetworkResults
       snapshot={snapshot}
       initialCandidate={initialCandidate}
-      editor={editor}
-      draftChanged={draftChanged}
       saved={saved}
       onEdit={onEdit}
       onNew={onNew}

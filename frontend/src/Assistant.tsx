@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent } from "react";
+import { createPortal } from "react-dom";
 import { ApiError, errorText, post, request } from "./api";
 import { assistantVolumeSelection, dashboardResult, type VolumeForecastSelection, type AssistantDialog, type AssistantReply, type AssistantSource, type DashboardCalculation, type DialogScenario } from "./assistantApi";
 import { AssistantData } from "./AssistantData";
@@ -32,13 +33,16 @@ function fitPanel(x: number, y: number, { width, height }: DOMRect): PanelPositi
   };
 }
 
-export function Assistant({ onResult, onVolumeResult, onSaveResult, hidden }: {
+export function Assistant({ onResult, onVolumeResult, onSaveResult, hidden, embeddedHost }: {
   onResult: (result: DashboardCalculation, settlementNames: Record<string, string>, candidateId?: string) => void;
   onVolumeResult: (selection: VolumeForecastSelection) => void;
   onSaveResult?: (result: DashboardCalculation, settlementNames: Record<string, string>) => void;
   hidden?: boolean;
+  embeddedHost?: HTMLElement | null;
 }) {
-  const [open, setOpen] = useState(false);
+  const embedded = !!embeddedHost;
+  const [floatingOpen, setOpen] = useState(false);
+  const open = embedded || floatingOpen;
   const [message, setMessage] = useState("");
   const [turns, setTurns] = useState<{ message: string; dialog: AssistantDialog; response: AssistantReply }[]>([]);
   const [known, setKnown] = useState<string[]>([]);
@@ -60,7 +64,7 @@ export function Assistant({ onResult, onVolumeResult, onSaveResult, hidden }: {
   const retry = useRef<{ message: string; revision: number; turn_id: string } | null>(null);
   useEffect(() => () => active.current?.abort(), []);
   useEffect(() => {
-    if (!open || hidden) return;
+    if (!open || hidden || embedded) return;
     close.current?.focus({ preventScroll: true });
     function escape(e: KeyboardEvent) {
       if (e.key === "Escape") {
@@ -81,7 +85,7 @@ export function Assistant({ onResult, onVolumeResult, onSaveResult, hidden }: {
       window.removeEventListener("keydown", escape);
       window.removeEventListener("resize", fitToViewport);
     };
-  }, [open, hidden]);
+  }, [open, hidden, embedded]);
   useEffect(() => {
     if (!open || !content.current) return;
     content.current.scrollTop = busy || error
@@ -214,31 +218,33 @@ export function Assistant({ onResult, onVolumeResult, onSaveResult, hidden }: {
     ));
   }
 
-  return (
+  const assistant = (
     <>
       {open && (
         <section
           id="assistant-panel"
           ref={panel}
-          role="dialog"
+          role={embedded ? "region" : "dialog"}
           aria-labelledby="assistant-title"
-          className="assistant-panel"
-          style={position ? { left: position.x, top: position.y, right: "auto", bottom: "auto" } : undefined}
-          onPointerMove={movePanel}
+          className={`assistant-panel${embedded ? " assistant-embedded" : ""}${!turns.length ? " assistant-empty" : ""}`}
+          style={!embedded && position ? { left: position.x, top: position.y, right: "auto", bottom: "auto" } : undefined}
+          onPointerMove={embedded ? undefined : movePanel}
           onLostPointerCapture={(event) => {
             if (drag.current?.pointerId === event.pointerId) drag.current = null;
           }}
         >
-          <div className="assistant-drag-handle left" aria-hidden="true" onPointerDown={startDrag} />
-          <div className="assistant-drag-handle right" aria-hidden="true" onPointerDown={startDrag} />
-          <div className="assistant-heading" onPointerDown={startDrag}>
+          {!embedded && <>
+            <div className="assistant-drag-handle left" aria-hidden="true" onPointerDown={startDrag} />
+            <div className="assistant-drag-handle right" aria-hidden="true" onPointerDown={startDrag} />
+          </>}
+          <div className="assistant-heading" onPointerDown={embedded ? undefined : startDrag}>
             <h2 id="assistant-title">
               <svg className="chat-icon" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M21 11.5c0 5-4 8.5-9 8.5-1.5 0-3-.3-4.2-.9L3 21l1.5-4.4A8 8 0 0 1 3 11.5C3 6.8 7 3 12 3s9 3.8 9 8.5Z" />
               </svg>{" "}
-              ИИ-ассистент
+              {embedded ? "ИИ-агент" : "ИИ-ассистент"}
             </h2>
-            <button
+            {!embedded && <button
               className="icon-button"
               ref={close}
               aria-label="Закрыть ассистента"
@@ -248,16 +254,22 @@ export function Assistant({ onResult, onVolumeResult, onSaveResult, hidden }: {
               }}
             >
               ×
-            </button>
+            </button>}
           </div>
           <div className="assistant-content" ref={content} role="region" aria-label="Переписка с ассистентом" aria-live="polite" tabIndex={0}>
             {!turns.length && (
               <>
                 <span className="availability">Планирование перевозок</span>
-                <h3>Помощник по перевозкам</h3>
-                <p>Ассистент прогнозирует стоимость доставки и объём грузоперевозок.</p>
-                <p><strong>Стоимость.</strong> «Сколько будет стоить доставка 10 т муки из Москвы в Нижний Новгород в 2030 году?»</p>
-                <p><strong>Объём.</strong> «Покажи прогноз объёма по направлению Челябинск → Омск на 2027–2035 годы».</p>
+                <h3>Можно просто словами</h3>
+                <p>Опишите перевозку — помогу собрать условия и сравнить варианты.</p>
+                <div className="assistant-example-block">
+                  <span>Например</span>
+                  <button type="button" className="assistant-example" onClick={() => {
+                    setMessage("Нужно перевезти 10 тонн муки из Москвы в Нижний Новгород в 2030 году, срок до 5 дней");
+                    input.current?.focus({ preventScroll: true });
+                  }}>Нужно перевезти 10 тонн муки из Москвы в Нижний Новгород</button>
+                  <div className="assistant-example-tags"><span>2030 год</span><span>До 5 дней</span></div>
+                </div>
               </>
             )}
             {known.length > 0 && (
@@ -294,7 +306,7 @@ export function Assistant({ onResult, onVolumeResult, onSaveResult, hidden }: {
             <textarea
               id="assistant-message"
               ref={input}
-              placeholder="Спросите о перевозке…"
+              placeholder="Расскажите о перевозке…"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               onKeyDown={(event) => {
@@ -313,9 +325,10 @@ export function Assistant({ onResult, onVolumeResult, onSaveResult, hidden }: {
               →
             </button>
           </form>
+          {embedded && <p className="assistant-input-note">Агент уточнит недостающие детали</p>}
         </section>
       )}
-      <button
+      {!embedded && <button
         ref={button}
         type="button"
         className="assistant"
@@ -324,7 +337,8 @@ export function Assistant({ onResult, onVolumeResult, onSaveResult, hidden }: {
         onClick={() => setOpen(!open)}
       >
         <i aria-hidden="true" /> ИИ-ассистент
-      </button>
+      </button>}
     </>
   );
+  return embeddedHost ? createPortal(assistant, embeddedHost) : assistant;
 }

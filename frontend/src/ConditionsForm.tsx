@@ -1,3 +1,4 @@
+import { TransportGlyph } from "./TransportGlyph";
 import { SuggestInput } from "./SuggestInput";
 import { Select } from "./Select";
 import {
@@ -43,6 +44,7 @@ export function ConditionsForm({
 }) {
   const [draft, setDraft] = useState(() => {
     const value = structuredClone(initial);
+    value.modes = value.modes.filter((mode) => ["road", "rail", "air"].includes(mode));
     if (!value.origin && !value.destination && !value.forecastYear && options.delivery_forecast) {
       value.forecastYear = String(options.delivery_forecast.min_year);
       value.scheduleMode = "once";
@@ -51,6 +53,7 @@ export function ConditionsForm({
     }
     return value;
   });
+  const [routeVersion, setRouteVersion] = useState(0);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [questions, setQuestions] = useState<Clarification[]>([]);
@@ -106,6 +109,7 @@ export function ConditionsForm({
   const volumeReady =
     preview.count > 0 && draft.cargo.every((c) => Number(c.weight) > 0);
   const complete =
+    draft.modes.length > 0 &&
     points.every((p) => p.city) &&
     draft.cargo.every((c) => c.name.trim() && Number(c.weight) > 0) &&
     (Number(draft.days) > 0 || Boolean(forecastYear && !draft.days));
@@ -192,51 +196,41 @@ export function ConditionsForm({
     >
       <fieldset className="ticket" disabled={busy}>
         <section className="paper">
-          <h2 className="forecast-form-heading">Условия прогноза</h2>
-          {forecastOptions && (
-            <div className="forecast-year-control">
-              <label>
-                Год прогноза
-                <Select aria-label="Год прогноза" value={draft.forecastYear ?? ""}
-                  onChange={(e) => selectYear(e.target.value)}>
-                  <option value="">По дате отправки</option>
-                  {Array.from({ length: forecastOptions.max_year - forecastOptions.min_year + 1 }, (_, index) => {
-                    const year = forecastOptions.min_year + index;
-                    return <option key={year} value={year}>{year}</option>;
-                  })}
-                </Select>
-              </label>
-              <div className="forecast-year-pills" aria-label="Быстрый выбор года">
-                {Array.from({ length: Math.min(5, forecastOptions.max_year - forecastOptions.min_year + 1) }, (_, index) => {
-                  const year = String(forecastOptions.min_year + index);
-                  return <button type="button" key={year} aria-pressed={draft.forecastYear === year}
-                    onClick={() => selectYear(year)}>{year}</button>;
-                })}
-              </div>
-            </div>
-          )}
+          <div className="intake-form-title">
+            <h2 className="forecast-form-heading"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="m3 7 9-4 9 4v10l-9 4-9-4V7Zm0 0 9 4 9-4M12 11v10M7.5 5 17 9" /></svg>Условия перевозки</h2>
+            <span className="draft-status">Черновик</span>
+          </div>
           <div className="route">
             <SettlementPicker
+              key={`origin-${routeVersion}`}
               label="Откуда"
               value={draft.origin}
               initial={options.settlements}
               onChange={(origin) => update({ origin })}
             />
-            <button
-              className="addStop"
-              type="button"
-              disabled={draft.stops.length >= 8}
-              onClick={() => update({ stops: [...draft.stops, newStop()] })}
-            >
-              + Остановка
-            </button>
+            <button className="route-swap" type="button" aria-label="Поменять пункты местами" disabled={!draft.origin && !draft.destination}
+              onClick={() => {
+                const reverse = (id: string) => id === "first" ? "last" : id === "last" ? "first" : id;
+                update({ origin: draft.destination, destination: draft.origin, stops: [...draft.stops].reverse(),
+                  cargo: draft.cargo.map((cargo) => ({ ...cargo, from: reverse(cargo.to), to: reverse(cargo.from) })) });
+                setRouteVersion((value) => value + 1);
+              }}><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 7h15l-4-4M20 17H5l4 4" /></svg></button>
             <SettlementPicker
+              key={`destination-${routeVersion}`}
               label="Куда"
               value={draft.destination}
               initial={options.settlements}
               onChange={(destination) => update({ destination })}
             />
           </div>
+            <button
+              className="addStop"
+              type="button"
+              disabled={draft.stops.length >= 8}
+              onClick={() => update({ stops: [...draft.stops, newStop()] })}
+            >
+              + Добавить остановку
+            </button>
           {draft.stops.map((stop, i) => (
             <div className="network-stop" key={stop.id}>
               <SettlementPicker
@@ -295,7 +289,7 @@ export function ConditionsForm({
           ))}
           <div className="columns">
             <section>
-              <h2>Состав партии</h2>
+              <h2>Груз</h2>
               {draft.cargo.map((c, i) => {
                 const qs = questions.filter((q) => q.cargo_id === c.id);
                 const propsRequired = qs.some((q) =>
@@ -322,7 +316,7 @@ export function ConditionsForm({
                       )}
                     </div>
                     <label>
-                      Что перевозим?
+                      Наименование
                       <SuggestInput
                         aria-label={`Название груза ${i + 1}`}
                         options={options.cargo_types.map(c => ({ value: c.name, label: c.name }))}
@@ -410,7 +404,7 @@ export function ConditionsForm({
                       className="cargo-properties"
                       open={propsRequired || undefined}
                     >
-                      <summary>Свойства и требования к грузу</summary>
+                      <summary>Особые требования</summary>
                       <p className="table-note">
                         Для груза вне справочника подтвердите типовые условия
                         или укажите свойства вручную.
@@ -544,7 +538,30 @@ export function ConditionsForm({
                 + Добавить груз
               </button>
             </section>
-            <section>
+            <section className="period-column">
+              <h2>Период</h2>
+          {forecastOptions && (
+            <div className="forecast-year-control">
+              <label>
+                Год прогноза
+                <Select aria-label="Год прогноза" value={draft.forecastYear ?? ""}
+                  onChange={(e) => selectYear(e.target.value)}>
+                  <option value="">По дате отправки</option>
+                  {Array.from({ length: forecastOptions.max_year - forecastOptions.min_year + 1 }, (_, index) => {
+                    const year = forecastOptions.min_year + index;
+                    return <option key={year} value={year}>{year}</option>;
+                  })}
+                </Select>
+              </label>
+              <div className="forecast-year-pills" aria-label="Быстрый выбор года">
+                {Array.from({ length: Math.min(5, forecastOptions.max_year - forecastOptions.min_year + 1) }, (_, index) => {
+                  const year = String(forecastOptions.min_year + index);
+                  return <button type="button" key={year} aria-pressed={draft.forecastYear === year}
+                    onClick={() => selectYear(year)}>{year}</button>;
+                })}
+              </div>
+            </div>
+          )}
               <details className="forecast-schedule"
                 open={draft.scheduleMode !== "once" || undefined}>
                 <summary>График и даты отправок</summary>
@@ -710,25 +727,6 @@ export function ConditionsForm({
                   onChange={(e) => update({ days: e.target.value })}
                 />
               </label>
-              <fieldset className="mode-choice">
-                <legend>Виды транспорта</legend>
-                {(Object.keys(modeNames) as Mode[]).map((mode) => (
-                  <label key={mode}>
-                    <input
-                      type="checkbox"
-                      checked={draft.modes.includes(mode)}
-                      onChange={(e) =>
-                        update({
-                          modes: e.target.checked
-                            ? [...draft.modes, mode]
-                            : draft.modes.filter((m) => m !== mode),
-                        })
-                      }
-                    />
-                    {modeNames[mode]}
-                  </label>
-                ))}
-              </fieldset>
               <details
                 className="calculation-settings"
                 open={
@@ -808,9 +806,34 @@ export function ConditionsForm({
               </details>
             </section>
           </div>
+              <fieldset className="mode-choice">
+                <legend>Сравнить способы доставки</legend>
+                {(["road", "rail", "air"] as Mode[]).map((mode) => (
+                  <label key={mode}>
+                    <input
+                      type="checkbox"
+                      checked={draft.modes.includes(mode)}
+                      onChange={(e) =>
+                        update({
+                          modes: e.target.checked
+                            ? [...draft.modes, mode]
+                            : draft.modes.filter((m) => m !== mode),
+                        })
+                      }
+                    />
+                    <TransportGlyph mode={mode} />
+                    <span>{modeNames[mode]}</span>
+                  </label>
+                ))}
+              </fieldset>
         </section>
         <aside>
           <div className="network-coupon">
+            <div className="intake-shipment-summary" aria-live="polite">
+              <b>{volumeReady ? num(weight * preview.count, 3) : "—"} т</b><span>·</span>
+              <b>{draft.cargo.some((cargo) => cargo.volume) ? num(draft.cargo.reduce((sum, cargo) => sum + (Number(cargo.volume) || 0), 0) * (preview.count || 1), 3) : "—"} м³</b><span>·</span>
+              <b>{preview.count || "—"} {({ one: "отправка", few: "отправки", many: "отправок", other: "отправок" } as Record<string, string>)[new Intl.PluralRules("ru").select(preview.count || 0)]}</b>
+            </div>
             <div className="stub-title">
               <span className="target" aria-hidden="true" />
               Объём перевозки
@@ -855,7 +878,7 @@ export function ConditionsForm({
                   ? "Ищем варианты…"
                   : wait > 0
                     ? `Повторить через ${wait} с`
-                    : forecastYear ? "Получить прогноз" : "Рассчитать"}{" "}
+                    : forecastYear ? "Сравнить варианты" : "Рассчитать"}{" "}
                 <span aria-hidden="true">→</span>
               </button>
             </div>
