@@ -42,6 +42,18 @@ function Workspace({
   const [formVersion, setFormVersion] = useState(0);
   const [assistantVolume, setAssistantVolume] = useState<{ selection: VolumeForecastSelection; revision: number } | null>(null);
   const [assistantSlot, setAssistantSlot] = useState<HTMLDivElement | null>(null);
+  const [assistantInView, setAssistantInView] = useState(false);
+  useEffect(() => {
+    if (!assistantSlot) {
+      setAssistantInView(false);
+      return;
+    }
+    const observer = new IntersectionObserver(([entry]) => {
+      setAssistantInView(entry.isIntersecting);
+    });
+    observer.observe(assistantSlot);
+    return () => observer.disconnect();
+  }, [assistantSlot]);
   const [assistantSelection, setAssistantSelection] = useState<{ snapshot: string; candidate: string } | null>(null);
   const [pendingAssistantSave, setPendingAssistantSave] = useState<Snapshot | null>(null);
   const userId = user?.id;
@@ -352,6 +364,7 @@ function Workspace({
               <div className="intake-assistant-slot" ref={setAssistantSlot} />
               <button
                 className="mobile-assistant-jump"
+                hidden={assistantInView}
                 type="button"
                 aria-controls="assistant-panel"
                 onClick={() => {

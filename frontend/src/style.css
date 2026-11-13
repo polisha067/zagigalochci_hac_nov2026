@@ -4891,7 +4891,7 @@ body { font-family: "Bounded", Arial, sans-serif; font-weight: 400; line-height:
     display: inline-flex;
     position: fixed;
     bottom: calc(12px + env(safe-area-inset-bottom));
-    left: calc(14px + env(safe-area-inset-left));
+    right: calc(14px + env(safe-area-inset-right));
     z-index: 20;
     align-items: center;
     min-height: 44px;
