@@ -1124,6 +1124,10 @@ header.auth-header {
   min-height: 46px;
 }
 /* Текст переключения между входом, регистрацией и изменением почты. */
+.auth-recovery-back {
+  align-self: flex-start;
+  margin-bottom: 14px;
+}
 .auth-switch {
   margin-top: 18px;
   text-align: center;

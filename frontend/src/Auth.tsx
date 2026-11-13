@@ -11,7 +11,9 @@ import {
 import { Brand } from "./ui";
 
 type Pending = Verification & { resendAt: number; expiresAt: number };
-type Field = "name" | "email" | "password" | "consent" | "code";
+type Reset = Pick<Verification, "verification_id" | "expires_in" | "resend_after">;
+type Mode = "login" | "register" | "verify" | "forgot" | "reset-code" | "reset";
+type Field = "name" | "email" | "password" | "consent" | "code" | "confirmPassword";
 type FieldErrors = Partial<Record<Field, string>>;
 const pendingKey = `poputno:verification:${apiBase}`;
 const credentialsMessage = "Неверная почта или пароль";
@@ -39,12 +41,18 @@ export function Auth({
   initialMessage?: string;
 }) {
   const [pending, setPending] = useState<Pending | null>(readPending);
-  const [mode, setMode] = useState<"login" | "register" | "verify">(() =>
+  const [mode, setMode] = useState<Mode>(() =>
     readPending() ? "verify" : "login",
   );
   const [email, setEmail] = useState(() => readPending()?.email || "");
+  const [reset, setReset] = useState<(Reset & Pick<Pending, "email" | "expiresAt" | "resendAt">) | null>(null);
+  const recovering = mode === "forgot" || mode === "reset-code" || mode === "reset";
+  const challenge = recovering ? reset : pending;
+  const codeMode = mode === "verify" || mode === "reset-code";
+  const newPassword = mode === "register" || mode === "reset";
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [visible, setVisible] = useState(false);
   const [consent, setConsent] = useState(false);
   const [code, setCode] = useState<string[]>(Array(6).fill(""));
@@ -62,10 +70,10 @@ export function Auth({
   const privacy = useRef<HTMLDialogElement>(null);
   const resendSeconds = Math.max(
     0,
-    Math.ceil((Math.max(pending?.resendAt || 0, resendRetryAt) - now) / 1000),
+    Math.ceil((Math.max(challenge?.resendAt || 0, resendRetryAt) - now) / 1000),
   );
   const waitSeconds = Math.max(0, Math.ceil((retryAt - now) / 1000));
-  const expired = !!pending && pending.expiresAt <= now;
+  const expired = !!challenge && challenge.expiresAt <= now;
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
@@ -104,8 +112,12 @@ export function Auth({
         ?.querySelector<HTMLInputElement>(`[name="${field}"]`)
         ?.focus({ preventScroll: true });
   }
-  function switchMode(next: "login" | "register") {
+  function switchMode(next: "login" | "register" | "forgot") {
     setMode(next);
+    setReset(null);
+    setConfirmPassword("");
+    setRetryAt(0);
+    setResendRetryAt(0);
     setPending(null);
     setPassword("");
     setVisible(false);
@@ -171,16 +183,20 @@ export function Auth({
               ? "Срок кода истёк. Запросите новый."
               : "Слишком много неверных попыток. Запросите новый код.";
         if (error.code !== "invalid_code") setNeedsNewCode(true);
+      } else if (error.code === "invalid_reset_code" || error.code === "reset_attempts_exceeded") {
+        next.code = error.message;
+        if (error.code === "reset_attempts_exceeded") setNeedsNewCode(true);
       } else if (error.fields.length) {
         const labels: Record<string, string> = {
           name: "Укажите имя от 2 до 80 символов.",
           email: "Проверьте адрес электронной почты.",
+          new_password: "Пароль должен содержать от 8 до 128 символов.",
           password: "Пароль должен содержать от 8 до 128 символов.",
           code: "Введите все шесть цифр из письма.",
         };
         for (const item of error.fields)
           if (item.field in labels)
-            next[item.field as Field] = labels[item.field];
+            next[item.field === "new_password" ? "password" : item.field as Field] = labels[item.field];
       }
     }
     if (Object.keys(next).length) {
@@ -191,10 +207,10 @@ export function Auth({
   }
   function validate() {
     const next: FieldErrors = {};
-    if (mode === "verify") {
+    if (codeMode) {
       if (!/^\d{6}$/.test(code.join("")))
         next.code = "Введите все шесть цифр из письма.";
-    } else {
+    } else if (mode !== "reset") {
       if (
         mode === "register" &&
         (name.trim().length < 2 || name.trim().length > 80)
@@ -206,25 +222,61 @@ export function Auth({
       if (!email.trim()) next.email = "Введите электронную почту.";
       else if (emailInput?.validity.typeMismatch || email.length > 254)
         next.email = "Введите адрес в формате name@company.ru.";
-      if (!password) next.password = "Введите пароль.";
-      else if (password.length < 8 || password.length > 128)
-        next.password = "Пароль должен содержать от 8 до 128 символов.";
       if (mode === "register" && !consent)
         next.consent = "Нужно ваше согласие на обработку данных.";
     }
+    if (!codeMode && mode !== "forgot") {
+      if (!password) next.password = "Введите пароль.";
+      else if (password.length < 8 || password.length > 128)
+        next.password = "Пароль должен содержать от 8 до 128 символов.";
+    }
+    if (mode === "reset" && (!confirmPassword || confirmPassword !== password))
+      next.confirmPassword = confirmPassword ? "Пароли не совпадают." : "Повторите новый пароль.";
     setErrors(next);
     focusError(next);
     return Object.keys(next).length === 0;
   }
+  async function requestReset(address: string) {
+    const result = await post<Reset>("/auth/forgot-password", { email: address });
+    const sentAt = Date.now();
+    setReset({
+      ...result,
+      email: address,
+      resendAt: sentAt + result.resend_after * 1000,
+      expiresAt: sentAt + result.expires_in * 1000,
+    });
+    setMode("reset-code");
+    setCode(Array(6).fill(""));
+    setErrors({});
+    setNeedsNewCode(false);
+    setRetryAt(0);
+    setNotice("Если аккаунт с этой почтой существует, мы отправили код. Проверьте входящие и папку «Спам».");
+  }
   async function submit(event: FormEvent) {
     event.preventDefault();
-    if (busy || waitSeconds > 0) return;
+    if (busy || waitSeconds > 0 || (codeMode && (expired || needsNewCode))) return;
     setMessage("");
     setNotice("");
     if (!validate()) return;
     setBusy(true);
     try {
-      if (mode === "verify" && pending)
+      if (mode === "forgot") {
+        await requestReset(email.trim());
+      } else if (mode === "reset-code" && reset) {
+        await post<void>("/auth/check-reset-code", {
+          verification_id: reset.verification_id,
+          code: code.join(""),
+        });
+        setMode("reset");
+      } else if (mode === "reset" && reset) {
+        await post<void>("/auth/reset-password", {
+          verification_id: reset.verification_id,
+          code: code.join(""),
+          new_password: password,
+        });
+        switchMode("login");
+        setNotice("Пароль изменён. Войдите с новым паролем.");
+      } else if (mode === "verify" && pending)
         accept(
           await post<AuthResponse>("/auth/verify-email", {
             verification_id: pending.verification_id,
@@ -248,20 +300,32 @@ export function Auth({
           true,
         );
     } catch (error) {
+      if (mode === "reset" && error instanceof ApiError &&
+          ["invalid_reset_code", "reset_attempts_exceeded"].includes(error.code)) {
+        setMode("reset-code");
+        setCode(Array(6).fill(""));
+        setPassword("");
+        setConfirmPassword("");
+        setVisible(false);
+      }
       showError(error);
     } finally {
       setBusy(false);
     }
   }
   async function resend() {
-    if (!pending || busy || resendSeconds > 0) return;
+    if (!challenge || busy || resendSeconds > 0) return;
     setBusy(true);
     setMessage("");
     setNotice("");
     try {
+      if (mode === "reset-code") {
+        await requestReset(challenge.email);
+        return;
+      }
       accept(
         await post<Verification>("/auth/resend-verification", {
-          verification_id: pending.verification_id,
+          verification_id: challenge.verification_id,
         }),
       );
       setRetryAt(0);
@@ -271,12 +335,22 @@ export function Auth({
       setBusy(false);
     }
   }
-  const title =
-    mode === "login"
-      ? "Вход"
-      : mode === "register"
-        ? "Регистрация"
-        : "Код из письма";
+  const title = {
+    login: "Вход",
+    register: "Регистрация",
+    verify: "Код из письма",
+    forgot: "Восстановление пароля",
+    "reset-code": "Код из письма",
+    reset: "Новый пароль",
+  }[mode];
+  const submitLabel = {
+    login: "Войти",
+    register: "Зарегистрироваться",
+    verify: "Подтвердить почту",
+    forgot: "Отправить код",
+    "reset-code": "Подтвердить код",
+    reset: "Сохранить новый пароль",
+  }[mode];
   const errorHint = (field: Field) => (
     <span id={`auth-${field}-error`} className="field-error" aria-live="polite">
       {errors[field]}
@@ -310,16 +384,22 @@ export function Auth({
             noValidate
             onSubmit={submit}
           >
+            {recovering && (
+              <button type="button" className="text-button auth-recovery-back" disabled={busy}
+                onClick={() => switchMode("login")}>
+                <span aria-hidden="true">←</span> К входу
+              </button>
+            )}
             <h2 ref={heading} tabIndex={-1}>
               {title}
             </h2>
             <fieldset disabled={busy} className="auth-fields">
-              {mode === "verify" ? (
+              {codeMode && (
                 <>
                   <p className="verify-help">
                     Введите шестизначный код для
                     <br />
-                    <strong>{pending?.email}</strong>
+                    <strong>{challenge?.email}</strong>
                   </p>
                   <div className="code-field">
                     <div
@@ -405,7 +485,8 @@ export function Auth({
                       : "Отправить код ещё раз"}
                   </button>
                 </>
-              ) : (
+              )}
+              {!codeMode && mode !== "reset" && (
                 <>
                   {mode === "register" && (
                     <div className="auth-field">
@@ -449,86 +530,118 @@ export function Auth({
                     />
                     {errorHint("email")}
                   </div>
-                  <div className="auth-field">
-                    <label htmlFor="auth-password">Пароль</label>
-                    <div className="password-field">
-                      <input
-                        id="auth-password"
-                        name="password"
-                        type={visible ? "text" : "password"}
-                        required
-                        minLength={8}
-                        maxLength={128}
-                        autoComplete={
-                          mode === "register"
-                            ? "new-password"
-                            : "current-password"
-                        }
-                        placeholder={
-                          mode === "register"
-                            ? "Не менее 8 символов"
-                            : "Введите пароль"
-                        }
-                        value={password}
-                        aria-invalid={errors.password !== undefined}
-                        aria-describedby="auth-password-error"
-                        onChange={(e) => {
-                          setPassword(e.target.value);
-                          clearField("password");
-                        }}
-                      />
+                </>
+              )}
+              {!codeMode && mode !== "forgot" && (
+                <div className="auth-field">
+                  <label htmlFor="auth-password">{mode === "reset" ? "Новый пароль" : "Пароль"}</label>
+                  <div className="password-field">
+                    <input
+                      id="auth-password"
+                      name="password"
+                      type={visible ? "text" : "password"}
+                      required
+                      minLength={8}
+                      maxLength={128}
+                      autoComplete={
+                        newPassword
+                          ? "new-password"
+                          : "current-password"
+                      }
+                      placeholder={
+                        newPassword
+                          ? "Не менее 8 символов"
+                          : "Введите пароль"
+                      }
+                      value={password}
+                      aria-invalid={errors.password !== undefined}
+                      aria-describedby="auth-password-error"
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        clearField("password");
+                      }}
+                    />
+                    <button
+                      type="button"
+                      aria-label={
+                        visible ? "Скрыть пароль" : "Показать пароль"
+                      }
+                      aria-pressed={visible}
+                      onClick={() => setVisible(!visible)}
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7Z" />
+                        <circle cx="12" cy="12" r="3" />
+                        {visible && <path d="m3 3 18 18" />}
+                      </svg>
+                    </button>
+                  </div>
+                  {errorHint("password")}
+                </div>
+              )}
+              {mode === "reset" && (
+                <div className="auth-field">
+                  <label htmlFor="auth-confirm-password">Повторите новый пароль</label>
+                  <input
+                    id="auth-confirm-password"
+                    name="confirmPassword"
+                    type={visible ? "text" : "password"}
+                    autoComplete="new-password"
+                    required
+                    maxLength={128}
+                    value={confirmPassword}
+                    aria-invalid={errors.confirmPassword !== undefined}
+                    aria-describedby="auth-confirmPassword-error"
+                    onChange={(event) => {
+                      setConfirmPassword(event.target.value);
+                      clearField("confirmPassword");
+                    }}
+                  />
+                  {errorHint("confirmPassword")}
+                </div>
+              )}
+              {mode === "login" && (
+                <button
+                  className="text-button resend"
+                  type="button"
+                  onClick={() => switchMode("forgot")}
+                >
+                  Забыли пароль?
+                </button>
+              )}
+              {mode === "register" && (
+                <div className="consent-field">
+                  <div className="consent">
+                    <input
+                      id="auth-consent"
+                      name="consent"
+                      type="checkbox"
+                      required
+                      checked={consent}
+                      aria-invalid={errors.consent !== undefined}
+                      aria-describedby="auth-consent-error"
+                      onChange={(e) => {
+                        setConsent(e.target.checked);
+                        clearField("consent");
+                      }}
+                    />
+                    <label htmlFor="auth-consent">
+                      Даю согласие на обработку{" "}
                       <button
                         type="button"
-                        aria-label={
-                          visible ? "Скрыть пароль" : "Показать пароль"
-                        }
-                        aria-pressed={visible}
-                        onClick={() => setVisible(!visible)}
+                        className="text-button privacy-link"
+                        aria-haspopup="dialog"
+                        onClick={(event) => {
+                          event.preventDefault();
+                          privacy.current?.showModal();
+                        }}
                       >
-                        <svg viewBox="0 0 24 24" aria-hidden="true">
-                          <path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7Z" />
-                          <circle cx="12" cy="12" r="3" />
-                          {visible && <path d="m3 3 18 18" />}
-                        </svg>
+                        персональных данных
                       </button>
-                    </div>
-                    {errorHint("password")}
+                    </label>
                   </div>
-                  {mode === "register" && (
-                    <div className="consent-field">
-                      <div className="consent">
-                        <input
-                          id="auth-consent"
-                          name="consent"
-                          type="checkbox"
-                          required
-                          checked={consent}
-                          aria-invalid={errors.consent !== undefined}
-                          aria-describedby="auth-consent-error"
-                          onChange={(e) => {
-                            setConsent(e.target.checked);
-                            clearField("consent");
-                          }}
-                        />
-                        <label htmlFor="auth-consent">
-                          Даю согласие на обработку{" "}
-                          <button
-                            type="button"
-                            className="text-button privacy-link"
-                            aria-haspopup="dialog"
-                            onClick={(event) => {
-                              event.preventDefault();
-                              privacy.current?.showModal();
-                            }}
-                          >
-                            персональных данных
-                          </button>
-                        </label>
-                      </div>
-                      {errorHint("consent")}
-                    </div>
-                  )}
-                </>
+                  {errorHint("consent")}
+                </div>
               )}
             </fieldset>
             {(message || notice) && (
@@ -546,7 +659,7 @@ export function Auth({
               disabled={
                 busy ||
                 waitSeconds > 0 ||
-                (mode === "verify" && (expired || needsNewCode))
+                (codeMode && (expired || needsNewCode))
               }
               type="submit"
             >
@@ -554,13 +667,9 @@ export function Auth({
                 ? "Подождите…"
                 : waitSeconds > 0
                   ? `Повторить через ${waitSeconds} с`
-                  : mode === "verify"
-                    ? "Подтвердить почту"
-                    : mode === "register"
-                      ? "Зарегистрироваться"
-                      : "Войти"}
+                  : submitLabel}
             </button>
-            <p className="auth-switch">
+            {!recovering && <p className="auth-switch">
               {mode === "verify" ? (
                 <button
                   type="button"
@@ -585,7 +694,7 @@ export function Auth({
                   </button>
                 </>
               )}
-            </p>
+            </p>}
           </form>
         </div>
       </main>

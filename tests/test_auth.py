@@ -184,6 +184,10 @@ class AuthTests(unittest.TestCase):
         wrong_code = "000000" if code != "000000" else "000001"
         reset = {"verification_id": request.json()["verification_id"],
                  "code": code, "new_password": "updated-password-2026"}
+        challenge = {"verification_id": reset["verification_id"], "code": code}
+        self.assertEqual(self.client.post("/auth/check-reset-code", json=dict(challenge, code=wrong_code)).status_code, 400)
+        self.assertEqual(self.client.post("/auth/check-reset-code", json=challenge).status_code, 204)
+        self.assertEqual(self.client.get("/auth/me").status_code, 200)
         self.assertEqual(self.client.post("/auth/reset-password", json=dict(reset, code=wrong_code)).status_code, 400)
         self.assertEqual(self.client.post("/auth/reset-password", json=reset).status_code, 204)
         self.assertEqual(self.client.get("/auth/me").status_code, 401)

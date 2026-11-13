@@ -35,7 +35,7 @@ from .assistant.service import (
 from .config import Settings
 from .database import Database
 from .mailer import MailDeliveryError, Mailer
-from .password_reset import reset_password, send_reset_code
+from .password_reset import check_reset_code, reset_password, send_reset_code
 from .schemas import Credentials, EmailRequest, PasswordResetRequested, ResetPasswordRequest, ErrorResponse, RegisterRequest, ResendRequest, UserResponse, VerificationResponse, VerificationRequired, VerifyEmailRequest
 from .verification import VerificationProblem, VerificationService
 from backend.a1_forecast import Granularity, MAX_FORECAST_YEAR, MIN_FORECAST_YEAR, forecast_options, forecast_route
@@ -303,6 +303,12 @@ def create_app(settings=None, *, assistant_planner: Optional[TurnPlanner] = None
                             now + settings.verification_ttl_seconds)
         return {"verification_id": verification_id, "expires_in": settings.verification_ttl_seconds,
                 "resend_after": settings.verification_cooldown_seconds}
+
+    @app.post("/auth/check-reset-code", status_code=204, tags=["Авторизация"])
+    def verify_password_reset_code(payload: VerifyEmailRequest, request: Request):
+        limit_attempts(request, "password-reset-confirm")
+        check_reset_code(app.state.verification, payload.verification_id, payload.code)
+        return Response(status_code=204)
 
     @app.post("/auth/reset-password", status_code=204, tags=["Авторизация"])
     def confirm_password_reset(payload: ResetPasswordRequest, request: Request):
