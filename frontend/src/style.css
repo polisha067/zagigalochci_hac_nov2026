@@ -4534,11 +4534,11 @@ header.auth-header {
 .intake-form-title svg { flex-shrink: 0; color: #344965; }
 .draft-status { font-size: 12px; color: #64738b; white-space: nowrap; }
 .draft-status::before { content: ""; display: inline-block; width: 7px; height: 7px; background: #97a7bf; border-radius: 50%; margin-right: 7px; }
-.forecast-intake .network-form .route { grid-template-columns: minmax(0, 1fr) 44px minmax(0, 1fr); gap: 18px; align-items: end; margin-bottom: 5px; }
-.forecast-intake .route .settlement-picker label { font-size: 13px; color: #005de5; font-weight: 800; margin-bottom: 3px; }
+.forecast-intake .network-form .route { grid-template-columns: minmax(0, 1fr) 44px minmax(0, 1fr); gap: 18px; align-items: start; margin-bottom: 5px; }
+.forecast-intake .route .settlement-picker label { font-size: 13px; line-height: 18px; color: #005de5; font-weight: 800; margin-bottom: 3px; }
 .forecast-intake .network-form .route .settlement-picker input { background: none; border: 0; border-bottom: 3px solid #0062f4; border-radius: 0; font-family: "Bounded", Arial, sans-serif; font-weight: 800; font-size: clamp(20px, 1.9vw, 29px); color: #0b1724; padding: 4px 0 7px; min-height: 46px; }
 .forecast-intake .network-form .route .settlement-picker input::placeholder { font-family: "Bounded", Arial, sans-serif; font-weight: 600; font-size: 15px; color: #8999ae; }
-.route-swap { display: flex; align-items: center; justify-content: center; width: 42px; height: 42px; border: 1px solid #fff; border-radius: 50%; background: #fff; color: #2355aa; box-shadow: 0 3px 8px #233f6b20; margin-bottom: 3px; }
+.route-swap { display: flex; align-items: center; justify-content: center; width: 42px; height: 42px; border: 1px solid #fff; border-radius: 50%; background: #fff; color: #2355aa; box-shadow: 0 3px 8px #233f6b20; margin-top: 23px; }
 .forecast-intake .network-form .paper > .addStop { border: 0; background: none; padding: 6px 0; margin: 0 0 2px; color: #005ce0; font-size: 13px; font-weight: 750; }
 .forecast-intake .network-form .paper > .addStop::before, .forecast-intake .network-form .paper > .addStop::after { display: none; }
 .forecast-intake .network-form .columns { grid-template-columns: minmax(0, 1.8fr) minmax(185px, 1fr); gap: 20px; padding-top: 17px; margin-top: 10px; border-top: 1px solid #c0cce0; }
@@ -4630,6 +4630,7 @@ body:has(.forecast-intake) .select-menu, body:has(.forecast-intake) .settlement-
   .forecast-workspace.forecast-intake { grid-template-columns: minmax(0, 1.6fr) minmax(300px, 1fr); }
   .forecast-intake .network-form .ticket { padding: 20px; }
   .forecast-intake .network-form .route { grid-template-columns: minmax(0, 1fr) 36px minmax(0, 1fr); gap: 10px; }
+  .forecast-intake .route-swap { width: 36px; height: 36px; margin-top: 26px; }
   .forecast-intake .network-form .columns { grid-template-columns: minmax(0, 1.5fr) minmax(165px, 1fr); gap: 15px; }
   .forecast-intake .network-form .columns > section + section { padding-left: 14px; }
   .forecast-intake .network-form .mode-choice label { font-size: 11px; gap: 5px; padding-inline: 6px; }
