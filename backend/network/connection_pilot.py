@@ -7,6 +7,7 @@ from typing import Annotated
 from pydantic import Field
 
 from backend.calculation_models import InputModel
+from backend.network.market_assumptions import connection_budget
 from backend.transport_calculator import money
 
 
@@ -31,7 +32,7 @@ TERMINAL = "https://www.tscont.ru/services/konteynernyy-terminal/"
 TRUCK_10T_RUB = Decimal(85068)
 
 
-def connection_pilot(row, route, request):
+def connection_pilot(row, route, request, indices):
     if (route != ["Москва", "Екатеринбург", "Красноярск"] or row["modes"] != ["rail", "road"]
             or row["status"] != "feasible" or len(row["connections"]) != 2
             or len(request.cargoes) != 1 or row["stop_actions"][0]["action"] != "visit"
@@ -77,6 +78,8 @@ def connection_pilot(row, route, request):
         "truck_10t_reference_rub": float(TRUCK_10T_RUB),
         "truck_10t_forecast_rub": truck_10t_forecast,
         "truck_10t_reference_url": ROAD_PRICE_URL,
+        "market_budget": connection_budget(cargo.weight_tonnes, request, indices)
+        if rail["reference_metadata"].get("container_size_ft") == 20 else None,
     }
 
 

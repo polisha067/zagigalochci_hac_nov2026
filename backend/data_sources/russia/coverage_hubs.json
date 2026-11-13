@@ -1,0 +1,23 @@
+{
+  "source": {
+    "id": "trade-trans-novosibirsk-terminals",
+    "name": "ТрейдТранс — контейнерные терминалы Новосибирска",
+    "url": "https://trade-trans.ru/ru/features",
+    "status": "fact",
+    "roles": ["hub", "container_handling"]
+  },
+  "hubs": [
+    {
+      "id": "trade-trans-k1", "name": "Контейнерный терминал К1",
+      "settlement": "Новосибирск", "region": "Новосибирская область",
+      "station": "Новосибирск-Восточный", "latitude": 55.121919, "longitude": 82.917008,
+      "modes": ["road", "rail"], "operations": ["container_transfer", "wagon_acceptance", "container_storage"]
+    },
+    {
+      "id": "trade-trans-kleschiha", "name": "Контейнерный терминал ТрейдТранс Групп",
+      "settlement": "Новосибирск", "region": "Новосибирская область",
+      "station": "Клещиха", "latitude": 54.961174, "longitude": 82.789902,
+      "modes": ["road", "rail"], "operations": ["container_transfer", "container_storage"]
+    }
+  ]
+}

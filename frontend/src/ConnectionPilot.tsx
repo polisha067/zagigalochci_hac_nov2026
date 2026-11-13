@@ -29,12 +29,10 @@ const labels = {
   pickup_after_24h: "Сценарий: забор через 24 ч после готовности",
 };
 
-const marketScenario = {
-  free_truck_wait_hours: "1",
-  free_storage_hours: "0",
-  transfer_rub: "15000",
-  truck_wait_rub_per_hour: "2500",
-  storage_rub_per_day: "800",
+const marketRateLabels: Record<string, string> = {
+  transfer_rub: "Перегрузка партии",
+  truck_wait_rub_per_hour: "Простой, за час",
+  storage_rub_per_day: "Хранение, за платные сутки",
 };
 
 export function ConnectionPilot({ calculation, candidateId, initial }: {
@@ -71,8 +69,11 @@ export function ConnectionPilot({ calculation, candidateId, initial }: {
     void recalculate(values);
   }
 
-  function applyMarketScenario(rebooking: "0" | "5000") {
-    const conditions = { ...values, ...marketScenario, rebooking_rub: rebooking };
+  function applyMarketScenario() {
+    const conditions = { ...values };
+    for (const [key, rate] of Object.entries(result.market_budget?.rates ?? {})) {
+      if (conditions[key] == null || conditions[key] === "") conditions[key] = String(rate.forecast_amount_rub);
+    }
     setValues(conditions);
     void recalculate(conditions);
   }
@@ -93,20 +94,21 @@ export function ConnectionPilot({ calculation, candidateId, initial }: {
           <b>{money(result.truck_10t_forecast_rub)} {tax}</b>.</>}
         {" "}<a href={result.truck_10t_reference_url}>Прайс перевозчика</a>
       </p>
-      {calculation.forecast?.target_year === 2030 && calculation.request.cost_basis === "including_vat" && (
+      {result.market_budget && (
         <div className="connection-preset">
-          <b>Ориентиры для бюджета на 2030 год</b>
-          <p>Перегрузка 15 000 ₽, простой 2 500 ₽/ч после первого часа, хранение 800 ₽ за начатые сутки. Это сценарные ставки по открытым прайсам, с НДС в смете.</p>
+          <b>Рыночные ориентиры на {calculation.forecast?.target_year} год ({tax})</b>
+          {Object.entries(result.market_budget.rates).map(([key, rate]) => (
+            <p className="table-note" key={key}>
+              {marketRateLabels[key]} · <b>{money(rate.forecast_amount_rub)}</b>.
+              {" "}{rate.method} База {rate.base_year} года — {money(rate.base_amount_rub)}.
+              {" "}<a href={rate.source_url}>{rate.source_name}</a>
+            </p>
+          ))}
           <div className="connection-actions">
-            <button className="outline-button" type="button" disabled={busy} onClick={() => applyMarketScenario("0")}>Без доплаты за подачу</button>
-            <button className="outline-button" type="button" disabled={busy} onClick={() => applyMarketScenario("5000")}>С доплатой 5 000 ₽</button>
+            <button className="outline-button" type="button" disabled={busy} onClick={applyMarketScenario}>Заполнить пустые ставки</button>
           </div>
           <p className="table-note">
-            Доплата 5 000 ₽ задана для сравнения. Уточните, входит ли перегрузка мешков в ж/д тариф.
-            {" "}<a href="https://ekaterinburg.artelgruzchikov.ru/service/razgruzka-kontejnerov">Перегрузка</a>
-            {" · "}<a href="https://tk-tline.ru/tarify-i-ceny-na-gruzoperevozki/">Простой</a>
-            {" · "}<a href="https://logistikaural.ru/docs/price.pdf">Хранение</a>
-            {" · "}<a href="https://tk-20tonn.ru/files/docs/oferta_ooo_20_tonn_ot_26_02_2025.pdf">Ориентир доплаты</a>
+            Для расчёта после пропуска окна уточните стоимость повторной подачи и время следующей машины.
           </p>
         </div>
       )}

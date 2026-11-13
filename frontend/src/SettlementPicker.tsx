@@ -141,7 +141,9 @@ export function SettlementPicker({
                   onClick={() => choose(item)}
                 >
                   <b>{item.name}</b>
-                  {item.region && <small>{item.region}</small>}
+                  {(item.kind || item.region || item.district) && (
+                    <small>{[item.kind, item.region, item.district].filter(Boolean).join(" · ")}</small>
+                  )}
                 </button>
               ))}
               {total > items.length && (

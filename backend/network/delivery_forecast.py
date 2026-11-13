@@ -14,6 +14,7 @@ from backend.calculation_models import Hours, OnceSchedule, Schedule
 from backend.network.air_tariff import YAKUTSK
 from backend.network.connection_pilot import ConnectionConditions, connection_pilot
 from backend.network.forecast_indices import load_indices
+from backend.network.market_assumptions import road_budget
 from backend.network.provider_tariffs import AIR_SOURCE, FORECAST_BASE_SOURCES
 from backend.network.russia import END, SCENARIO, START, RussiaRequest, RussiaResponse, load_russia
 from backend.schedule import build_schedule
@@ -48,6 +49,7 @@ class ForecastRequest(RussiaRequest):
 
 class ForecastResponse(RussiaResponse):
     forecast: dict
+    road_market_estimate: dict | None = None
 
 
 def forecast_options():
@@ -395,7 +397,8 @@ def _normalized_request(request, network, settlements):
     points = [(payload, "origin"), *((stop, "settlement") for stop in payload["stops"]), (payload, "destination")]
     for (item, field), settlement in zip(points, settlements):
         if settlement:
-            item[field] = network.settlements[settlement]["name"]
+            name = network.settlements[settlement]["name"]
+            item[field] = name if not settlement.startswith("gar:") and network.resolve(name) == settlement else settlement
     return payload
 
 
@@ -431,15 +434,37 @@ def calculate_forecast(request, network=None, indices=None):
         **request.model_dump(exclude={"target_year", "schedule", "max_delivery_hours", "connection_conditions"}),
         "schedule": schedule, "max_delivery_hours": horizon, "max_candidates": 16,
     })
-
     @cache
     def index(category, base_year, target_year=request.target_year):
         return indices.estimate(category, base_year, target_year)
 
+    strict_land = request.data_policy == "verified_only" and {"road", "rail"}.intersection(request.allowed_modes)
+    if strict_land:
+        simulation = simulation.model_copy(update={"max_candidates": request.max_candidates})
     result = network.calculate(simulation, project_catalog=lambda catalog: project_catalog(catalog, end),
                                price_weight=_search_weights(network, request, index),
-                               include_dated=request.schedule is not None)
+                               include_dated=request.schedule is not None,
+                               published_forecast_year=request.target_year, indices=indices)
     result["request"] = _normalized_request(request, network, result["settlements"])
+    market = road_budget(network, result, request, indices)
+    result["road_market_estimate"] = market
+    if market:
+        capacity_source = market["capacity_source"]
+        sources = [market["tariff_source"], capacity_source | {
+            "id": "logistic-avto-truck-capacity-benchmark", "status": "market_reference", "roles": ["equipment"]
+        }]
+        ids = {source["id"] for source in result["sources"]}
+        result["sources"].extend(source for source in sources if source["id"] not in ids)
+    if strict_land or result.get("published_coverage") is not None:
+        result["candidates"] = result["candidates"][:request.max_candidates]
+        result["forecast"] = {
+            "target_year": request.target_year, "base_year": BASE_YEAR, "indices_version": indices.version,
+            "model_version": MODEL_VERSION, "date_precision": "date" if request.schedule else "year",
+            "schedule_status": "unconfirmed", "alternative": None,
+            "coverage_status": "partial" if result["candidates"] else "insufficient_data",
+            "assumptions": ["Для прогноза используются применимые опубликованные ставки. Срок и доступность рейса требуют подтверждения."],
+        }
+        return ForecastResponse.model_validate(result)
     for row in result["candidates"]:
         _reprice(row, request, index, events[0], indices)
     continuous = any(stop.no_reload for stop in request.stops)
@@ -453,7 +478,7 @@ def calculate_forecast(request, network=None, indices=None):
     visible = _visible_candidates(candidates, request.max_candidates)
     route = [network.settlements[city]["name"] if city else None for city in result["settlements"]]
     for row in visible:
-        if pilot := connection_pilot(row, route, request):
+        if pilot := connection_pilot(row, route, request, indices):
             row["connection_pilot"] = pilot
     eligible = [row for row in visible if row["status"] == "feasible"]
     best = eligible[0] if eligible else None

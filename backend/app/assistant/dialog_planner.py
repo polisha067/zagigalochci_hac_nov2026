@@ -159,8 +159,8 @@ def resolve_city(value):
             return matching[0], []
     if key in network.by_name:
         return None, network.by_name[key]
-    similar = get_close_matches(key, network.by_name, n=4, cutoff=0.79) if len(key) >= 4 else []
-    choices = [identifier for name in similar for identifier in network.by_name[name]][:5]
+    similar = get_close_matches(key, network.legacy_names, n=4, cutoff=0.79) if len(key) >= 4 else []
+    choices = [identifier for name in similar for identifier in network.legacy_names[name]][:5]
     if len(choices) == 1 and SequenceMatcher(None, key, similar[0]).ratio() >= 0.86:
         return choices[0], []
     return None, choices
@@ -174,32 +174,42 @@ def _point_phrase(phrase):
 def _city_prefix(phrase):
     network = load_russia()
     # Only examine the name at the start of a directional phrase.
+    city, separator, rest = phrase.partition(",")
+    if separator and (identifier := network.resolve(f"{_point_phrase(city)}, {_point_phrase(rest)}")):
+        return identifier
     point = _point_phrase(phrase)
     if YAKUTIA_REGION.fullmatch(clean(point)):
         return point
     words = point.split()
     matches = []
+    exact_new = []
     for length in range(1, min(4, len(words)) + 1):
         raw = " ".join(words[:length])
         key = normalized_name(raw)
         joined = "-".join(words[:length])
-        if city := network.resolve(ALIASES.get(clean(raw), raw)) or network.resolve(joined):
+        known = ALIASES.get(clean(raw), raw)
+        old_ids = network.legacy_names.get(normalized_name(known)) or network.legacy_names.get(normalized_name(joined))
+        if old_ids and (city := network.resolve(known) or network.resolve(joined)):
             matches.append((1.0, length, raw, [city]))
-        elif key in network.by_name:
+        elif old_ids and key in network.by_name:
             matches.append((1.0, length, raw, network.by_name[key]))
         else:
-            names = [name for name in network.by_name if name[:2] == key[:2]]
+            if key in network.by_name:
+                exact_new.append((1.0, length, raw, network.by_name[key]))
+            names = [name for name in network.legacy_names if name[:2] == key[:2]]
             for name in names:
                 if len(name.split()) == length and all(_word_matches(a, b) for a, b in zip(key.split(), name.split())):
                     score = SequenceMatcher(None, key, name).ratio()
-                    matches.append((max(0.84, score), length, raw, network.by_name[name]))
+                    matches.append((max(0.84, score), length, raw, network.legacy_names[name]))
             for name in get_close_matches(key, names, n=2, cutoff=0.81):
-                matches.append((SequenceMatcher(None, key, name).ratio(), length, raw, network.by_name[name]))
+                matches.append((SequenceMatcher(None, key, name).ratio(), length, raw, network.legacy_names[name]))
             # A city name can be missing both a letter and a hyphen.
             for spelling in dict.fromkeys((key, normalized_name(joined))):
-                candidates = (name for name in network.by_name if len(name.split()) == len(spelling.split()))
+                candidates = (name for name in network.legacy_names if len(name.split()) == len(spelling.split()))
                 for name in get_close_matches(spelling, candidates, n=3, cutoff=0.86):
-                    matches.append((SequenceMatcher(None, spelling, name).ratio(), length, raw, network.by_name[name]))
+                    matches.append((SequenceMatcher(None, spelling, name).ratio(), length, raw, network.legacy_names[name]))
+    if exact_new and (len(words) == max(row[1] for row in exact_new) or not matches):
+        matches.extend(exact_new)
     if not matches:
         return None
     matches.sort(key=lambda row: (-row[0], -row[1]))

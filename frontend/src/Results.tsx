@@ -12,6 +12,7 @@ import {
 import { RouteMap } from "./RouteMap";
 import { ConnectionPilot } from "./ConnectionPilot";
 import { ForecastOverview } from "./ForecastOverview";
+import { PublishedCoverage, RoadMarketEstimate } from "./PublishedCoverage";
 import { Results as LegacyResults } from "./LegacyResults";
 import type { Calculation, Candidate, Source } from "./networkApi";
 import {
@@ -965,7 +966,8 @@ function NetworkResults({
           </p>
         </div>
       )}
-      {r.candidates.length === 0 ? (
+      <RoadMarketEstimate result={r} />
+      {r.published_coverage ? <PublishedCoverage result={r} /> : r.candidates.length === 0 ? (
         <section className="empty-state perforated">
           <h2>В загруженной сети вариант не найден</h2>
           <p>
@@ -1132,7 +1134,7 @@ function NetworkResults({
           </div>
         </>
       )}
-      <div className="result-notices">
+      {!r.published_coverage && <div className="result-notices">
         {!r.recommendation && r.candidates.length > 0 && (
           <div className="notice warning">
             <b>Нет допустимого варианта для рекомендации</b>
@@ -1149,7 +1151,7 @@ function NetworkResults({
               <Issues c={c} />
             </div>
           ))}
-      </div>
+      </div>}
       {base && (
         <p className="table-note">
           Разница к авто вычислена относительно самого дешёвого допустимого

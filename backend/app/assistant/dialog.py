@@ -340,6 +340,10 @@ def _apply_changes(current, action, changes, message):
         arguments["stops"] = [{"settlement": stop["settlement"], "action": "visit"} for stop in previous.get("stops", [])]
     arguments.setdefault("stops", [])
     changes = dict(changes)
+    if re.search(r"\bтолько\s+(?:подтвержденн\w+|опубликованн\w+)\s+(?:данн\w+|ставк\w+|тариф\w+)", clean(message)):
+        changes["data_policy"] = "verified_only"
+    elif re.search(r"\bможно\s+(?:с\s+)?(?:сценарн\w+\s+)?допущен\w+", clean(message)):
+        changes["data_policy"] = "allow_assumptions"
     for field in ("preferred_mode", "objective", "deliver_by"):
         if field in changes:
             value = changes.pop(field)

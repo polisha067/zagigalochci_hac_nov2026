@@ -3,13 +3,12 @@ import { StreetRouteMap } from "./StreetRouteMap";
 import { request } from "./api";
 import countriesUrl from "./assets/natural-earth-countries.json?url";
 import { airForecastFlightHours, candidateName, forecastMoney, hours, money } from "./model";
-import type { Candidate, Settlement, SettlementPage } from "./networkApi";
+import type { Candidate, Settlement } from "./networkApi";
 
 type Hub = Candidate["route_hubs"][number];
 type Point = { x: number; y: number };
 const width = 900;
 const height = 360;
-const pageSize = 250;
 // Natural Earth, 1:110m admin-0 countries, public domain.
 type Countries = [number, number][][][];
 
@@ -102,6 +101,8 @@ export function RouteMap({ candidates, recommendation, opened, onOpen }: {
   const gridId = useId();
   const [settlements, setSettlements] = useState<Settlement[]>([]);
   const [countries, setCountries] = useState<Countries>([]);
+  const settlementIds = [...new Set(candidates.flatMap((candidate) =>
+    (candidate.route_hubs || []).flatMap((hub) => hub.settlement_id ? [hub.settlement_id] : [])))].sort().join(",");
   useEffect(() => {
     const controller = new AbortController();
     void fetch(countriesUrl, { signal: controller.signal })
@@ -110,24 +111,20 @@ export function RouteMap({ candidates, recommendation, opened, onOpen }: {
         if (!controller.signal.aborted) setCountries(data);
       })
       .catch(() => {});
-    const load = (offset: number) => request<SettlementPage>(
-      `/network/russia/options?limit=${pageSize}&offset=${offset}`,
-      { signal: controller.signal },
-    );
-    async function loadSettlements() {
-      const first = await load(0);
-      const rest = await Promise.all(Array.from(
-        { length: Math.ceil(first.total / pageSize) - 1 },
-        (_, index) => load((index + 1) * pageSize),
-      ));
-      if (!controller.signal.aborted)
-        setSettlements([first, ...rest].flatMap((page) => page.settlements));
-    }
-    void loadSettlements().catch(() => {
-      // The route topology remains usable if coordinates cannot be loaded.
-    });
     return () => controller.abort();
   }, []);
+  useEffect(() => {
+    const controller = new AbortController();
+    setSettlements([]);
+    if (!settlementIds) return;
+    const query = new URLSearchParams(settlementIds.split(",").map((id) => ["ids", id]));
+    void request<{ settlements: Settlement[] }>(`/network/russia/settlements?${query}`, {
+      signal: controller.signal,
+    }).then((result) => {
+      if (!controller.signal.aborted) setSettlements(result.settlements);
+    }).catch(() => {});
+    return () => controller.abort();
+  }, [settlementIds]);
 
   const hubs = [...new Map(candidates.flatMap((candidate) => (candidate.route_hubs || [])
     .map((hub) => [hubKey(hub), hub] as const))).values()];

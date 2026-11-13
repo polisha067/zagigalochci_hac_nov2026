@@ -541,6 +541,12 @@ def create_app(settings=None, *, assistant_planner: Optional[TurnPlanner] = None
     def russia_options(query: str = Query(default="", max_length=100), offset: int = Query(default=0, ge=0), limit: int = Query(default=50, ge=1, le=250)):
         return load_russia().options(query, offset, limit) | {"delivery_forecast": delivery_forecast_options()}
 
+    @app.get("/network/russia/settlements", tags=["Общая сеть России"])
+    def russia_settlements(ids: list[str] = Query(max_length=250, min_length=1)):
+        network = load_russia()
+        return {"settlements": [network.settlements[identifier] for key in dict.fromkeys(ids)
+                                if (identifier := network.gar_aliases.get(key, key)) in network.settlements]}
+
     @app.get("/network/russia/hubs", tags=["Общая сеть России"])
     def russia_hubs(settlement: str = Query(max_length=100)):
         network=load_russia();identifier=network.resolve(settlement)

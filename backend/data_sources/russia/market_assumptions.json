@@ -1,0 +1,35 @@
+{
+  "version": "market-assumptions-2026-11-13",
+  "truck": {
+    "name": "Логистик Авто — характеристики фур до 20 т",
+    "url": "https://logistic-avto.ru/autopark/gruzoperevozki-do-20-tonn/",
+    "observed_on": "2026-11-13",
+    "max_tonnes": 20,
+    "assumed_m3": 86,
+    "published_volume_range_m3": [86, 120]
+  },
+  "connection": {
+    "handling": {
+      "name": "ТК «АиВ» — перевалка грузов, п. 4 и 6",
+      "url": "https://tkaiv.ru/images/docs/price/tkaiv.ru-price-transshipment-20260101.pdf",
+      "base_year": 2026,
+      "unpack_loose_20ft_rub_excluding_vat": 20500,
+      "load_rub_per_tonne_excluding_vat": 1300,
+      "scenario_vat_percent": 22
+    },
+    "waiting": {
+      "name": "Targo — почасовая работа крытой машины 20 т в Екатеринбурге",
+      "url": "https://targotrans.ru/price",
+      "base_year": 2026,
+      "rub_per_hour_including_vat": 3350,
+      "rub_per_hour_excluding_vat": 2750
+    },
+    "storage": {
+      "name": "ЦИТ Екатеринбург — хранение прибывшего гружёного контейнера, п. 4",
+      "url": "https://cit-ekb.ru/media/uploads/%D0%BF%D1%80%D0%B8%D0%BB%D0%BE%D0%B6%D0%B5%D0%BD%D0%B8%D0%B5_%E2%84%961.1_%D0%BF%D1%80%D0%B0%D0%B9%D1%81_%D1%82%D0%B5%D1%80%D0%BC%D0%B8%D0%BD%D0%B0%D0%BB%D1%8C%D0%BD%D1%8B%D0%B9_%282023%29.pdf",
+      "base_year": 2023,
+      "rub_per_billable_day_including_vat": 500,
+      "vat_percent": 20
+    }
+  }
+}

@@ -102,6 +102,30 @@ class AssistantDialogTests(unittest.TestCase):
         self.assertEqual(form.status_code, 200, form.text)
         self.assertEqual(calculation, form.json())
 
+    def test_road_market_estimate_matches_guest_form_and_respects_policy(self):
+        cargo = {"name": "Мука", "weight_tonnes": 100, "volume_m3": 200,
+                 "packaging": "bags", "splittable": True}
+        message = ("Из Воронежа в Новокузнецк в 2030 году, только авто. "
+                   "100 тонн муки в мешках, 200 м³, делимая партия.")
+        answer = self.send(message, "new", {
+            "origin": "Воронеж", "destination": "Новокузнецк", "target_year": 2030,
+            "allowed_modes": ["road"], "cargoes": [cargo],
+        })["answer"]
+        self.assertEqual(answer["kind"], "calculation", answer)
+        calculation = answer["calculation"]
+        self.assertEqual(calculation["road_market_estimate"]["forecast_road_rub"], 597110.15)
+        self.assertIn("Сценарная оценка основного автоплеча", answer["reply"])
+
+        self.client.cookies.clear()
+        form = self.client.post("/network/russia/forecasts", json=calculation["request"])
+        self.assertEqual(form.status_code, 200, form.text)
+        self.assertEqual(form.json()["road_market_estimate"], calculation["road_market_estimate"])
+
+        strict = calculation["request"] | {"data_policy": "verified_only"}
+        form = self.client.post("/network/russia/forecasts", json=strict)
+        self.assertEqual(form.status_code, 200, form.text)
+        self.assertIsNone(form.json()["road_market_estimate"])
+
     def test_show_all_routes_clears_air_only_restriction(self):
         first = self.send(
             "Новый расчёт. Москва → Якутск, 2031 год. Только прямое авиа. "

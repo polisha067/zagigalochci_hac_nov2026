@@ -78,6 +78,8 @@ def calculation_sources(result, engine):
 
 
 def forecast_summary(result):
+    if result.published_coverage is not None:
+        return _published_summary(result)
     forecast = result.forecast
     rows = result.candidates
     chosen = next((row for row in rows if row["id"] == result.recommendation), None)
@@ -203,9 +205,40 @@ def forecast_summary(result):
     return "\n\n".join(lines)
 
 
+def _published_summary(result):
+    coverage = result.published_coverage
+    lines = []
+    road = coverage["truck_path"]
+    if road["status"] == "found":
+        lines.append(f"Грузовой путь по дорожному графу — {number(road['distance_km'])} км.")
+    for row in result.candidates[:3]:
+        rate = row["published_rate"]
+        tax = "с НДС" if rate["vat"] == "included" else "НДС в источнике не указан"
+        entry = f"{rate['origin']} → {rate['destination']}, {rate['equipment']}: {number(rate['published_amount_rub'])} ₽ за единицу ({tax})."
+        if rate["forecast_amount_rub"] is not None:
+            entry += f" Прогноз по опубликованной базе на {rate['forecast_year']} год — {number(rate['forecast_amount_rub'])} ₽ за единицу."
+        if row["known_cost_subtotal_rub"] is not None:
+            entry += f" Частичная смета — {number(row['known_cost_subtotal_rub'])} ₽ {VAT[result.request['cost_basis']]}."
+        lines.append(entry)
+    if not result.candidates:
+        lines.append("Опубликованная ставка для выбранных условий в каталоге не найдена.")
+    lines.append("Полная цена и доступность перевозки требуют котировки перевозчика. "
+                 "Для этого направления нет фактического ряда объёмов. В отчёте доступна статистика по России.")
+    return "\n\n".join(lines)
+
+
 def engine_summary(result):
     if isinstance(result, ForecastResponse):
-        return forecast_summary(result)
+        reply = forecast_summary(result)
+        if estimate := result.road_market_estimate:
+            reply += (f"\n\nСценарная оценка основного автоплеча на {estimate['target_year']} год — "
+                      f"{number(estimate['forecast_road_rub'])} ₽. Количество машин — {estimate['trucks']}, "
+                      f"до {estimate['tonnes_per_truck']} т и {estimate['assumed_m3_per_truck']} м³ на машину. "
+                      f"Прогноз ставки — {number(estimate['forecast_unit_rub'])} ₽ за машину. "
+                      "НДС не указан. Подтвердите раскладку и цену всей партии у перевозчика.")
+        return reply
+    if isinstance(result, RussiaResponse) and result.published_coverage is not None:
+        return _published_summary(result)
     if isinstance(result, PipelineResponse):
         data = snapshot(PIPELINE_PATH)
         points = pipeline_points(data)

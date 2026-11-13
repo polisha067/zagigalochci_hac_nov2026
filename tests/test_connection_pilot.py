@@ -46,6 +46,11 @@ class ConnectionPilotTests(unittest.TestCase):
         row, = [candidate for candidate in result.candidates if "connection_pilot" in candidate]
         self.assertEqual(row["modes"], ["rail", "road"])
         pilot = row["connection_pilot"]
+        market = pilot["market_budget"]["rates"]
+        self.assertEqual(market["transfer_rub"]["base_amount_rub"], 40870)
+        self.assertGreater(market["transfer_rub"]["forecast_amount_rub"], 40870)
+        self.assertEqual(market["storage_rub_per_day"]["base_year"], 2023)
+        self.assertNotIn("rebooking_rub", market)
         self.assertEqual(pilot["movement_rub"], 222409.43)
         self.assertEqual(pilot["truck_10t_forecast_rub"], 134410.22)
         self.assertEqual(row["total_cost_rub"], 233011.84)

@@ -13,6 +13,8 @@ export interface Settlement {
   id: string;
   name: string;
   region?: string;
+  district?: string;
+  kind?: string;
   latitude?: number | null;
   longitude?: number | null;
   provenance?: string;
@@ -168,6 +170,17 @@ export interface ConnectionPilot {
   truck_10t_reference_rub: number;
   truck_10t_forecast_rub: number | null;
   truck_10t_reference_url: string;
+  market_budget?: {
+    version: string;
+    rates: Record<string, {
+      base_amount_rub: number;
+      forecast_amount_rub: number;
+      base_year: number;
+      source_name: string;
+      source_url: string;
+      method: string;
+    }>;
+  } | null;
   scenarios: {
     scenario: "planned" | "within_buffer" | "requested" | "pickup_after_6h" | "pickup_after_24h";
     delay_hours: number;
@@ -218,6 +231,20 @@ export interface Candidate {
   }[];
   stop_actions: (Stop & { hub_id: string; settlement_id?: string })[];
   booking_confirmed?: boolean;
+  published_rate?: {
+    equipment: string;
+    published_amount_rub: number;
+    forecast_amount_rub: number | null;
+    forecast_year: number | null;
+    observed_on: string;
+    valid_from?: string;
+    vat: string;
+    source_url: string;
+    distance_km?: number;
+    transit_days?: number[];
+    security_rub?: number;
+    separate_services?: { name: string; from_rub: number; unit: string }[];
+  };
   forecast_price?: {
     annual_series?: {
       year: number;
@@ -286,6 +313,34 @@ export interface Calculation {
     hubs: number;
     services: number;
     transfers: number;
+  } | null;
+  published_coverage?: {
+    truck_path: { status: string; distance_km?: number; navigation_hours?: number; graph_version?: string | null };
+    terminals?: { id: string; name: string; station: string; operation: string; path: { status: string; distance_km?: number } }[];
+    other_tariffs: {
+      origin: string; destination: string; source_url: string; from_rub_per_kg?: number; from_rub_per_m3?: number;
+      amount_rub?: number; equipment?: string;
+    }[];
+    volume: {
+      status: string;
+      observations: { year: number; mode: Mode; geography: string; indicator: string; unit: string; value: number }[];
+    };
+  } | null;
+  road_market_estimate?: {
+    version: string;
+    origin: string;
+    destination: string;
+    target_year: number;
+    base_year: number;
+    trucks: number;
+    tonnes_per_truck: number;
+    assumed_m3_per_truck: number;
+    base_unit_rub: number;
+    forecast_unit_rub: number;
+    forecast_road_rub: number;
+    vat: "unknown";
+    tariff_source: { name: string; url: string };
+    capacity_source: { name: string; url: string };
   } | null;
   forecast?: {
     indices_version?: string;

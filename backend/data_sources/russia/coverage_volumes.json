@@ -1,0 +1,19 @@
+{
+  "source": {
+    "id": "rosstat-russia-2025-transport",
+    "name": "Росстат — Россия 2025, перевозки грузов и грузооборот, стр. 78",
+    "url": "https://rosstat.gov.ru/storage/mediabank/Rossia_2025.pdf",
+    "status": "fact",
+    "roles": ["volume_context"]
+  },
+  "observations": [
+    {"mode": "road", "year": 2023, "geography": "Россия", "aggregation": "country", "indicator": "freight_mass", "unit": "million_tonnes", "value": 6491.2},
+    {"mode": "road", "year": 2024, "geography": "Россия", "aggregation": "country", "indicator": "freight_mass", "unit": "million_tonnes", "value": 6775.9},
+    {"mode": "rail", "year": 2023, "geography": "Россия", "aggregation": "country", "indicator": "freight_mass", "unit": "million_tonnes", "value": 1365.2},
+    {"mode": "rail", "year": 2024, "geography": "Россия", "aggregation": "country", "indicator": "freight_mass", "unit": "million_tonnes", "value": 1306.1},
+    {"mode": "road", "year": 2023, "geography": "Россия", "aggregation": "country", "indicator": "freight_turnover", "unit": "billion_tonne_km", "value": 362.2},
+    {"mode": "road", "year": 2024, "geography": "Россия", "aggregation": "country", "indicator": "freight_turnover", "unit": "billion_tonne_km", "value": 387.4},
+    {"mode": "rail", "year": 2023, "geography": "Россия", "aggregation": "country", "indicator": "freight_turnover", "unit": "billion_tonne_km", "value": 2638.3},
+    {"mode": "rail", "year": 2024, "geography": "Россия", "aggregation": "country", "indicator": "freight_turnover", "unit": "billion_tonne_km", "value": 2525.2}
+  ]
+}

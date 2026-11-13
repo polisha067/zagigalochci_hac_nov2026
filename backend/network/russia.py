@@ -11,6 +11,7 @@ import hashlib
 import heapq
 import itertools
 import json
+from functools import cached_property
 from pathlib import Path
 from typing import Annotated, List, Literal, Optional
 
@@ -19,9 +20,11 @@ from pydantic import Field, model_validator
 from backend.calculation_models import InputModel, Text, Schedule, Hours, NonnegativeHours
 from backend.network.air_tariff import YAKUTSK, bundled_air_tariff, latest_air_snapshot, read_air_snapshot, yakutsk_today
 from backend.network.cargo import normalized_name
+from backend.network.coverage_catalog import merge_settlements, settlement_catalog
 from backend.network.engine import calculate_network
 from backend.network.graph import FreightNetwork
 from backend.network.models import NetworkCargo, NetworkRequest, Mode
+from backend.network.published_land import calculate_published, index_tariffs
 from backend.network.provider_tariffs import (
     AIR_SOURCE, LOGISTIC_AVTO_SOURCE, RAIL_SOURCE, ROAD_SOURCE, SEA_EQUIPMENT_SOURCE, SEA_SOURCE,
     SIBIR_RAIL_SOURCE, logistic_avto_corridors, logistic_avto_tariffs, observations, rate_evidence, sibir_rail_tariffs,
@@ -119,6 +122,7 @@ class RussiaResponse(InputModel):
     search: dict
     stops: List[dict]
     selected_subgraph: Optional[dict]
+    published_coverage: Optional[dict] = None
 
 
 def digest(data):
@@ -130,12 +134,13 @@ def digest(data):
 
 
 class RussiaNetwork:
-    def __init__(self, snapshot=None, *, tlm_tariff=None, tlm_road_tariff=None, air_tariff=None):
+    def __init__(self, snapshot=None, *, tlm_tariff=None, tlm_road_tariff=None, air_tariff=None, registry=None):
         self.tlm_tariff = tlm_tariff if tlm_tariff is not None else bundled_tariff()
         self.tlm_road_tariff = tlm_road_tariff if tlm_road_tariff is not None else bundled_road_tariff()
         self.air_tariff = air_tariff if air_tariff is not None else bundled_air_tariff()
         self.snapshot = snapshot or json.loads((ROOT/'data_sources/russia/connectivity.json').read_text())
         self.settlements = {c['id']:dict(c, provenance='source-01') for c in self.snapshot['settlements']}
+        self.gar_aliases = {}
         self.by_name = defaultdict(list)
         for city in self.settlements.values():
             self.by_name[normalized_name(city['name'])].append(city['id'])
@@ -206,9 +211,23 @@ class RussiaNetwork:
         self.load_fesco()
         self.load_pipeline()
         self.load_land_tariffs()
+        self.legacy_names = {name: tuple(ids) for name, ids in self.by_name.items()}
+        self.registry = registry
+        if registry is not None:
+            self.gar_aliases = merge_settlements(self.settlements, registry["settlements"])
+            for city in registry["settlements"]:
+                if city["id"] not in self.gar_aliases:
+                    self.by_name[normalized_name(city["name"])].append(city["id"])
+            self.sources[registry["source"]["id"]] = registry["source"]
+            if registry.get("census"):
+                self.sources[registry["census"]["id"]] = registry["census"]
+        self._settlement_search = sorted(
+            ((normalized_name(city["name"]), city) for city in self.settlements.values()),
+            key=lambda row: (row[0], row[1]["id"]),
+        )
         self.incoming = defaultdict(list)
         for edge in self.edges.values():self.incoming[edge["to_hub"]].append(edge)
-        self.fingerprint = digest({'model_revision':'2026-11-08.1','snapshot':self.snapshot,'edges':self.edges,'hubs':self.hubs,'sources':self.sources,'pipeline':self.pipeline,'reference_ports':self.reference_ports})
+        self.fingerprint = digest({'model_revision':'2026-11-08.1','snapshot':self.snapshot,'edges':self.edges,'hubs':self.hubs,'sources':self.sources,'pipeline':self.pipeline,'reference_ports':self.reference_ports,'registry_regions':registry["regions"] if registry else None})
         for edges in self.outgoing.values():
             edges.sort(key=lambda edge:edge['id'])
 
@@ -462,20 +481,47 @@ class RussiaNetwork:
 
     def resolve(self, value):
         if value in self.settlements:return value
-        matches=self.by_name.get(normalized_name(value),[])
+        if value in self.gar_aliases:return self.gar_aliases[value]
+        name, separator, territory = value.partition(",")
+        matches = self.by_name.get(normalized_name(name), [])
+        if separator and normalized_name(territory):
+            qualifier = normalized_name(territory)
+            matches = [identifier for identifier in matches if any(
+                qualifier in normalized_name(self.settlements[identifier].get(field) or "")
+                for field in ("region", "district"))]
+        if not separator and len(matches) > 1:
+            cities = [identifier for identifier in matches if self.settlements[identifier].get("kind") == "г."]
+            if len(cities) == 1:
+                return cities[0]
         return matches[0] if len(matches)==1 else None
 
     def options(self, query='', offset=0, limit=50):
-        rows=[c for c in self.settlements.values() if normalized_name(query) in normalized_name(c['name'])]
-        rows.sort(key=lambda c:(c['name'],c['id']))
+        name, _, territory = query.partition(",")
+        key, qualifier = normalized_name(name), normalized_name(territory)
+        rows = [city for search, city in self._settlement_search if key in search and (
+            not qualifier or any(qualifier in normalized_name(city.get(field) or "") for field in ("region", "district")))]
+        if key:
+            rows.sort(key=lambda city: (normalized_name(city["name"]) != key,
+                                        not normalized_name(city["name"]).startswith(key),
+                                        -city.get("population", 0)))
         return {'network_id':ID,'fingerprint':self.fingerprint,'total':len(rows),'offset':offset,'limit':limit,'settlements':rows[offset:offset+limit],
                 'coverage':self.coverage(),'stop_actions':['visit','pickup','delivery','pickup_delivery'],'arbitrary_addresses_supported':False}
 
+    @cached_property
+    def published_tariffs(self):
+        return index_tariffs(self)
+
     def coverage(self):
+        registry = None
+        if self.registry is not None:
+            registry = {'source': self.registry['source']['id'], 'gar_localities': len(self.registry['settlements']),
+                        'region_files_with_localities': sum(bool(row['records']) for row in self.registry['regions'])}
         return {'settlements':len(self.settlements),'observed_settlements':len(self.snapshot['settlements']), 'hubs':len(self.hubs),
                 'connections_by_mode':dict(Counter(e['mode'] for e in self.edges.values())), 'observations':self.observation_counts,
                 'ports_reference_only':len(self.reference_ports),'operational_connections_confirmed':False,
-                'geography':'Все пригодные направленные связи предоставленного набора; не все населённые пункты РФ',
+                'settlement_registry':registry,
+                'geography':('Поиск по реестру населённых пунктов ГАР. Расчётные связи и тарифы имеют отдельное покрытие.'
+                             if registry else 'Все пригодные направленные связи предоставленного набора; не все населённые пункты РФ'),
                 'model':'Сценарная грузовая модель поверх исходной связности; реальные тарифы/даты провайдеров сохраняются отдельно',
                 'limitations':self.coverage_notes+['Отсутствующие связи не достраиваются по прямой линии.','Общие объёмы АСОП/Росстата не становятся тарифом или свободной мощностью.']}
 
@@ -733,7 +779,8 @@ class RussiaNetwork:
         if len(found)>request.max_candidates:stats['truncated']=True
         return found[:request.max_candidates],stats
 
-    def calculate(self, payload, *, project_catalog=None, price_weight=None, include_dated=True):
+    def calculate(self, payload, *, project_catalog=None, price_weight=None, include_dated=True,
+                  published_forecast_year=None, indices=None):
         request=payload if isinstance(payload,RussiaRequest) else RussiaRequest.model_validate(payload)
         events,_,_=build_schedule(request.schedule)
         if len(events)>64:raise ValueError('Не более 64 отправок за один сетевой расчёт')
@@ -765,9 +812,14 @@ class RussiaNetwork:
         for cargo in request.cargoes:
             pi=pickups.get(cargo.id,-1);di=deliveries.get(cargo.id,len(via))
             if pi>=di:raise ValueError('Погрузка позиции должна предшествовать её выгрузке: '+cargo.id)
+        if request.data_policy == 'verified_only' and {'road', 'rail'}.intersection(request.allowed_modes):
+            return calculate_published(self, base | {"stops": stops}, request, events, published_forecast_year, indices)
         paths,search=self.paths(starts,targets,via,request,events,price_weight=price_weight,include_dated=include_dated)
         base['search']=search;base['stops']=stops
         if not paths:
+            if self.registry and {'road', 'rail'}.intersection(request.allowed_modes) and any(
+                    city.startswith("gar:") for city in resolved):
+                return calculate_published(self, base, request, events, published_forecast_year, indices)
             base['status']='no_route_in_dataset';base['warnings'].append('Нет цепочки в выбранных видах транспорта, датах и пределах поиска; это не доказательство отсутствия перевозки в РФ.')
             return base
         if any(e['mode']=='pipeline' for path in paths for e in path) and request.mass_basis!='net':
@@ -833,7 +885,8 @@ from functools import lru_cache
 def _load_russia(tlm_snapshot, road_snapshot, air_snapshot):
     return RussiaNetwork(tlm_tariff=read_snapshot(tlm_snapshot) if tlm_snapshot else None,
                          tlm_road_tariff=read_snapshot(road_snapshot) if road_snapshot else None,
-                         air_tariff=read_air_snapshot(air_snapshot) if air_snapshot else None)
+                         air_tariff=read_air_snapshot(air_snapshot) if air_snapshot else None,
+                         registry=settlement_catalog())
 
 
 def load_russia(*, tariff_date=None, air_tariff_date=None):
