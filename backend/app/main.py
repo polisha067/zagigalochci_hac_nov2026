@@ -310,12 +310,16 @@ def create_app(settings=None, *, assistant_planner: Optional[TurnPlanner] = None
         check_reset_code(app.state.verification, payload.verification_id, payload.code)
         return Response(status_code=204)
 
-    @app.post("/auth/reset-password", status_code=204, tags=["Авторизация"])
-    def confirm_password_reset(payload: ResetPasswordRequest, request: Request):
+    @app.post("/auth/reset-password", response_model=UserResponse, tags=["Авторизация"])
+    def confirm_password_reset(payload: ResetPasswordRequest, request: Request, response: Response):
         limit_attempts(request, "password-reset-confirm")
-        reset_password(app.state.verification, app.state.password_hash, payload.verification_id,
-                       payload.code, payload.new_password.get_secret_value())
-        return Response(status_code=204)
+        user, token = reset_password(
+            app.state.verification, app.state.password_hash, payload.verification_id,
+            payload.code, payload.new_password.get_secret_value(),
+            start_session=lambda connection, user_id: new_session(connection, request, user_id),
+        )
+        set_cookie(response, token)
+        return {"user": public_user(user)}
 
     @app.get("/auth/me", response_model=UserResponse, tags=["Авторизация"])
     def me(user=Depends(require_user)):

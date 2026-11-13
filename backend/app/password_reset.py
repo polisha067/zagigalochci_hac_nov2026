@@ -59,7 +59,7 @@ def checked_reset_user(connection, verification, verification_id, code):
     return None
 
 
-def reset_password(verification, password_hasher, verification_id, code, new_password):
+def reset_password(verification, password_hasher, verification_id, code, new_password, *, start_session):
     with verification.database.connect() as connection:
         connection.execute("BEGIN IMMEDIATE")
         user_id = checked_reset_user(connection, verification, verification_id, code)
@@ -73,5 +73,8 @@ def reset_password(verification, password_hasher, verification_id, code, new_pas
             connection.execute("DELETE FROM sessions WHERE user_id = ?", (user_id,))
             connection.execute("DELETE FROM pending_registrations WHERE existing_user_id = ?", (user_id,))
             connection.execute("DELETE FROM password_resets WHERE verification_id = ?", (verification_id,))
+            user = connection.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+            token = start_session(connection, user_id)
     if user_id is None:
         raise invalid_reset_code()
+    return user, token

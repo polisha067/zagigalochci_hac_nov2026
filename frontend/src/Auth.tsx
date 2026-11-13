@@ -269,13 +269,13 @@ export function Auth({
         });
         setMode("reset");
       } else if (mode === "reset" && reset) {
-        await post<void>("/auth/reset-password", {
-          verification_id: reset.verification_id,
-          code: code.join(""),
-          new_password: password,
-        });
-        switchMode("login");
-        setNotice("Пароль изменён. Войдите с новым паролем.");
+        accept(
+          await post<{ user: User }>("/auth/reset-password", {
+            verification_id: reset.verification_id,
+            code: code.join(""),
+            new_password: password,
+          }),
+        );
       } else if (mode === "verify" && pending)
         accept(
           await post<AuthResponse>("/auth/verify-email", {
