@@ -297,11 +297,16 @@ function Workspace({
           <>
             <div className="forecast-page-heading intake-heading">
               <div>
-                <span className="forecast-eyebrow">Шаг 1 из 2 · Условия перевозки</span>
-                <h1>Начните с вашей задачи</h1>
-                <p>Заполните форму или опишите перевозку агенту. Прогноз и сравнение маршрутов откроются на следующей странице.</p>
+                <span className="forecast-eyebrow">Планирование перевозки</span>
+                <h1>Куда отправим груз?</h1>
+                <p>Сравните способы доставки, сроки и бюджет.</p>
               </div>
-              {current && <button className="outline-button" onClick={() => navigate(calculationHash)}>К результату →</button>}
+              <ol className="intake-progress" aria-label="Этапы планирования">
+                <li aria-current="step"><b>01</b><span>Условия</span></li>
+                <li><b>02</b><span>Сравнение</span></li>
+                <li><b>03</b><span>Прогноз</span></li>
+              </ol>
+              {current && <button className="outline-button intake-return" onClick={() => navigate(calculationHash)}>К результату →</button>}
             </div>
             <div className="forecast-workspace forecast-intake">
               <ConditionsForm

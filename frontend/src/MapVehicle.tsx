@@ -1,6 +1,6 @@
 import { transportMarkup } from "./mapTransportIcons";
 import { useEffect, useRef } from "react";
-import { routeSampler, turnHeading, transportNames, type MapSegment } from "./mapRouteGeometry";
+import { ROUTE_ANIMATION_MS, routeSampler, turnHeading, transportNames, type MapSegment } from "./mapRouteGeometry";
 
 export function MapVehicle({ segments, playing }: { segments: MapSegment[]; playing: boolean }) {
   const marker = useRef<SVGGElement>(null);
@@ -25,7 +25,7 @@ export function MapVehicle({ segments, playing }: { segments: MapSegment[]; play
       if (icon) icon.style.transform = `rotate(${point.mode === "pipeline" ? 0 : heading.current - 180}deg)`;
     };
     function tick(now: number) {
-      if (last) progress.current = (progress.current + Math.min(now - last, 80) / 16000) % 1;
+      if (last) progress.current = (progress.current + Math.min(now - last, 80) / ROUTE_ANIMATION_MS) % 1;
       last = now;
       paint();
       frame = requestAnimationFrame(tick);

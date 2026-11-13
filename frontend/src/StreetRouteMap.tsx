@@ -1,3 +1,4 @@
+import type { TrackSegment } from "./useRouteTrack";
 import { transportMarkup } from "./mapTransportIcons";
 import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
@@ -7,13 +8,14 @@ import { setWorkerUrl } from "maplibre-gl";
 import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { candidateName } from "./model";
-import { routeSampler, turnHeading, sampleMapRoute, transportNames, type MapSegment } from "./mapRouteGeometry";
+import { ROUTE_ANIMATION_MS, routeSampler, turnHeading, sampleMapRoute, transportNames, type MapSegment } from "./mapRouteGeometry";
 import type { Candidate, Settlement } from "./networkApi";
 setWorkerUrl(workerUrl);
 
 type Scene = { select: (id: string | null, playing: boolean) => void; fit: () => void; focus: (id: string | null) => void };
-export function StreetRouteMap({ candidates, settlements, recommendation, opened, onOpen, playing = true, fitRequest = 0, onReadyChange }: {
+export function StreetRouteMap({ candidates, settlements, recommendation, opened, onOpen, playing = true, fitRequest = 0, onReadyChange, track }: {
   candidates: Candidate[]; settlements: Settlement[]; recommendation: string | null; opened: string | null;
+  track?: TrackSegment[];
   onOpen: (id: string) => void; playing?: boolean; fitRequest?: number; onReadyChange?: (ready: boolean) => void;
 }) {
   const container = useRef<HTMLDivElement>(null);
@@ -47,13 +49,14 @@ export function StreetRouteMap({ candidates, settlements, recommendation, opened
     webgl.getExtension("WEBGL_lose_context")?.loseContext();
     const map = L.map(container.current, { scrollWheelZoom: false, zoomControl: false, attributionControl: false, maxZoom: 16 });
     L.control.zoom({ zoomInTitle: "Приблизить", zoomOutTitle: "Отдалить" }).addTo(map);
-    const bounds = L.latLngBounds(routes.flatMap((route) => route.stops));
+    const trackPoints = track?.flatMap((segment) => segment.coordinates.map(([lon, lat]) => L.latLng(lat, origin + ((lon - origin + 540) % 360) - 180)));
+    const bounds = L.latLngBounds(trackPoints?.length ? trackPoints : routes.flatMap((route) => route.stops));
     const host = container.current;
     const padding = () => L.point(Math.min(65, host.clientWidth * .13), Math.min(65, host.clientHeight * .14));
     const fit = () => map.fitBounds(bounds, { padding: padding(), maxZoom: 10, animate: false });
     const focus = (id: string | null) => {
       const route = routes.find(({ candidate }) => candidate.id === id);
-      map.fitBounds(route ? L.latLngBounds(route.stops) : bounds, { padding: padding(), maxZoom: 10, animate: false });
+      map.fitBounds(trackPoints?.length ? L.latLngBounds(trackPoints) : route ? L.latLngBounds(route.stops) : bounds, { padding: padding(), maxZoom: 10, animate: false });
     };
     focus(selection.current.id);
     const basemap = maplibreGL({ style: "https://tiles.openfreemap.org/styles/positron" }).addTo(map);
@@ -92,7 +95,7 @@ export function StreetRouteMap({ candidates, settlements, recommendation, opened
         if (icon) icon.style.transform = `rotate(${point.mode === "pipeline" ? 0 : heading - 180}deg)`;
       };
       const tick = (now: number) => {
-        if (last) progress = (progress + Math.min(now - last, 80) / 16000) % 1;
+        if (last) progress = (progress + Math.min(now - last, 80) / ROUTE_ANIMATION_MS) % 1;
         last = now; paint(); animation = requestAnimationFrame(tick);
       };
       paint();
@@ -101,7 +104,9 @@ export function StreetRouteMap({ candidates, settlements, recommendation, opened
     const draw = () => {
       for (const { candidate, index, stops } of routes) {
         const offset = (index - (routes.length - 1) / 2) * 17;
-        const segments = sampleMapRoute(stops.map((stop) => map.project(stop)), candidate.connections.map((leg) => leg.mode), offset);
+        const segments = track?.length ? track.map((segment) => ({ mode: segment.mode,
+          points: segment.coordinates.map(([lon, lat]) => map.project(L.latLng(lat, origin + ((lon - origin + 540) % 360) - 180))) }))
+          : sampleMapRoute(stops.map((stop) => map.project(stop)), candidate.connections.map((leg) => leg.mode), offset);
         const latlngs = segments.flatMap((segment) => segment.points.map((p) => map.unproject(L.point(p.x, p.y))));
         const old = drawn.get(candidate.id);
         if (old) { old.halo.remove(); old.core.remove(); old.hit.remove(); old.details.forEach((layer) => layer.remove()); }
@@ -125,7 +130,8 @@ export function StreetRouteMap({ candidates, settlements, recommendation, opened
       const endpoint = point.equals(first) ? "А" : point.equals(end) ? "Б" : null;
       const label = document.createElement("span"); label.textContent = name;
       if (endpoint) {
-        const pin = L.marker(point, { icon: L.divIcon({ className: "route-endpoint", html: `<span>${endpoint}</span>`, iconSize: [30, 30], iconAnchor: [15, 15] }), keyboard: false }).addTo(map);
+        const pinPoint = endpoint === "А" ? trackPoints?.[0] ?? point : trackPoints?.at(-1) ?? point;
+        const pin = L.marker(pinPoint, { icon: L.divIcon({ className: "route-endpoint", html: `<span>${endpoint}</span>`, iconSize: [30, 30], iconAnchor: [15, 15] }), keyboard: false }).addTo(map);
         pin.bindTooltip(label, { permanent: true, direction: "bottom", offset: [0, 15], className: "route-city-label" });
       } else L.circleMarker(point, { radius: 5, color: "#315b91", weight: 2, fillColor: "white", fillOpacity: 1 }).addTo(map).bindTooltip(label, { direction: "top", className: "route-city-label" });
     }
@@ -139,7 +145,7 @@ export function StreetRouteMap({ candidates, settlements, recommendation, opened
       cancelAnimationFrame(animation); marker?.remove(); scene.current = null; resize.disconnect();
       vectorMap.off("load", showMap); map.remove(); onReadyChange?.(false);
     };
-  }, [candidates, settlements, recommendation, onReadyChange]);
+  }, [candidates, settlements, recommendation, onReadyChange, track]);
   useEffect(() => { scene.current?.select(opened ?? recommendation, playing); }, [opened, recommendation, playing]);
   useEffect(() => { scene.current?.focus(opened ?? recommendation); }, [opened, recommendation]);
   useEffect(() => { if (fitRequest) scene.current?.fit(); }, [fitRequest]);

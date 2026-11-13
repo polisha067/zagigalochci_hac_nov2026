@@ -200,7 +200,7 @@ export function Assistant({ onResult, onRequireAuth, embedded = false }: {
           ref={panel}
           role={embedded ? "region" : "dialog"}
           aria-labelledby="assistant-title"
-          className={`assistant-panel${embedded ? " assistant-embedded" : ""}`}
+          className={`assistant-panel${embedded ? " assistant-embedded" : ""}${!turns.length ? " assistant-empty" : ""}`}
           style={!embedded && position ? { left: position.x, top: position.y, right: "auto", bottom: "auto" } : undefined}
           onPointerMove={embedded ? undefined : movePanel}
           onLostPointerCapture={(event) => {
@@ -234,9 +234,17 @@ export function Assistant({ onResult, onRequireAuth, embedded = false }: {
             {!turns.length && (
               <>
                 <span className="availability">Планирование перевозок</span>
-                <h3>Опишите перевозку своими словами</h3>
-                <p>Агент уточнит условия, запустит расчёт и откроет прогноз с вариантами доставки.</p>
-                <p>Например, «Сколько стоит перевезти 10 т муки из Москвы в Нижний Новгород через Владимир в 2030 году?»</p>
+                <h3>Можно просто словами</h3>
+                <p>Опишите перевозку — помогу собрать условия и сравнить варианты.</p>
+                <div className="assistant-example-block">
+                  <span>Например</span>
+                  <button type="button" className="assistant-example" onClick={() => {
+                    if (onRequireAuth) { onRequireAuth(); return; }
+                    setMessage("Нужно перевезти 10 тонн муки из Москвы в Нижний Новгород в 2030 году, срок до 5 дней");
+                    input.current?.focus({ preventScroll: true });
+                  }}>Нужно перевезти 10 тонн муки из Москвы в Нижний Новгород</button>
+                  <div className="assistant-example-tags"><span>2030 год</span><span>До 5 дней</span></div>
+                </div>
               </>
             )}
             {onRequireAuth && <div className="assistant-signin">
@@ -276,7 +284,7 @@ export function Assistant({ onResult, onRequireAuth, embedded = false }: {
             <textarea
               id="assistant-message"
               ref={input}
-              placeholder="Спросите о перевозке…"
+              placeholder="Расскажите о перевозке…"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               onKeyDown={(event) => {
@@ -296,6 +304,7 @@ export function Assistant({ onResult, onRequireAuth, embedded = false }: {
               →
             </button>
           </form>
+          {embedded && <p className="assistant-input-note">Агент уточнит недостающие детали</p>}
         </section>
       )}
       {!embedded && <button

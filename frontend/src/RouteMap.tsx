@@ -1,5 +1,6 @@
+import { useRouteTrack } from "./useRouteTrack";
 import { transportMarkup } from "./mapTransportIcons";
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { StreetRouteMap } from "./StreetRouteMap";
 import { MapVehicle } from "./MapVehicle";
 import { sampleMapRoute, segmentPath } from "./mapRouteGeometry";
@@ -32,7 +33,7 @@ function basemap(countries: Countries, project: (longitude: number, latitude: nu
 }
 const hubKey = (hub: Hub) => hub.settlement_id || hub.id;
 
-function plotHubs(hubs: Hub[], settlements: Settlement[], endpoints: Hub[], countries: Countries) {
+function plotHubs(hubs: Hub[], settlements: Settlement[], endpoints: Hub[], countries: Countries, extra: [number, number][] = []) {
   const cities = new Map(settlements.map((city) => [city.id, city]));
   const coordinates = hubs.map((hub) => cities.get(hubKey(hub)));
   const geographic = coordinates.every(
@@ -44,6 +45,7 @@ function plotHubs(hubs: Hub[], settlements: Settlement[], endpoints: Hub[], coun
     const intermediate = hubs.filter((hub) => hubKey(hub) !== first && hubKey(hub) !== last);
     return {
       geographic,
+      project: undefined,
       land: [],
       points: hubs.map((hub) => {
         const key = hubKey(hub);
@@ -61,8 +63,9 @@ function plotHubs(hubs: Hub[], settlements: Settlement[], endpoints: Hub[], coun
     x: ((((city!.longitude! - origin.longitude! + 540) % 360) - 180) * lat),
     y: -city!.latitude!,
   }));
-  const xs = raw.map((point) => point.x);
-  const ys = raw.map((point) => point.y);
+  const extent = [...raw, ...extra.map(([lon, latitude]) => ({ x: (((lon - origin.longitude! + 540) % 360) - 180) * lat, y: -latitude }))];
+  const xs = extent.map((point) => point.x);
+  const ys = extent.map((point) => point.y);
   const minX = Math.min(...xs), maxX = Math.max(...xs);
   const minY = Math.min(...ys), maxY = Math.max(...ys);
   const scale = Math.min(690 / Math.max(maxX - minX, 0.1), 200 / Math.max(maxY - minY, 0.1));
@@ -72,6 +75,7 @@ function plotHubs(hubs: Hub[], settlements: Settlement[], endpoints: Hub[], coun
   });
   return {
     geographic,
+    project: (lon: number, latitude: number) => plot((((lon - origin.longitude! + 540) % 360) - 180) * lat, -latitude),
     land: basemap(countries, (lon, latitude) => plot((lon - origin.longitude!) * lat, -latitude)),
     points: raw.map(({ x, y }) => plot(x, y)),
     names: coordinates.map((city) => city!.name),
@@ -126,25 +130,28 @@ export function RouteMap({ candidates, recommendation, opened, onOpen }: {
     return () => controller.abort();
   }, []);
 
-  const hubs = [...new Map(candidates.flatMap((candidate) => (candidate.route_hubs || [])
+  const selected = candidates.find((candidate) => candidate.id === selectedId) ?? candidates.find((candidate) => candidate.id === recommendation) ?? candidates[0];
+  const visibleCandidates = useMemo(() => selected ? [selected] : [], [selected]);
+  const track = useRouteTrack(selected, settlements);
+  const hubs = [...new Map(visibleCandidates.flatMap((candidate) => (candidate.route_hubs || [])
     .map((hub) => [hubKey(hub), hub] as const))).values()];
-  const reference = candidates.find((candidate) => candidate.route_hubs?.length);
+  const reference = selected ?? candidates.find((candidate) => candidate.route_hubs?.length);
   if (!reference) return null;
 
-  const { points, geographic, names, land } = plotHubs(hubs, settlements, reference.route_hubs, countries);
+  const { points, geographic, names, land, project } = plotHubs(hubs, settlements, reference.route_hubs, countries, track.segments?.flatMap((s) => s.coordinates));
+  const projectedTrack = project && track.segments?.map((segment) => ({ mode: segment.mode, points: segment.coordinates.map(([lon, lat]) => project(lon, lat)) }));
   const position = new Map(hubs.map((hub, index) => [hubKey(hub), points[index]]));
   const routes = candidates.map((candidate, index) => ({
     candidate,
     index,
     points: (candidate.route_hubs || []).map((hub) => position.get(hubKey(hub))!),
   }));
-  const selected = candidates.find((candidate) => candidate.id === selectedId) ?? candidates.find((candidate) => candidate.id === recommendation) ?? candidates[0];
   const selectedRoute = routes.find((route) => route.candidate.id === selected?.id);
   const moving = playing && !reducedMotion && !selected?.modes.every((mode) => mode === "pipeline");
-  const selectedSegments = selectedRoute ? sampleMapRoute(selectedRoute.points,
-    selected.connections.map((leg) => leg.mode), (selectedRoute.index - (routes.length - 1) / 2) * 23) : [];
+  const selectedSegments = projectedTrack || (selectedRoute ? sampleMapRoute(selectedRoute.points,
+    selected.connections.map((leg) => leg.mode), 0) : []);
 
-  const drawnRoutes = routes.filter((route) => route.points.length > 1)
+  const drawnRoutes = routes.filter((route) => route.points.length > 1 && route.candidate.id === selected?.id)
     .sort((a, b) => Number(a.candidate.id === selected?.id) - Number(b.candidate.id === selected?.id));
 
   return (
@@ -172,7 +179,7 @@ export function RouteMap({ candidates, recommendation, opened, onOpen }: {
               </g>
             : <rect width={width} height={height} fill={`url(#${gridId})`} />}
           {drawnRoutes.map(({ candidate, index, points: routePoints }) => {
-            const segments = sampleMapRoute(routePoints, candidate.connections.map((leg) => leg.mode), (index - (routes.length - 1) / 2) * 23);
+            const segments = projectedTrack || sampleMapRoute(routePoints, candidate.connections.map((leg) => leg.mode), 0);
             const path = segmentPath(segments);
             return <g key={candidate.id}
               className={`route-map-line${candidate.id === recommendation ? " recommended" : ""}${candidate.id === selected?.id ? " active" : ""}`}
@@ -188,16 +195,16 @@ export function RouteMap({ candidates, recommendation, opened, onOpen }: {
             </g>;
           })}
           {selectedRoute && <MapVehicle key={selected!.id} segments={selectedSegments} playing={!!moving && !onlineReady} />}
-          {points.map((point, index) => (
+          {points.map((point, index) => selected?.route_hubs.some((hub) => hubKey(hub) === hubKey(hubs[index])) && (
             <g className="route-map-point" key={hubKey(hubs[index])}>
               <circle cx={point.x} cy={point.y} r="6" />
               <text x={point.x} y={point.y - 13} textAnchor="middle">{names[index]}</text>
             </g>
           ))}
         </svg>
-        {geographic && <StreetRouteMap candidates={candidates} settlements={settlements}
+        {geographic && <StreetRouteMap candidates={visibleCandidates} settlements={settlements}
           recommendation={recommendation} opened={selected?.id ?? null} onOpen={setSelectedId}
-          playing={!!moving} fitRequest={fitRequest} onReadyChange={setOnlineReady} />}
+          playing={!!moving} fitRequest={fitRequest} onReadyChange={setOnlineReady} track={track.segments} />}
       </div>
       <div className="route-map-options" aria-label="Варианты на карте">
         <div className="route-options-heading"><b>Маршруты</b><span>{routes.length} вариантов</span></div>
@@ -224,8 +231,8 @@ export function RouteMap({ candidates, recommendation, opened, onOpen }: {
         </div>
         <button type="button" className="primary" onClick={() => onOpen(selected.id)}>Подробный расчёт ↗</button>
       </div>}
-      <div className="route-map-caption"><span><i /> Выбранный маршрут</span><span><i /> Другие варианты</span>
-        <span>{geographic ? "Схематичные линии между транспортными узлами" : "Схема связей между узлами"} · без точного дорожного трека</span></div>
+      <div className="route-map-caption"><span><i /> Выбранный маршрут</span>
+        <span role="status">{track.loading ? "Уточняем геометрию дорог и путей…" : track.complete ? "Геометрия дорог и железнодорожных путей по OpenStreetMap" : track.segments ? "Геометрия OSM · часть участков показана схемой" : "Схема между узлами · подробный трек недоступен"}</span></div>
       {geographic && <small className="route-map-credit route-map-credit-online">
         <a href="https://openfreemap.org/">OpenFreeMap</a> · © <a href="https://openmaptiles.org/">OpenMapTiles</a> · Данные ©{" "}
         <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>

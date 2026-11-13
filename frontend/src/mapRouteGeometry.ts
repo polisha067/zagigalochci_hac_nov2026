@@ -1,5 +1,7 @@
 import type { Mode } from "./networkApi";
 
+export const ROUTE_ANIMATION_MS = 32000;
+
 export type MapPoint = { x: number; y: number };
 export type MapSegment = { mode: Mode; points: MapPoint[] };
 export const transportNames: Record<Mode, string> = {
