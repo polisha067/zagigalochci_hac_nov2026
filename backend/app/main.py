@@ -458,23 +458,61 @@ def create_app(settings=None, *, assistant_planner: Optional[TurnPlanner] = None
         except InvalidDeliveryDraft as exc:
             raise RequestValidationError(exc.fields) from exc
 
+    guest_dialog_cookie = "assistant_guest"
+    guest_dialog_ttl = 24 * 60 * 60
+
+    def guest_dialog_id(request, response=None):
+        token = request.cookies.get(guest_dialog_cookie)
+        now = int(time.time())
+        if token:
+            with database.connect() as connection:
+                row = connection.execute(
+                    "SELECT token_hash FROM assistant_guest_sessions WHERE token_hash = ? AND expires_at > ?",
+                    (digest(token), now),
+                ).fetchone()
+            if row:
+                return row["token_hash"]
+        if response is None:
+            raise error(409, "assistant_revision_conflict", "Гостевая сессия истекла. Отправьте сообщение ещё раз.")
+
+        host = request.client.host if request.client else "unknown"
+        retry = database.consume_attempt("assistant-guest-session:" + digest(host), now, 60, 30)
+        if retry:
+            raise error(429, "too_many_attempts", "Слишком много новых сессий. Попробуйте позже.", {"Retry-After": str(retry)})
+        token = secrets.token_urlsafe(32)
+        token_hash = digest(token)
+        with database.connect() as connection:
+            connection.execute("DELETE FROM assistant_guest_sessions WHERE expires_at <= ?", (now,))
+            connection.execute("INSERT INTO assistant_guest_sessions VALUES (?, ?)", (token_hash, now + guest_dialog_ttl))
+        response.set_cookie(
+            guest_dialog_cookie, token, max_age=guest_dialog_ttl,
+            httponly=True, secure=settings.cookie_secure, samesite="lax", path="/",
+        )
+        return token_hash
+
     @app.get("/assistant/dialog", response_model=DialogReply, tags=["Ассистент"])
-    def get_assistant_dialog(user=Depends(require_user)):
-        saved = read_dialog(database, user["id"])
+    def get_assistant_dialog(request: Request, response: Response, user=Depends(optional_user)):
+        response.headers["Cache-Control"] = "no-store"
+        dialog_id = user["id"] if user else guest_dialog_id(request, response)
+        saved = read_dialog(database, dialog_id, guest=user is None)
         state = DialogState.model_validate(saved.state)
         scenarios = state.current.scenarios
         return DialogReply(revision=saved.revision, known=known_conditions(state.current),
                            scenarios=scenarios, settlement_names=settlement_names(row.answer for row in scenarios))
 
     @app.post("/assistant/dialog", response_model=DialogReply, tags=["Ассистент"])
-    def send_assistant_dialog(request: Request, payload: DialogRequest, user=Depends(require_user)):
+    def send_assistant_dialog(request: Request, payload: DialogRequest, user=Depends(optional_user)):
+        dialog_id = user["id"] if user else guest_dialog_id(request)
         try:
-            with dialog_turn(database, user["id"], payload) as turn:
+            with dialog_turn(database, dialog_id, payload, guest=user is None) as turn:
                 if turn.replay is not None:
                     return DialogReply.model_validate(turn.replay)
-                retry = database.consume_attempt("assistant:" + user["id"], int(time.time()), 60, 30)
+                host = request.client.host if request.client else "unknown"
+                bucket = "assistant:" + dialog_id if user else "assistant:guest:" + digest(host)
+                limit = 30 if user else 10
+                retry = database.consume_attempt(bucket, int(time.time()), 60, limit)
                 if retry:
-                    raise error(429, "too_many_attempts", "Не более 30 сообщений в минуту", {"Retry-After": str(retry)})
+                    raise error(429, "too_many_attempts", f"Не более {limit} сообщений в минуту", {"Retry-After": str(retry)})
                 planner = app.state.assistant_planner
                 if not isinstance(planner, DeliveryPlanner):
                     raise AssistantUnavailable

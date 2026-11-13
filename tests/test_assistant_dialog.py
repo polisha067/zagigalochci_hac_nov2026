@@ -7,6 +7,8 @@ from pathlib import Path
 from uuid import uuid4
 from unittest.mock import Mock, patch
 
+from fastapi.testclient import TestClient
+
 from backend.app.assistant.dialog_models import DialogRequest
 from backend.app.assistant.dialog_store import dialog_turn
 from backend.app.assistant.ollama_client import OllamaMessage
@@ -543,6 +545,21 @@ class AssistantDialogTests(unittest.TestCase):
                 blocked = self.send("Другое сообщение", status=409)
                 self.assertEqual(blocked["error"]["code"], "assistant_in_progress")
                 raise RuntimeError("cancel")
+
+    def test_guest_dialog_keeps_conditions_and_isolated_from_other_sessions(self):
+        self.flour(destination="Якутск")
         self.client.cookies.clear()
-        self.assertEqual(self.client.get("/assistant/dialog").status_code, 401)
-        self.send("Привет", status=401)
+        self.send("Привет", revision=0, status=409)
+        guest = self.client.get("/assistant/dialog")
+        self.assertEqual(guest.status_code, 200)
+        self.assertEqual(guest.json()["revision"], 0)
+        self.assertIn("HttpOnly", guest.headers["Set-Cookie"])
+        self.revision = 0
+        first = self.flour()
+        self.assertEqual(first["answer"]["kind"], "calculation")
+        updated = self.send("А если в 2028 году?")
+        self.assertEqual(updated["answer"]["calculation"]["request"]["target_year"], 2028)
+        self.assertEqual(self.client.get("/assistant/dialog").json()["known"], updated["known"])
+        other = TestClient(self.client.app)
+        self.addCleanup(other.close)
+        self.assertEqual(other.get("/assistant/dialog").json()["known"], [])
