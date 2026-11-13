@@ -682,6 +682,8 @@ def plan_turn(planner, message, draft):
             for field, piece in (("weight_tonnes", False), ("max_piece_tonnes", True)):
                 if row.get(field) is not None and not _same_number(row[field], mass_values(message, piece)):
                     row.pop(field)
+        if route:
+            _route_fields(changes, cargoes, stops, route)
         # A single named shipment with one stated mass should not inherit
         # extra positions invented by the planner.
         recover_single_cargo = bool(full_shipment and mass_name and not cargoes)
@@ -729,8 +731,6 @@ def plan_turn(planner, message, draft):
         if len(YEAR_TOKEN.findall(message)) == 1 and not any(key in changes for key in ("ready_at", "deliver_by", "target_year", "readiness")):
             if re.search(r"(?:\b(?:в|на)\s+(?:19|20|21)\d{2}|\b(?:19|20|21)\d{2}(?:\s+год|[-‑–]м))", message, re.I):
                 changes["target_year"] = int(YEAR_TOKEN.search(message)[0])
-        if route:
-            _route_fields(changes, cargoes, stops, route)
         if len(stops) <= 1 and (explicit := explicit_stop):
             if not stops:
                 stops.append(explicit)

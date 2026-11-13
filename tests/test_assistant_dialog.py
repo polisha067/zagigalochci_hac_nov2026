@@ -508,6 +508,20 @@ class AssistantDialogTests(unittest.TestCase):
                           cargo["packaging"], cargo["splittable"]), ("Мука", .1, .25, "bags", True))
         self.assertTrue({"road", "rail", "air"}.issubset(request["allowed_modes"]))
 
+    def test_duplicate_cargo_with_route_endpoints_counts_once(self):
+        message = (
+            "Новый расчёт. Сколько стоит перевезти 10 т сахара из Воронежа в Пятигорск в 2027 году? "
+            "Разовая отправка, сахар в мешках, объём 9,5 м³, партию можно разделить. "
+            "Срок до 3 дней. Сравни авто и ж/д по цене и сроку."
+        )
+        position = {"name": "Сахар", "weight_tonnes": 10, "volume_m3": 9.5, "packaging": "bags",
+                    "pickup_at": "Воронеж", "delivery_at": "Пятигорск"}
+        answer = self.send(message, "new", {"cargoes": [position, position]})["answer"]
+        self.assertEqual(answer["kind"], "calculation", answer["reply"])
+        cargo, = answer["calculation"]["request"]["cargoes"]
+        self.assertEqual(cargo["weight_tonnes"], 10)
+        self.assertTrue(cargo["splittable"])
+
     def test_books_request_with_route_preposition_typo_keeps_cargo(self):
         self.flour(destination="Брянск")
         response = self.send("Новый расчет, перевезти из Уфы ы казань 100 тонн книг в 2030 как дешевле",
