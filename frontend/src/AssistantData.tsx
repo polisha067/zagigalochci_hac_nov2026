@@ -9,6 +9,39 @@ const statusNames = {
 };
 
 export function AssistantData({ response }: { response: AssistantReply }) {
+  const volume = response.tool === "calculate_corridor_forecast" ? response.result : null;
+  if (volume?.rows.length) {
+    const yearly = volume.details.granularity === "year" && volume.rows.length > 1;
+    return (
+      <details className="volume-periods" open={volume.rows.length <= 12}>
+        <summary>Прогноз по периодам</summary>
+        <div className="table-scroll">
+          <table className="detail-table">
+            <thead>
+              <tr>
+                <th>Период</th>
+                <th>Объём, т</th>
+                {yearly && <th>К прошлому году</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {volume.rows.map((row, index) => {
+                const previous = volume.rows[index - 1]?.forecast_tonnes;
+                const change = previous > 0 ? (row.forecast_tonnes / previous - 1) * 100 : null;
+                return (
+                  <tr key={row.period}>
+                    <th scope="row">{row.period}</th>
+                    <td>{num(row.forecast_tonnes, 1)}</td>
+                    {yearly && <td>{change == null ? "—" : `${change > 0 ? "+" : ""}${num(change, 1)}%`}</td>}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </details>
+    );
+  }
   const calculation = dashboardResult(response);
   if (!calculation) return null;
   if (calculation.published_coverage) return <>

@@ -60,6 +60,27 @@ class Database:
                     response TEXT NOT NULL,
                     PRIMARY KEY (user_id, turn_id)
                 );
+                CREATE TABLE IF NOT EXISTS assistant_guest_sessions (
+                    token_hash TEXT PRIMARY KEY,
+                    expires_at INTEGER NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS assistant_guest_sessions_expiry
+                    ON assistant_guest_sessions(expires_at);
+                CREATE TABLE IF NOT EXISTS assistant_guest_dialogs (
+                    user_id TEXT PRIMARY KEY REFERENCES assistant_guest_sessions(token_hash) ON DELETE CASCADE,
+                    revision INTEGER NOT NULL,
+                    state TEXT NOT NULL,
+                    active_turn TEXT,
+                    active_until INTEGER
+                );
+                CREATE TABLE IF NOT EXISTS assistant_guest_turns (
+                    user_id TEXT NOT NULL REFERENCES assistant_guest_sessions(token_hash) ON DELETE CASCADE,
+                    turn_id TEXT NOT NULL,
+                    message TEXT NOT NULL,
+                    revision INTEGER NOT NULL,
+                    response TEXT NOT NULL,
+                    PRIMARY KEY (user_id, turn_id)
+                );
                 CREATE TABLE IF NOT EXISTS password_resets (
                     verification_id TEXT PRIMARY KEY,
                     user_id TEXT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,

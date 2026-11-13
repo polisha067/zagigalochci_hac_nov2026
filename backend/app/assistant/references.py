@@ -207,10 +207,15 @@ def corridor_forecast(query: CorridorForecastQuery):
     if route is None:
         return _information(A1_DATASET, "Для этого направления в проекте нет ряда объёмов.", [], [], [], sources)
     result = forecast_route(route["route_id"], query.start_year, query.end_year or query.start_year, query.granularity)
-    title = (f"{route['origin']} → {route['destination']}, {result['start_year']}–{result['end_year']}. "
+    start, end = result["start_year"], result["end_year"]
+    period = str(start) if start == end else f"{start}–{end}"
+    title = (f"{route['origin']} → {route['destination']}, {period}. "
              f"Сценарный объём — {number(result['forecast_tonnes'])} т.")
-    return _information(A1_DATASET, title, result["periods"], [], [A1_VOLUME_NOTE], sources,
-                        route_id=route["route_id"], forecast_tonnes=result["forecast_tonnes"], volume_status="synthetic")
+    return _information(A1_DATASET, title, result["periods"], [], [
+        A1_VOLUME_NOTE,
+        "Модель учитывает линейный тренд и месячную сезонность.",
+    ], sources, route_id=route["route_id"], forecast_tonnes=result["forecast_tonnes"],
+        volume_status=result["volume_status"], granularity=query.granularity)
 
 
 def corridor_comparison(query: CorridorComparisonQuery):

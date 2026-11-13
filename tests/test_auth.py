@@ -184,9 +184,24 @@ class AuthTests(unittest.TestCase):
         wrong_code = "000000" if code != "000000" else "000001"
         reset = {"verification_id": request.json()["verification_id"],
                  "code": code, "new_password": "updated-password-2026"}
+        challenge = {"verification_id": reset["verification_id"], "code": code}
+        self.assertEqual(self.client.post("/auth/check-reset-code", json=dict(challenge, code=wrong_code)).status_code, 400)
+        self.assertEqual(self.client.post("/auth/check-reset-code", json=challenge).status_code, 204)
+        self.assertEqual(self.client.get("/auth/me").status_code, 200)
         self.assertEqual(self.client.post("/auth/reset-password", json=dict(reset, code=wrong_code)).status_code, 400)
-        self.assertEqual(self.client.post("/auth/reset-password", json=reset).status_code, 204)
-        self.assertEqual(self.client.get("/auth/me").status_code, 401)
+        cookie = self.settings.cookie_name
+        old_session = self.client.cookies.get(cookie)
+        response = self.client.post("/auth/reset-password", json=reset)
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.json()["user"]["email"], email)
+        new_session = self.client.cookies.get(cookie)
+        self.assertNotEqual(old_session, new_session)
+        self.assertIn("HttpOnly", response.headers["set-cookie"])
+        self.assertEqual(self.client.get("/auth/me").status_code, 200)
+        self.client.cookies.clear()
+        self.assertEqual(
+            self.client.get("/auth/me", headers={"Cookie": f"{cookie}={old_session}"}).status_code, 401
+        )
         self.assertEqual(self.client.post("/auth/reset-password", json=reset).status_code, 400)
         login = {"email": email, "password": self.account["password"]}
         self.assertEqual(self.client.post("/auth/login", json=login).status_code, 401)

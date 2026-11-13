@@ -2,6 +2,7 @@ import { ForecastChart } from "./ForecastChart";
 import { useAnnualPrices } from "./useAnnualPrices";
 import { useId, useState } from "react";
 import { VolumeForecast } from "./VolumeForecast";
+import type { VolumeForecastSelection } from "./assistantApi";
 import type { Calculation } from "./networkApi";
 import {
   candidateName,
@@ -16,12 +17,14 @@ import {
 export function ForecastOverview({
   snapshot,
   draft,
+  volumeSelection,
 }: {
+  volumeSelection?: VolumeForecastSelection;
   snapshot?: NetworkSnapshot;
   draft?: Draft;
 }) {
-  const [view, setView] = useState<"cost" | "volume">("cost");
-  const [volumeOpened, setVolumeOpened] = useState(false);
+  const [view, setView] = useState<"cost" | "volume">(volumeSelection ? "volume" : "cost");
+  const [volumeOpened, setVolumeOpened] = useState(Boolean(volumeSelection));
   const panelId = useId();
   const conditions = snapshot?.draft ?? draft;
   const result: Calculation | undefined = snapshot?.result;
@@ -120,6 +123,7 @@ export function ForecastOverview({
           <div hidden={view !== "volume"}>
             <VolumeForecast
               key={`${conditions?.origin?.name}|${conditions?.destination?.name}|${forecast?.target_year ?? conditions?.forecastYear}`}
+              selection={volumeSelection}
               origin={conditions?.origin?.name}
               destination={conditions?.destination?.name}
               targetYear={
@@ -160,6 +164,7 @@ export function ForecastOverview({
                 {forecast
                   ? `Оценка · ${forecast.target_year}`
                   : "Стоимость перевозки"}
+                {candidate && price != null && <> · {candidateName(candidate)}</>}
               </span>
               <strong>{price != null ? money(price) : "—"}</strong>
             </div>

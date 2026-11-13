@@ -35,7 +35,7 @@ from .assistant.service import (
 from .config import Settings
 from .database import Database
 from .mailer import MailDeliveryError, Mailer
-from .password_reset import reset_password, send_reset_code
+from .password_reset import check_reset_code, reset_password, send_reset_code
 from .schemas import Credentials, EmailRequest, PasswordResetRequested, ResetPasswordRequest, ErrorResponse, RegisterRequest, ResendRequest, UserResponse, VerificationResponse, VerificationRequired, VerifyEmailRequest
 from .verification import VerificationProblem, VerificationService
 from backend.a1_forecast import Granularity, MAX_FORECAST_YEAR, MIN_FORECAST_YEAR, forecast_options, forecast_route
@@ -304,12 +304,22 @@ def create_app(settings=None, *, assistant_planner: Optional[TurnPlanner] = None
         return {"verification_id": verification_id, "expires_in": settings.verification_ttl_seconds,
                 "resend_after": settings.verification_cooldown_seconds}
 
-    @app.post("/auth/reset-password", status_code=204, tags=["Авторизация"])
-    def confirm_password_reset(payload: ResetPasswordRequest, request: Request):
+    @app.post("/auth/check-reset-code", status_code=204, tags=["Авторизация"])
+    def verify_password_reset_code(payload: VerifyEmailRequest, request: Request):
         limit_attempts(request, "password-reset-confirm")
-        reset_password(app.state.verification, app.state.password_hash, payload.verification_id,
-                       payload.code, payload.new_password.get_secret_value())
+        check_reset_code(app.state.verification, payload.verification_id, payload.code)
         return Response(status_code=204)
+
+    @app.post("/auth/reset-password", response_model=UserResponse, tags=["Авторизация"])
+    def confirm_password_reset(payload: ResetPasswordRequest, request: Request, response: Response):
+        limit_attempts(request, "password-reset-confirm")
+        user, token = reset_password(
+            app.state.verification, app.state.password_hash, payload.verification_id,
+            payload.code, payload.new_password.get_secret_value(),
+            start_session=lambda connection, user_id: new_session(connection, request, user_id),
+        )
+        set_cookie(response, token)
+        return {"user": public_user(user)}
 
     @app.get("/auth/me", response_model=UserResponse, tags=["Авторизация"])
     def me(user=Depends(require_user)):
@@ -458,23 +468,61 @@ def create_app(settings=None, *, assistant_planner: Optional[TurnPlanner] = None
         except InvalidDeliveryDraft as exc:
             raise RequestValidationError(exc.fields) from exc
 
+    guest_dialog_cookie = "assistant_guest"
+    guest_dialog_ttl = 24 * 60 * 60
+
+    def guest_dialog_id(request, response=None):
+        token = request.cookies.get(guest_dialog_cookie)
+        now = int(time.time())
+        if token:
+            with database.connect() as connection:
+                row = connection.execute(
+                    "SELECT token_hash FROM assistant_guest_sessions WHERE token_hash = ? AND expires_at > ?",
+                    (digest(token), now),
+                ).fetchone()
+            if row:
+                return row["token_hash"]
+        if response is None:
+            raise error(409, "assistant_revision_conflict", "Гостевая сессия истекла. Отправьте сообщение ещё раз.")
+
+        host = request.client.host if request.client else "unknown"
+        retry = database.consume_attempt("assistant-guest-session:" + digest(host), now, 60, 30)
+        if retry:
+            raise error(429, "too_many_attempts", "Слишком много новых сессий. Попробуйте позже.", {"Retry-After": str(retry)})
+        token = secrets.token_urlsafe(32)
+        token_hash = digest(token)
+        with database.connect() as connection:
+            connection.execute("DELETE FROM assistant_guest_sessions WHERE expires_at <= ?", (now,))
+            connection.execute("INSERT INTO assistant_guest_sessions VALUES (?, ?)", (token_hash, now + guest_dialog_ttl))
+        response.set_cookie(
+            guest_dialog_cookie, token, max_age=guest_dialog_ttl,
+            httponly=True, secure=settings.cookie_secure, samesite="lax", path="/",
+        )
+        return token_hash
+
     @app.get("/assistant/dialog", response_model=DialogReply, tags=["Ассистент"])
-    def get_assistant_dialog(user=Depends(require_user)):
-        saved = read_dialog(database, user["id"])
+    def get_assistant_dialog(request: Request, response: Response, user=Depends(optional_user)):
+        response.headers["Cache-Control"] = "no-store"
+        dialog_id = user["id"] if user else guest_dialog_id(request, response)
+        saved = read_dialog(database, dialog_id, guest=user is None)
         state = DialogState.model_validate(saved.state)
         scenarios = state.current.scenarios
         return DialogReply(revision=saved.revision, known=known_conditions(state.current),
                            scenarios=scenarios, settlement_names=settlement_names(row.answer for row in scenarios))
 
     @app.post("/assistant/dialog", response_model=DialogReply, tags=["Ассистент"])
-    def send_assistant_dialog(request: Request, payload: DialogRequest, user=Depends(require_user)):
+    def send_assistant_dialog(request: Request, payload: DialogRequest, user=Depends(optional_user)):
+        dialog_id = user["id"] if user else guest_dialog_id(request)
         try:
-            with dialog_turn(database, user["id"], payload) as turn:
+            with dialog_turn(database, dialog_id, payload, guest=user is None) as turn:
                 if turn.replay is not None:
                     return DialogReply.model_validate(turn.replay)
-                retry = database.consume_attempt("assistant:" + user["id"], int(time.time()), 60, 30)
+                host = request.client.host if request.client else "unknown"
+                bucket = "assistant:" + dialog_id if user else "assistant:guest:" + digest(host)
+                limit = 30 if user else 10
+                retry = database.consume_attempt(bucket, int(time.time()), 60, limit)
                 if retry:
-                    raise error(429, "too_many_attempts", "Не более 30 сообщений в минуту", {"Retry-After": str(retry)})
+                    raise error(429, "too_many_attempts", f"Не более {limit} сообщений в минуту", {"Retry-After": str(retry)})
                 planner = app.state.assistant_planner
                 if not isinstance(planner, DeliveryPlanner):
                     raise AssistantUnavailable

@@ -15,7 +15,7 @@ import { ForecastOverview } from "./ForecastOverview";
 import { History, Results } from "./Results";
 import { Assistant } from "./Assistant";
 import { assistantSnapshot } from "./assistantSnapshot";
-import type { DashboardCalculation } from "./assistantApi";
+import type { DashboardCalculation, VolumeForecastSelection } from "./assistantApi";
 import { Brand } from "./ui";
 import "./style.css";
 
@@ -40,7 +40,9 @@ function Workspace({
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [formVersion, setFormVersion] = useState(0);
   const [current, setCurrent] = useState<Snapshot | null>(null);
+  const [assistantVolume, setAssistantVolume] = useState<{ selection: VolumeForecastSelection; revision: number } | null>(null);
   const [assistantSelection, setAssistantSelection] = useState<{ snapshot: string; candidate: string } | null>(null);
+  const [pendingAssistantSave, setPendingAssistantSave] = useState<Snapshot | null>(null);
   const userId = user?.id;
   const [historyCache, setHistoryCache] = useState<{
     userId: string;
@@ -90,7 +92,7 @@ function Workspace({
       const loaded = loadHistory(userId);
       setHistoryCache((previous) => ({
         userId,
-        state: loaded.warning && previous?.userId === userId
+        state: previous?.userId === userId && (loaded.warning || previous.state.warning)
           ? { ...previous.state, warning: loaded.warning }
           : loaded,
       }));
@@ -101,6 +103,9 @@ function Workspace({
   }, [userId]);
   const inHistory = hash.startsWith("#history");
   const needsAuth = !user && (inHistory || hash === "#login");
+  useEffect(() => {
+    if (hash !== "#login") setPendingAssistantSave(null);
+  }, [hash]);
   const calculationHash = current
     ? "#calculation/result/" + current.id
     : "#calculation";
@@ -121,6 +126,7 @@ function Workspace({
     document.title = `${inHistory ? (saved ? "Сохранённый прогноз" : "История прогнозов") : showing ? "Результат прогноза" : "Прогноз грузоперевозок"} · Попутно`;
   }, [inHistory, saved, showing]);
   function newCalculation() {
+    setAssistantVolume(null);
     setDraft(emptyDraft());
     setFormVersion((v) => v + 1);
     setCurrent(null);
@@ -142,22 +148,27 @@ function Workspace({
   }
   function publishSnapshot(snapshot: Snapshot) {
     setCurrent(snapshot);
-    if (userId) {
-      const savedHistory = saveSnapshot(userId, snapshot);
-      setHistoryCache((previous) => ({
-        userId,
-        state: {
-          ...savedHistory,
-          entries: [
-            ...new Map(
-              [...savedHistory.entries, ...(previous?.userId === userId ? previous.state.entries : [])]
-                .map((entry) => [entry.id, entry]),
-            ).values(),
-          ],
-        },
-      }));
-    }
+    if (userId) saveToHistory(userId, snapshot);
     navigate("#calculation/result/" + snapshot.id);
+  }
+  function saveToHistory(ownerId: string, snapshot: Snapshot) {
+    const savedHistory = saveSnapshot(ownerId, snapshot);
+    setHistoryCache((previous) => ({
+      userId: ownerId,
+      state: {
+        ...savedHistory,
+        entries: [
+          ...new Map(
+            [...savedHistory.entries, ...(previous?.userId === ownerId ? previous.state.entries : [])]
+              .map((entry) => [entry.id, entry]),
+          ).values(),
+        ],
+      },
+    }));
+  }
+  function saveGuestAssistantResult(result: DashboardCalculation, settlementNames: Record<string, string>) {
+    setPendingAssistantSave(assistantSnapshot(result, options, settlementNames));
+    navigate("#login");
   }
   function showAssistantResult(result: DashboardCalculation, settlementNames: Record<string, string>, candidateId?: string) {
     const snapshot = assistantSnapshot(result, options, settlementNames);
@@ -178,20 +189,30 @@ function Workspace({
       setLogoutBusy(false);
     }
   }
-  if (needsAuth) {
-    return (
-      <Auth
-        initialMessage={authMessage || (inHistory ? "Войдите или зарегистрируйтесь, чтобы открыть историю расчётов." : "")}
-        onBack={() => navigate(calculationHash)}
-        onUser={(authenticatedUser) => {
-          if (!inHistory) navigate(calculationHash);
-          onUser(authenticatedUser);
-        }}
-      />
-    );
-  }
   return (
-    <div className="page">
+    <>
+      {needsAuth && (
+        <Auth
+          initialMessage={authMessage || (inHistory
+            ? "Войдите или зарегистрируйтесь, чтобы открыть историю расчётов."
+            : pendingAssistantSave ? "Войдите или зарегистрируйтесь, чтобы сохранить расчёт в историю." : "")}
+          onBack={() => {
+            setPendingAssistantSave(null);
+            navigate(calculationHash);
+          }}
+          onUser={(authenticatedUser) => {
+            if (hash === "#login" && pendingAssistantSave) {
+              saveToHistory(authenticatedUser.id, pendingAssistantSave);
+              navigate("#history/" + pendingAssistantSave.id);
+            } else if (!inHistory) {
+              navigate(calculationHash);
+            }
+            setPendingAssistantSave(null);
+            onUser(authenticatedUser);
+          }}
+        />
+      )}
+      <div className="page" style={needsAuth ? { display: "none" } : undefined}>
       <header className="app-header">
         <Brand />
         <div className="header-controls">
@@ -299,7 +320,7 @@ function Workspace({
                 onDraft={setDraft}
                 onResult={completed}
               />
-              <ForecastOverview draft={draft} />
+              <ForecastOverview key={assistantVolume?.revision} draft={draft} volumeSelection={assistantVolume?.selection} />
             </div>
           </>
         ) : (
@@ -326,9 +347,15 @@ function Workspace({
       <Assistant
         key={userId ?? "guest"}
         onResult={showAssistantResult}
-        onRequireAuth={user ? undefined : () => navigate("#login")}
+        onVolumeResult={(selection) => {
+          setAssistantVolume((previous) => ({ selection, revision: (previous?.revision ?? 0) + 1 }));
+          navigate("#calculation");
+        }}
+        onSaveResult={user ? undefined : saveGuestAssistantResult}
+        hidden={needsAuth}
       />
-    </div>
+      </div>
+    </>
   );
 }
 function App() {

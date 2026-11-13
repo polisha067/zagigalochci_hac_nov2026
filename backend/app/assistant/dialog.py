@@ -22,6 +22,7 @@ from .results import VAT
 from .schemas import ClarificationReply, InformationReply, ToolState
 from .service import InvalidAssistantTurn, RUSSIA_FIRST_YEAR, RUSSIA_LAST_YEAR, _field_label
 from .tools import ToolQuestion, merge_arguments
+from .volume_dialog import volume_turn
 
 
 logger = logging.getLogger("uvicorn.error")
@@ -544,6 +545,12 @@ def _save(state, snapshot, answer, revision):
 
 def process_dialog(planner, message, state, revision, run_tool):
     current = state.current
+    if volume := volume_turn(message, state.volume_forecast):
+        forecast, prompt = volume
+        state.volume_forecast = forecast
+        answer = question(prompt, forecast.missing_fields) if prompt else run_tool(forecast, message)
+        return _reply(current, revision, answer)
+    state.volume_forecast = None
     draft = _active(current)
     previous = known_conditions(current)
     text = message.strip()

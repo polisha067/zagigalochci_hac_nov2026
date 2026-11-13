@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { ApiError, errorText, post, request } from "./api";
-import { dashboardResult, type AssistantDialog, type AssistantReply, type AssistantSource, type DashboardCalculation, type DialogScenario } from "./assistantApi";
+import { assistantVolumeSelection, dashboardResult, type VolumeForecastSelection, type AssistantDialog, type AssistantReply, type AssistantSource, type DashboardCalculation, type DialogScenario } from "./assistantApi";
 import { AssistantData } from "./AssistantData";
 
 export function SourceLinks({ sources }: { sources: AssistantSource[] }) {
@@ -32,9 +32,11 @@ function fitPanel(x: number, y: number, { width, height }: DOMRect): PanelPositi
   };
 }
 
-export function Assistant({ onResult, onRequireAuth }: {
+export function Assistant({ onResult, onVolumeResult, onSaveResult, hidden }: {
   onResult: (result: DashboardCalculation, settlementNames: Record<string, string>, candidateId?: string) => void;
-  onRequireAuth?: () => void;
+  onVolumeResult: (selection: VolumeForecastSelection) => void;
+  onSaveResult?: (result: DashboardCalculation, settlementNames: Record<string, string>) => void;
+  hidden?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
@@ -54,10 +56,11 @@ export function Assistant({ onResult, onRequireAuth }: {
   const drag = useRef<{ pointerId: number; offsetX: number; offsetY: number } | null>(null);
   const active = useRef<AbortController | null>(null);
   const revision = useRef<number | null>(null);
+  const loadingDialog = useRef<Promise<AssistantDialog> | null>(null);
   const retry = useRef<{ message: string; revision: number; turn_id: string } | null>(null);
   useEffect(() => () => active.current?.abort(), []);
   useEffect(() => {
-    if (!open) return;
+    if (!open || hidden) return;
     close.current?.focus({ preventScroll: true });
     function escape(e: KeyboardEvent) {
       if (e.key === "Escape") {
@@ -78,7 +81,7 @@ export function Assistant({ onResult, onRequireAuth }: {
       window.removeEventListener("keydown", escape);
       window.removeEventListener("resize", fitToViewport);
     };
-  }, [open]);
+  }, [open, hidden]);
   useEffect(() => {
     if (!open || !content.current) return;
     content.current.scrollTop = busy || error
@@ -89,14 +92,19 @@ export function Assistant({ onResult, onRequireAuth }: {
   useEffect(() => {
     if (!open || revision.current !== null) return;
     const controller = new AbortController();
-    request<AssistantDialog>("/assistant/dialog", { signal: controller.signal }).then((dialog) => {
+    const loading = request<AssistantDialog>("/assistant/dialog", { signal: controller.signal });
+    loadingDialog.current = loading;
+    loading.then((dialog) => {
       if (controller.signal.aborted || revision.current !== null) return;
       revision.current = dialog.revision;
       setKnown(dialog.known);
       setSavedScenarios(dialog.scenarios);
       setSavedNames(dialog.settlement_names);
     }).catch(() => { /* Отправка повторно загрузит состояние и покажет ошибку при сбое. */ });
-    return () => controller.abort();
+    return () => {
+      controller.abort();
+      if (loadingDialog.current === loading) loadingDialog.current = null;
+    };
   }, [open]);
 
   function startDrag(event: PointerEvent<HTMLDivElement>) {
@@ -130,7 +138,7 @@ export function Assistant({ onResult, onRequireAuth }: {
     setError("");
     try {
       if (revision.current === null) {
-        const current = await request<AssistantDialog>("/assistant/dialog", { signal: controller.signal });
+        const current = await (loadingDialog.current ?? request<AssistantDialog>("/assistant/dialog", { signal: controller.signal }));
         revision.current = current.revision;
         setKnown(current.known);
       }
@@ -146,6 +154,11 @@ export function Assistant({ onResult, onRequireAuth }: {
       setSavedScenarios([]);
       setTurns((previous) => [...previous, { message: text, dialog, response: answer }]);
       setMessage("");
+      const volume = assistantVolumeSelection(answer);
+      if (volume) {
+        onVolumeResult(volume);
+        return;
+      }
       const scenario = dialog.scenarios.find(({ answer }) => dashboardResult(answer));
       if (scenario) showResult(scenario.answer, dialog.settlement_names);
       else showResult(answer, dialog.settlement_names, dialog.selected_candidate ?? undefined);
@@ -176,6 +189,16 @@ export function Assistant({ onResult, onRequireAuth }: {
     if (result) onResult(result, settlementNames, candidateId);
   }
 
+  function savePrompt(answer: AssistantReply, settlementNames: Record<string, string>) {
+    const result = dashboardResult(answer);
+    if (!onSaveResult || !result) return null;
+    return (
+      <button type="button" className="text-button" onClick={() => onSaveResult(result, settlementNames)}>
+        Войти и сохранить расчёт в историю
+      </button>
+    );
+  }
+
   function scenarioCards(scenarios: DialogScenario[], settlementNames: Record<string, string>) {
     return scenarios.map(({ title, answer }, index) => (
       <div className="assistant-scenario" key={index}>
@@ -185,6 +208,7 @@ export function Assistant({ onResult, onRequireAuth }: {
         {dashboardResult(answer) && (
           <button type="button" className="text-button" onClick={() => showResult(answer, settlementNames)}>Открыть на карте</button>
         )}
+        {savePrompt(answer, settlementNames)}
         <SourceLinks sources={answer.sources} />
       </div>
     ));
@@ -231,7 +255,9 @@ export function Assistant({ onResult, onRequireAuth }: {
               <>
                 <span className="availability">Планирование перевозок</span>
                 <h3>Помощник по перевозкам</h3>
-                <p>Например, «Сколько стоит перевезти 10 т муки из Москвы в Нижний Новгород через Владимир в 2030 году?»</p>
+                <p>Ассистент прогнозирует стоимость доставки и объём грузоперевозок.</p>
+                <p><strong>Стоимость.</strong> «Сколько будет стоить доставка 10 т муки из Москвы в Нижний Новгород в 2030 году?»</p>
+                <p><strong>Объём.</strong> «Покажи прогноз объёма по направлению Челябинск → Омск на 2027–2035 годы».</p>
               </>
             )}
             {known.length > 0 && (
@@ -249,6 +275,7 @@ export function Assistant({ onResult, onRequireAuth }: {
                 {response.kind === "clarification" && dialog.known.length > 0 && <p>Уже учёл — {dialog.known.join(" · ")}</p>}
                 {scenarioCards(dialog.scenarios, dialog.settlement_names)}
                 <AssistantData response={response} />
+                {savePrompt(response, dialog.settlement_names)}
                 {response.sources.length > 0 && (
                   <details className="assistant-sources">
                     <summary>Источники</summary>
@@ -294,7 +321,7 @@ export function Assistant({ onResult, onRequireAuth }: {
         className="assistant"
         aria-expanded={open}
         aria-controls="assistant-panel"
-        onClick={onRequireAuth ?? (() => setOpen(!open))}
+        onClick={() => setOpen(!open)}
       >
         <i aria-hidden="true" /> ИИ-ассистент
       </button>

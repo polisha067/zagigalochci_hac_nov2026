@@ -2,6 +2,7 @@ import { ForecastChart } from "./ForecastChart";
 import { Select } from "./Select";
 import { useEffect, useState } from "react";
 import { errorText, request } from "./api";
+import type { VolumeForecastSelection } from "./assistantApi";
 import { num } from "./model";
 
 interface VolumeOptions {
@@ -27,17 +28,25 @@ export function VolumeForecast({
   origin,
   destination,
   targetYear,
+  selection,
 }: {
   origin?: string;
   destination?: string;
   targetYear?: number;
+  selection?: VolumeForecastSelection;
 }) {
   const [options, setOptions] = useState<VolumeOptions | null>(null);
   const [optionsError, setOptionsError] = useState("");
   const [attempt, setAttempt] = useState(0);
-  const [selectedRoute, setSelectedRoute] = useState<string | null>(null);
-  const [year, setYear] = useState(String(targetYear ?? 2030));
-  const [granularity, setGranularity] = useState("month");
+  const [selectedRoute, setSelectedRoute] = useState<string | null>(selection?.routeId ?? null);
+  const [startYear, setStartYear] = useState(selection?.startYear ?? targetYear ?? 2030);
+  const [endYear, setEndYear] = useState(selection?.endYear ?? targetYear ?? 2030);
+  const isRange = startYear !== endYear;
+  const [singleYearGranularity, setSingleYearGranularity] = useState<string>(selection?.granularity ?? "month");
+  const [rangeGranularity, setRangeGranularity] = useState<string>(selection?.granularity ?? "year");
+  const granularity = isRange ? rangeGranularity : singleYearGranularity;
+  const compareYears = isRange && granularity === "year";
+  const peakLabel = { year: "Максимум за год", quarter: "Максимум за квартал", month: "Максимум за месяц" }[granularity];
   const [response, setResponse] = useState<{
     key: string;
     data?: VolumeResult;
@@ -62,17 +71,17 @@ export function VolumeForecast({
   );
   const routeId = selectedRoute ?? matched?.route_id ?? "";
   const route = options?.routes.find((item) => item.route_id === routeId);
-  const validYear =
-    options &&
-    Number.isInteger(Number(year)) &&
-    Number(year) >= options.min_year &&
-    Number(year) <= options.max_year;
+  const years = options
+    ? Array.from({ length: options.max_year - options.min_year + 1 }, (_, i) => options.min_year + i)
+    : [];
+  const validRange = options && startYear >= options.min_year &&
+    endYear <= options.max_year && startYear <= endYear;
   const query =
-    route && validYear
+    route && validRange
       ? new URLSearchParams({
           route_id: route.route_id,
-          start_year: year,
-          end_year: year,
+          start_year: String(startYear),
+          end_year: String(endYear),
           granularity,
         }).toString()
       : "";
@@ -100,21 +109,21 @@ export function VolumeForecast({
     : undefined;
   const periodName = (period: string) => {
     const month = /^(\d{4})-(\d{2})$/.exec(period);
-    return month
-      ? new Intl.DateTimeFormat("ru-RU", { month: "short", timeZone: "UTC" })
-          .format(new Date(Date.UTC(Number(month[1]), Number(month[2]) - 1, 1)))
-          .replace(".", "")
-      : period;
+    if (month) {
+      const name = new Intl.DateTimeFormat("ru-RU", { month: "short", timeZone: "UTC" })
+        .format(new Date(Date.UTC(Number(month[1]), Number(month[2]) - 1, 1)))
+        .replace(".", "");
+      return isRange ? `${name} ${month[1]}` : name;
+    }
+    const quarter = /^(\d{4})-Q([1-4])$/.exec(period);
+    return quarter ? (isRange ? `${quarter[2]} кв. ${quarter[1]}` : `${quarter[2]} кв.`) : period;
   };
   const points =
     data?.periods.map((period) => ({
       label: periodName(period.period),
       value: period.forecast_tonnes,
     })) ?? [];
-  const periodTotal = data?.periods.reduce(
-    (sum, period) => sum + period.forecast_tonnes,
-    0,
-  );
+  const resultPeriod = data && (isRange ? `${data.start_year}–${data.end_year}` : String(data.start_year));
 
   return (
     <div className="volume-forecast">
@@ -125,7 +134,7 @@ export function VolumeForecast({
             ? `${route.origin} → ${route.destination}`
             : "Как изменится объём перевозок"}
         </h2>
-        <p>Годовой объём и его распределение по периодам.</p>
+        <p>Выберите один год или сравните объёмы за несколько лет.</p>
       </div>
       {optionsError ? (
         <div className="notice warning" role="alert">
@@ -164,39 +173,40 @@ export function VolumeForecast({
               </Select>
             </label>
             <label>
-              Год прогноза объёма
+              С года
               <Select
-                aria-label="Год прогноза объёма"
-                value={year}
-                onChange={(e) => setYear(e.target.value)}
+                value={startYear}
+                onChange={(event) => {
+                  const next = Number(event.target.value);
+                  setStartYear(next);
+                  setEndYear((previous) => isRange ? Math.max(next, previous) : next);
+                }}
               >
-                {Array.from(
-                  { length: options.max_year - options.min_year + 1 },
-                  (_, i) => options.min_year + i,
-                ).map((year) => (
-                  <option key={year} value={year}>
-                    {year}
-                  </option>
-                ))}
+                {years.map((year) => <option key={year} value={year}>{year}</option>)}
+              </Select>
+            </label>
+            <label>
+              По год
+              <Select value={endYear} onChange={(event) => setEndYear(Number(event.target.value))}>
+                {years.filter((year) => year >= startYear)
+                  .map((year) => <option key={year} value={year}>{year}</option>)}
               </Select>
             </label>
             <label>
               Детализация
               <Select
                 value={granularity}
-                onChange={(e) => setGranularity(e.target.value)}
+                onChange={(event) => {
+                  const setGranularity = isRange ? setRangeGranularity : setSingleYearGranularity;
+                  setGranularity(event.target.value);
+                }}
               >
                 <option value="month">По месяцам</option>
                 <option value="quarter">По кварталам</option>
-                <option value="year">За год</option>
+                <option value="year">{isRange ? "По годам" : "За год"}</option>
               </Select>
             </label>
           </div>
-          {!validYear && (
-            <p role="alert">
-              Укажите целый год от {options.min_year} до {options.max_year}.
-            </p>
-          )}
           {query && !data && !error && <p role="status">Рассчитываем объём…</p>}
           {error && (
             <div className="notice warning" role="alert">
@@ -213,13 +223,13 @@ export function VolumeForecast({
             <>
               <div className="forecast-metrics" aria-live="polite">
                 <div>
-                  <span>Объём за {data.start_year} год</span>
+                  <span>Объём за {resultPeriod}</span>
                   <strong>{num(data.forecast_tonnes, 1)} т</strong>
                 </div>
                 <div className="forecast-metric-primary">
-                  <span>Максимум за период</span>
+                  <span>{peakLabel}</span>
                   <strong>{num(peak?.forecast_tonnes, 1)} т</strong>
-                  <small>{peak?.period}</small>
+                  <small>{peak && periodName(peak.period)}</small>
                 </div>
                 <div>
                   <span>Периодов в прогнозе</span>
@@ -227,34 +237,43 @@ export function VolumeForecast({
                 </div>
               </div>
               <div className="forecast-chart-card">
-                <h3>Объём перевозок · {data.start_year}</h3>
+                <h3>Объём перевозок · {resultPeriod}</h3>
                 <ForecastChart
                   unit="т"
                   points={points}
                   variant={points.length === 1 ? "bar" : "line"}
-                  label={`Объём по периодам ${data.start_year} года. Всего ${num(data.forecast_tonnes, 1)} т.`}
+                  label={`Объём перевозок за ${resultPeriod}. Всего ${num(data.forecast_tonnes, 1)} т.`}
                 />
                 <p className="forecast-chart-note">
-                  Точки показывают значения API. Наведите на период для точного
-                  объёма. Сумма периодов: {num(periodTotal, 1)} т.
+                  Наведите на точку графика, чтобы увидеть объём.
                 </p>
-                <details className="volume-periods">
-                  <summary>Посмотреть значения по периодам</summary>
+                <details className="volume-periods" open={compareYears}>
+                  <summary>{compareYears ? "Значения по годам" : "Значения по периодам"}</summary>
                   <div className="table-scroll">
                     <table className="detail-table">
                       <thead>
                         <tr>
                           <th>Период</th>
                           <th>Прогноз, т</th>
+                          {compareYears && <th>К предыдущему году</th>}
                         </tr>
                       </thead>
                       <tbody>
-                        {data.periods.map((period) => (
-                          <tr key={period.period}>
-                            <th>{period.period}</th>
-                            <td>{num(period.forecast_tonnes, 1)}</td>
-                          </tr>
-                        ))}
+                        {data.periods.map((period, index) => {
+                          const previous = data.periods[index - 1]?.forecast_tonnes;
+                          const change = previous > 0
+                            ? (period.forecast_tonnes - previous) / previous * 100
+                            : null;
+                          return (
+                            <tr key={period.period}>
+                              <th scope="row">{isRange ? periodName(period.period) : period.period}</th>
+                              <td>{num(period.forecast_tonnes, 1)}</td>
+                              {compareYears && (
+                                <td>{change == null ? "—" : `${change > 0 ? "+" : ""}${num(change, 1)}%`}</td>
+                              )}
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
