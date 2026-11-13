@@ -350,6 +350,17 @@ function Workspace({
                 onResult={completed}
               />
               <div className="intake-assistant-slot" ref={setAssistantSlot} />
+              <button
+                className="mobile-assistant-jump"
+                type="button"
+                aria-controls="assistant-panel"
+                onClick={() => {
+                  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+                  assistantSlot?.scrollIntoView({ block: "start", behavior: reduceMotion ? "instant" : "smooth" });
+                }}
+              >
+                К ИИ-чату ↓
+              </button>
             </div>
           </>
         ) : (
