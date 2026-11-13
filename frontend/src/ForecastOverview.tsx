@@ -139,6 +139,7 @@ export function ForecastOverview({
                 {forecast
                   ? `Оценка · ${forecast.target_year}`
                   : "Стоимость перевозки"}
+                {candidate && price != null && <> · {candidateName(candidate)}</>}
               </span>
               <strong>{price != null ? money(price) : "—"}</strong>
             </div>
