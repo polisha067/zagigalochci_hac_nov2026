@@ -136,7 +136,7 @@ def digest(data):
 class RussiaNetwork:
     def __init__(self, snapshot=None, *, tlm_tariff=None, tlm_road_tariff=None, air_tariff=None, registry=None):
         self.tlm_tariff = tlm_tariff if tlm_tariff is not None else bundled_tariff()
-        self.tlm_road_tariff = tlm_road_tariff if tlm_road_tariff is not None else bundled_road_tariff()
+        self.tlm_road_tariff = bundled_road_tariff() | (tlm_road_tariff or {})
         self.air_tariff = air_tariff if air_tariff is not None else bundled_air_tariff()
         self.snapshot = snapshot or json.loads((ROOT/'data_sources/russia/connectivity.json').read_text())
         self.settlements = {c['id']:dict(c, provenance='source-01') for c in self.snapshot['settlements']}
