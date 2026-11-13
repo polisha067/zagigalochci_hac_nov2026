@@ -38,6 +38,54 @@ def hub_catalog():
     return json.loads((ROOT / "coverage_hubs.json").read_text(encoding="utf-8"))
 
 
+@cache
+def additional_rail_tariffs():
+    release = json.loads((ROOT / "rail_market_rates.json").read_text(encoding="utf-8"))
+    sources, rows = {}, []
+    for group in ("station", "wagon", "door"):
+        identifier = f"sko-{group}-2026"
+        meta = release["sources"][identifier]
+        sources[identifier] = {"id": identifier, "name": meta["name"], "url": meta["url"],
+                               "roles": ["tariff"], "status": "fact", "observed_on": release["checked_on"],
+                               "version": f"{identifier}:{release['checked_on']}"}
+        for record in release[group]:
+            if group == "station":
+                origin, destination, departure, arrival, rate20, rate40, days = record
+                days = [days]
+            elif group == "wagon":
+                destination, arrival, rate20, rate40 = record
+                origin, departure, days = "Москва", None, []
+            else:
+                destination, rate20, rate40, minimum, maximum = record
+                origin, departure, arrival, days = "Москва", None, None, [minimum, maximum]
+            for size, amount, max_tonnes in ((20, rate20, 18), (40, rate40, 20)):
+                if amount is None:
+                    continue
+                rows.append({
+                    "origin": origin, "destination": destination, "mode": "rail", "unit": "container",
+                    "equipment": f"Контейнер {size} футов", "amount_rub": amount, "max_m3": None,
+                    "max_tonnes": max_tonnes if group != "station" else None,
+                    "vat": meta["vat"], "vat_percent": meta.get("vat_percent"),
+                    "scope": meta["scope"], "valid_from": meta.get("valid_from"), "source_id": identifier,
+                    "origin_station": departure, "destination_station": arrival, "transit_days": days,
+                })
+    identifier = "mts-rail-petersburg"
+    sources[identifier] = release["petersburg_source"] | {
+        "id": identifier, "roles": ["tariff"], "status": "fact", "observed_on": release["checked_on"],
+        "version": f"{identifier}:{release['checked_on']}",
+    }
+    for destination, station, rail20, rail40, door20, door40, minimum, maximum in release["petersburg"]:
+        for scope, rates in (("warehouse_to_station", (rail20, rail40)), ("warehouse_to_warehouse", (door20, door40))):
+            for (size, limit), amount in zip(((20, 18), (40, 20)), rates):
+                rows.append({
+                    "origin": "Санкт-Петербург", "destination": destination, "mode": "rail", "unit": "container",
+                    "equipment": f"Контейнер {size} футов", "amount_rub": amount, "max_m3": None,
+                    "max_tonnes": limit, "vat": "included", "vat_percent": None, "scope": scope,
+                    "source_id": identifier, "destination_station": station, "transit_days": [minimum, maximum],
+                })
+    return sources, rows
+
+
 def terminal_access(locations, request, router_status):
     if not {"rail", "road"}.issubset(request.allowed_modes) or any(
         cargo.temperature_c or cargo.properties and (
@@ -76,22 +124,32 @@ def provider_rows(network):
     for destination, rate20, rate40, guard20, guard40, days in rail["rows"]:
         if days.endswith("+"):
             continue
+        city = {"Тальцы (Улан-Удэ)": "Улан-Удэ",
+                "Благовещенск": "Благовещенск, Амурская область"}.get(destination, destination)
         for size, rate, guard in ((20, rate20, guard20), (40, rate40, guard40)):
-            rows.append({"origin": "Москва", "destination": "Улан-Удэ" if destination == "Тальцы (Улан-Удэ)" else destination,
+            rows.append({"origin": "Москва", "destination": city,
                          "mode": "rail", "equipment": f"Контейнер {size} футов", "unit": "container",
                          "max_tonnes": None, "max_m3": None, "amount_rub": rate, "vat": "included",
                          "vat_percent": rail["vat_percent"], "security_rub": guard,
                          "valid_from": rail["valid_from"], "transit_days": [float(days)],
                          "scope": "station_to_station", "source_id": "tlm-rail-2026"})
-    return sources, rows
+    new_sources, new_rows = additional_rail_tariffs()
+    return sources | new_sources, rows + new_rows
 
 
 def index_tariffs(network):
     sources, rows = provider_rows(network)
     pairs = defaultdict(list)
     rejected = []
+    station_localities = {
+        "Ворсино, Калужская область": "gar:bd10eef0-b2e0-4491-ad72-9f12e9480f7e",
+        "Селятино, Московская область": "gar:eb2b1b37-bf13-47ef-94bb-4bf71005bba1",
+        "Купавна, Московская область": "Старая Купавна",
+    }
     for row in rows:
-        left = network.resolve(row["origin"])
+        origin = row["origin"]
+        left = network.resolve(station_localities.get(origin, origin) if row["source_id"] == "sko-station-2026"
+                               else origin)
         right = network.resolve(row["destination"])
         if left and right and left != right:
             pairs[left, right].append(row)

@@ -562,9 +562,10 @@ def process_dialog(planner, message, state, revision, run_tool):
     elif draft and comparison:
         action, changes, years = "compare", {}, [int(comparison[1]), int(comparison[2])]
     elif draft and re.fullmatch(
-        r"(?:(?:а\s+)?(?:покажи(?:те)?|сравни(?:те)?|выведи(?:те)?)\s+)?"
-        r"все\s+(?:доступные\s+)?(?:варианты(?:\s+(?:маршрутов|доставки|перевозки))?"
-        r"|маршруты|виды\s+транспорта)[.!?]*",
+        r"(?:а\s+)?(?:(?:покажи(?:те)?|сравни(?:те)?|выведи(?:те)?)\s+)?"
+        r"(?:все\s+(?:доступные\s+)?(?:варианты(?:\s+(?:маршрутов|доставки|перевозки))?"
+        r"|маршруты|виды\s+транспорта)|(?:еще\s+)?(?:жд|ж/д|поезд)\s+и\s+авто"
+        r"(?:\s+по\s+этому\s+маршруту)?)[.!?]*",
         clean(text),
     ):
         action, changes, years = "update", {"allowed_modes": None, "preferred_mode": None}, None

@@ -770,7 +770,7 @@ export function ConditionsForm({
                     <option value="excluding_vat">Без НДС</option>
                   </Select>
                 </label>
-                <label>
+                {!forecastYear && <label>
                   Допустимые данные
                   <Select
                     aria-label="Допустимые данные"
@@ -788,7 +788,7 @@ export function ConditionsForm({
                       Только подтверждённые данные
                     </option>
                   </Select>
-                </label>
+                </label>}
                 <label>
                   Основа массы
                   <Select
@@ -841,7 +841,8 @@ export function ConditionsForm({
             <div className="action">
               <p>{forecastYear ? "Прогноз стоимости по индексам Росстата" : "Расчёт по транспортной сети"} · до 64 отправок</p>
               <p>
-                {draft.dataPolicy === "allow_assumptions"
+                {forecastYear ? "Прогноз использует опубликованные ставки и показывает расчётные допущения." :
+                  draft.dataPolicy === "allow_assumptions"
                   ? "Сценарные тарифы и ресурсы будут отмечены в отчёте."
                   : "Неподтверждённые условия не допускаются."}
               </p>

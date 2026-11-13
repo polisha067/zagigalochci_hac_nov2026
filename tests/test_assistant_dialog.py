@@ -120,11 +120,13 @@ class AssistantDialogTests(unittest.TestCase):
         form = self.client.post("/network/russia/forecasts", json=calculation["request"])
         self.assertEqual(form.status_code, 200, form.text)
         self.assertEqual(form.json()["road_market_estimate"], calculation["road_market_estimate"])
+        self.assertEqual(form.json()["land_market"], calculation["land_market"])
 
         strict = calculation["request"] | {"data_policy": "verified_only"}
         form = self.client.post("/network/russia/forecasts", json=strict)
         self.assertEqual(form.status_code, 200, form.text)
         self.assertIsNone(form.json()["road_market_estimate"])
+        self.assertIsNone(form.json()["land_market"])
 
     def test_show_all_routes_clears_air_only_restriction(self):
         first = self.send(
@@ -135,7 +137,7 @@ class AssistantDialogTests(unittest.TestCase):
         )["answer"]["calculation"]
         self.assertEqual([row["modes"] for row in first["candidates"]], [["air"]])
         calls = self.model.chat.call_count
-        expanded = self.send("Покажи все варианты маршрутов")["answer"]["calculation"]
+        expanded = self.send("А ещё ж/д и авто по этому маршруту?")["answer"]["calculation"]
         self.assertEqual(self.model.chat.call_count, calls)
         self.assertEqual({key: value for key, value in expanded["request"].items() if key != "allowed_modes"},
                          {key: value for key, value in first["request"].items() if key != "allowed_modes"})
@@ -353,7 +355,8 @@ class AssistantDialogTests(unittest.TestCase):
                   {"stops": [{"operation": "add", "city": city} for city in ("Екатеринбург", "Новосибирск")]})
         self.send("А если в 2028 году?")
         pending = self.send("А если повезём карандаши вместо муки?", "update", {"cargoes": [{"name": "Карандаши"}]})
-        self.assertIn("cargoes.0.properties.handling_profile", pending["answer"]["missing_fields"])
+        self.assertIn("cargoes.0.weight_tonnes", pending["answer"]["missing_fields"])
+        self.assertFalse(any(".properties." in field for field in pending["answer"]["missing_fields"]))
         completed = self.send(
             "Везём 100 тонн карандашей в коробках, общий объём 120 м³. Партию можно разделить. "
             "Груз сухой, твёрдый и неопасный, без особых условий и температурного режима.",
@@ -365,6 +368,65 @@ class AssistantDialogTests(unittest.TestCase):
         self.assertEqual([stop["settlement"] for stop in request["stops"]], ["Екатеринбург", "Новосибирск"])
         cargo, = request["cargoes"]
         self.assertEqual((cargo["name"], cargo["weight_tonnes"], cargo["volume_m3"]), ("Карандаши", 100, 120))
+
+    def test_new_pencil_quote_replaces_stale_draft_even_with_invalid_model_reply(self):
+        self.send("100 т муки в мешках из Воронежа в Новокузнецк в 2028 году.",
+                  "new", evidence=[])
+        self.model.chat.return_value = OllamaMessage(content="{bad json")
+        pending = self.send("сколько будет стоить перевезти 10 тон карандашей из брянска в оренбург?")
+        self.assertIn("Брянск → Оренбург", pending["known"])
+        self.assertIn("Карандаши, 10 т", pending["known"])
+        self.assertFalse(any("Мука" in line or "2028" in line for line in pending["known"]))
+        self.assertFalse(any(".properties." in field for field in pending["answer"]["missing_fields"]))
+        model_input = json.loads(self.model.chat.call_args.args[0][-1]["content"])
+        self.assertIsNone(model_input["pending"])
+
+        details = self.send("рассчитай стоимость этой перевозки в 2030 году, отправка разовая, "
+                            "груз упакован в коробки, объем 20 кубометров", "clarify", evidence=[])
+        self.assertEqual(details["answer"]["missing_fields"], ["cargoes.0.splittable"])
+        self.model.chat.return_value = OllamaMessage(content="{bad json")
+        done = self.send("можно разделить партию")
+        self.assertEqual(done["answer"]["kind"], "calculation", done["answer"]["reply"])
+        calculation = done["answer"]["calculation"]
+        request = calculation["request"]
+        self.assertEqual((request["origin"], request["destination"], request["target_year"]),
+                         ("Брянск", "Оренбург", 2030))
+        cargo, = request["cargoes"]
+        self.assertEqual((cargo["name"], cargo["weight_tonnes"], cargo["volume_m3"], cargo["packaging"], cargo["splittable"]),
+                         ("Карандаши", 10, 20, "boxes", True))
+        self.assertEqual(calculation["road_market_estimate"]["trucks"], 1)
+        self.assertEqual(calculation["road_market_estimate"]["forecast_road_rub"], 117620.8)
+
+    def test_full_shipment_ignores_duplicate_cargo_positions_from_model(self):
+        message = ("Сколько будет стоить перевезти 100 кг муки в мешках из Брянска в Воронеж в 2030 году? "
+                   "Объём 0,25 м³, партию можно разделить. Покажи все варианты")
+        self.flour(destination="Казань")
+        response = self.send(message, "update", {"cargoes": [
+            {"weight_tonnes": .1}, {"volume_m3": .25},
+        ], "replace_cargoes": True})
+        self.assertEqual(response["answer"]["kind"], "calculation", response["answer"]["reply"])
+        request = response["answer"]["calculation"]["request"]
+        self.assertEqual((request["origin"], request["destination"], request["target_year"]),
+                         ("Брянск", "Воронеж", 2030))
+        cargo, = request["cargoes"]
+        self.assertEqual((cargo["name"], cargo["weight_tonnes"], cargo["volume_m3"],
+                          cargo["packaging"], cargo["splittable"]), ("Мука", .1, .25, "bags", True))
+        self.assertTrue({"road", "rail", "air"}.issubset(request["allowed_modes"]))
+
+    def test_books_request_with_route_preposition_typo_keeps_cargo(self):
+        self.flour(destination="Брянск")
+        response = self.send("Новый расчет, перевезти из Уфы ы казань 100 тонн книг в 2030 как дешевле",
+                             "clarify", {"target_year": 2030})
+        self.assertEqual(set(response["answer"]["missing_fields"]),
+                         {"cargoes.0.packaging", "cargoes.0.splittable", "cargoes.0.volume_m3"})
+        self.assertIn("Уфа → Казань", response["known"])
+        self.assertIn("Книги, 100 т", response["known"])
+        response = self.send("В коробках, 120 м³, можно разделить партию.", "clarify", evidence=[])
+        self.assertEqual(response["answer"]["kind"], "calculation", response["answer"]["reply"])
+        request = response["answer"]["calculation"]["request"]
+        self.assertEqual((request["origin"], request["destination"], request["target_year"]), ("Уфа", "Казань", 2030))
+        cargo, = request["cargoes"]
+        self.assertEqual((cargo["name"], cargo["weight_tonnes"], cargo["volume_m3"]), ("Книги", 100, 120))
 
     def test_full_shipment_is_recovered_when_model_omits_cargo(self):
         for message, name, weight, volume in (

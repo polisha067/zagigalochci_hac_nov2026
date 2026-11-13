@@ -1,0 +1,40 @@
+{
+  "checked_on": "2026-11-13",
+  "feeders": {
+    "Чебоксары": {
+      "year": 2026,
+      "capacity": [20, 90],
+      "benchmarks": [
+        {"rub": 33000, "name": "Форус Логистик · 20 т", "url": "https://foruslogistics.ru/napravleniya/cheboksary-moskva/"},
+        {"rub": 85564, "name": "Клевер Логистик · 20 т, тент", "url": "https://clever-logistics.ru/route/cheboksary/msk/"}
+      ]
+    }
+  },
+  "moscow_transfer": {
+    "year": 2024,
+    "capacity": [20, 100],
+    "rub": 27000,
+    "name": "АэроКарго · экспедирование в пределах МКАД",
+    "url": "https://aircargo-msk.ru/tarifs/"
+  },
+  "bulk": {
+    "air": {"density": 167, "bands": [[10.1, 490], [1001, 480], [3001, 475], [5001, 470]], "name": "АэроКарго · грузовые рейсы"},
+    "road": {"density": 200, "bands": [[20.1, 123], [1001, 121], [3001, 119], [5001, 117]], "name": "АэроКарго · автоперевозка"}
+  },
+  "bulk_source": "https://aircargo-msk.ru/tarifs/",
+  "rail": {
+    "year": 2025,
+    "name": "АЯМтрансервис · Москва — Нижний Бестях, станция — станция",
+    "url": "https://aym.ru/news",
+    "rates": {"20": 190000, "40": 249500},
+    "limits_tonnes": {"20": 18, "40": 20},
+    "capacity_source": {"name": "СКО · норма загрузки контейнеров", "url": "https://contoperator.ru/wp-content/uploads/2026/05/price.pdf"}
+  },
+  "delivery": {
+    "year": 2025,
+    "name": "ТЛЦ Нижний Бестях · обработка и доставка до склада в Якутске",
+    "url": "https://tlc-yakutia.ru/wp-content/uploads/2025/01/prikaz-po-tarifam-2025.pdf",
+    "rates": {"20": 65658, "40": 80422},
+    "scenario_vat_percent": 22
+  }
+}

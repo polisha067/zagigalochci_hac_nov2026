@@ -1,0 +1,243 @@
+{
+  "base_year": 2026,
+  "models": {
+    "rail:20": {
+      "bands": {
+        "3": {
+          "km_max": 9335.0,
+          "km_min": 5011.0,
+          "rub_per_km": 19.4518,
+          "source_ids": [
+            "sibir-container-expanded"
+          ],
+          "train_rows": 12
+        }
+      },
+      "eligible_rows": 28,
+      "holdout_median_error_pct": 73.9,
+      "holdout_priced": 2,
+      "holdout_rows": 6
+    },
+    "rail:40": {
+      "bands": {
+        "3": {
+          "km_max": 9335.0,
+          "km_min": 5011.0,
+          "rub_per_km": 37.6755,
+          "source_ids": [
+            "sibir-container-expanded"
+          ],
+          "train_rows": 12
+        }
+      },
+      "eligible_rows": 28,
+      "holdout_median_error_pct": 19.9,
+      "holdout_priced": 2,
+      "holdout_rows": 6
+    },
+    "road:20": {
+      "bands": {
+        "0": {
+          "km_max": 249,
+          "km_min": 56,
+          "rub_per_km": 129.1685,
+          "source_ids": [
+            "logistic-avto-regional-bryansk",
+            "logistic-avto-regional-chelyabinsk",
+            "logistic-avto-regional-ekaterinburg",
+            "logistic-avto-regional-kazan",
+            "logistic-avto-regional-krasnodar",
+            "logistic-avto-regional-moscow",
+            "logistic-avto-regional-novosibirsk",
+            "logistic-avto-regional-perm",
+            "logistic-avto-regional-pskov",
+            "logistic-avto-regional-ryazan",
+            "logistic-avto-regional-samara",
+            "logistic-avto-regional-stavropol",
+            "logistic-avto-regional-tomsk",
+            "logistic-avto-regional-tula",
+            "logistic-avto-regional-tyumen",
+            "logistic-avto-regional-ufa",
+            "logistic-avto-regional-ulan-ude",
+            "logistic-avto-regional-vologda",
+            "logistic-avto-regional-voronezh",
+            "logistic-avto-regional-yaroslavl"
+          ],
+          "train_rows": 76
+        },
+        "1": {
+          "km_max": 499,
+          "km_min": 250,
+          "rub_per_km": 89.2174,
+          "source_ids": [
+            "logistic-avto-regional-bryansk",
+            "logistic-avto-regional-chelyabinsk",
+            "logistic-avto-regional-chita",
+            "logistic-avto-regional-ekaterinburg",
+            "logistic-avto-regional-kazan",
+            "logistic-avto-regional-krasnodar",
+            "logistic-avto-regional-krasnoyarsk",
+            "logistic-avto-regional-moscow",
+            "logistic-avto-regional-novosibirsk",
+            "logistic-avto-regional-perm",
+            "logistic-avto-regional-pskov",
+            "logistic-avto-regional-ryazan",
+            "logistic-avto-regional-samara",
+            "logistic-avto-regional-stavropol",
+            "logistic-avto-regional-tomsk",
+            "logistic-avto-regional-tula",
+            "logistic-avto-regional-tyumen",
+            "logistic-avto-regional-ufa",
+            "logistic-avto-regional-ulan-ude",
+            "logistic-avto-regional-volgograd",
+            "logistic-avto-regional-vologda",
+            "logistic-avto-regional-voronezh",
+            "logistic-avto-regional-yaroslavl"
+          ],
+          "train_rows": 142
+        },
+        "2": {
+          "km_max": 999,
+          "km_min": 501,
+          "rub_per_km": 71.6186,
+          "source_ids": [
+            "logistic-avto-regional-bryansk",
+            "logistic-avto-regional-chelyabinsk",
+            "logistic-avto-regional-chita",
+            "logistic-avto-regional-ekaterinburg",
+            "logistic-avto-regional-kazan",
+            "logistic-avto-regional-krasnodar",
+            "logistic-avto-regional-krasnoyarsk",
+            "logistic-avto-regional-moscow",
+            "logistic-avto-regional-murmansk",
+            "logistic-avto-regional-novosibirsk",
+            "logistic-avto-regional-perm",
+            "logistic-avto-regional-pskov",
+            "logistic-avto-regional-ryazan",
+            "logistic-avto-regional-samara",
+            "logistic-avto-regional-stavropol",
+            "logistic-avto-regional-tomsk",
+            "logistic-avto-regional-tula",
+            "logistic-avto-regional-tyumen",
+            "logistic-avto-regional-ufa",
+            "logistic-avto-regional-ulan-ude",
+            "logistic-avto-regional-vladivostok",
+            "logistic-avto-regional-volgograd",
+            "logistic-avto-regional-vologda",
+            "logistic-avto-regional-voronezh",
+            "logistic-avto-regional-yaroslavl"
+          ],
+          "train_rows": 362
+        },
+        "3": {
+          "km_max": 1997,
+          "km_min": 1000,
+          "rub_per_km": 60.9982,
+          "source_ids": [
+            "logistic-avto-regional-bryansk",
+            "logistic-avto-regional-chelyabinsk",
+            "logistic-avto-regional-chita",
+            "logistic-avto-regional-ekaterinburg",
+            "logistic-avto-regional-kazan",
+            "logistic-avto-regional-krasnodar",
+            "logistic-avto-regional-krasnoyarsk",
+            "logistic-avto-regional-magadan",
+            "logistic-avto-regional-moscow",
+            "logistic-avto-regional-murmansk",
+            "logistic-avto-regional-novosibirsk",
+            "logistic-avto-regional-perm",
+            "logistic-avto-regional-pskov",
+            "logistic-avto-regional-ryazan",
+            "logistic-avto-regional-samara",
+            "logistic-avto-regional-stavropol",
+            "logistic-avto-regional-tomsk",
+            "logistic-avto-regional-tula",
+            "logistic-avto-regional-tyumen",
+            "logistic-avto-regional-ufa",
+            "logistic-avto-regional-ulan-ude",
+            "logistic-avto-regional-vladivostok",
+            "logistic-avto-regional-volgograd",
+            "logistic-avto-regional-vologda",
+            "logistic-avto-regional-voronezh",
+            "logistic-avto-regional-yakutsk",
+            "logistic-avto-regional-yaroslavl"
+          ],
+          "train_rows": 683
+        },
+        "4": {
+          "km_max": 3999,
+          "km_min": 2001,
+          "rub_per_km": 60.1538,
+          "source_ids": [
+            "logistic-avto-regional-bryansk",
+            "logistic-avto-regional-chelyabinsk",
+            "logistic-avto-regional-chita",
+            "logistic-avto-regional-ekaterinburg",
+            "logistic-avto-regional-kazan",
+            "logistic-avto-regional-krasnodar",
+            "logistic-avto-regional-krasnoyarsk",
+            "logistic-avto-regional-magadan",
+            "logistic-avto-regional-moscow",
+            "logistic-avto-regional-murmansk",
+            "logistic-avto-regional-novosibirsk",
+            "logistic-avto-regional-perm",
+            "logistic-avto-regional-pskov",
+            "logistic-avto-regional-ryazan",
+            "logistic-avto-regional-samara",
+            "logistic-avto-regional-stavropol",
+            "logistic-avto-regional-tomsk",
+            "logistic-avto-regional-tula",
+            "logistic-avto-regional-tyumen",
+            "logistic-avto-regional-ufa",
+            "logistic-avto-regional-ulan-ude",
+            "logistic-avto-regional-vladivostok",
+            "logistic-avto-regional-volgograd",
+            "logistic-avto-regional-vologda",
+            "logistic-avto-regional-voronezh",
+            "logistic-avto-regional-yakutsk",
+            "logistic-avto-regional-yaroslavl"
+          ],
+          "train_rows": 499
+        },
+        "5": {
+          "km_max": 7367,
+          "km_min": 4006,
+          "rub_per_km": 56.8553,
+          "source_ids": [
+            "logistic-avto-regional-bryansk",
+            "logistic-avto-regional-chelyabinsk",
+            "logistic-avto-regional-chita",
+            "logistic-avto-regional-ekaterinburg",
+            "logistic-avto-regional-kazan",
+            "logistic-avto-regional-krasnodar",
+            "logistic-avto-regional-krasnoyarsk",
+            "logistic-avto-regional-magadan",
+            "logistic-avto-regional-moscow",
+            "logistic-avto-regional-murmansk",
+            "logistic-avto-regional-perm",
+            "logistic-avto-regional-pskov",
+            "logistic-avto-regional-ryazan",
+            "logistic-avto-regional-samara",
+            "logistic-avto-regional-stavropol",
+            "logistic-avto-regional-tula",
+            "logistic-avto-regional-tyumen",
+            "logistic-avto-regional-ufa",
+            "logistic-avto-regional-ulan-ude",
+            "logistic-avto-regional-vladivostok",
+            "logistic-avto-regional-volgograd",
+            "logistic-avto-regional-vologda",
+            "logistic-avto-regional-voronezh",
+            "logistic-avto-regional-yakutsk",
+            "logistic-avto-regional-yaroslavl"
+          ],
+          "train_rows": 327
+        }
+      },
+      "eligible_rows": 2556,
+      "holdout_median_error_pct": 23.8,
+      "holdout_priced": 465,
+      "holdout_rows": 467
+    }
+  },
+  "version": "land-market-2026-11-v1"
+}

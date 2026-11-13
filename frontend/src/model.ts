@@ -13,7 +13,7 @@ import type {
 import type { Snapshot as LegacySnapshot } from "./legacyModel";
 import { money } from "./legacyModel";
 export { num, money, hours, date } from "./legacyModel";
-export const airForecastFlightHours = (candidate: Candidate) =>
+export const airForecastFlightHours = (candidate: Pick<Candidate, "forecast_price" | "steps">) =>
   candidate.forecast_price?.air_median_rub == null
     ? null
     : candidate.steps.find((step) => step.kind === "transport" && step.mode === "air")?.duration_hours ?? null;
@@ -473,7 +473,7 @@ export function buildRequest(d: Draft, forecastOptions?: ForecastOptions): Calcu
     ...(year ? { target_year: year } : {}),
     capacity_basis: d.capacityBasis,
     cost_basis: d.costBasis,
-    data_policy: d.dataPolicy,
+    data_policy: year ? "allow_assumptions" : d.dataPolicy,
     allowed_modes: d.modes,
     ...(d.massBasis ? { mass_basis: d.massBasis } : {}),
     max_candidates: 8,

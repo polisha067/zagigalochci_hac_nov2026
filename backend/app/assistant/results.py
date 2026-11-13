@@ -118,6 +118,8 @@ def forecast_summary(result):
         air_lines.append("Оценка включает перелёт груза и авианакладную по базе «Якутии». "
                          "Терминальные и агентские сборы оплачиваются отдельно. Суммы служат ориентиром для бюджета.")
     if chosen is None:
+        if result.land_market and any(row.get("scenario_note") for row in result.land_market["routes"]):
+            return header
         if not rows and any(stop.get("no_reload") for stop in request["stops"]):
             return "\n\n".join([header, "В данных проекта нет подходящей цепочки с остановкой без перегрузки. "
                                          "Уточните сквозной маршрут у перевозчика."])
@@ -134,7 +136,13 @@ def forecast_summary(result):
             return "\n\n".join(lines)
         if air_lines:
             return "\n\n".join([header, *air_lines])
-        if not rows and request["allowed_modes"] == ["air"] and result.status == "no_route_in_dataset":
+        if request["allowed_modes"] == ["air"] and result.air_market and (
+            result.air_market["routes"] or any(result.air_market["segments"]) or any(result.air_market["weight_limits"])
+        ):
+            return header
+        if not rows and request["allowed_modes"] == ["air"] and result.status == "no_route_in_dataset" and not (
+            result.air_market and result.air_market["routes"]
+        ):
             return "\n\n".join([header, "Для этого направления в проекте нет прямого авиаплеча с применимой базовой ставкой."])
         if any("max_piece_dimensions_m" in issue["fields"]
                for row in rows if row["modes"] == ["air"] for issue in row["issues"]):
@@ -197,6 +205,16 @@ def forecast_summary(result):
         lines.append(f"Другой вариант — {name(other)}, около {price(other['total_cost_rub'], other)}, {duration(other)}.")
         if alternative["ranges_overlap"]:
             lines.append("Диапазоны цен пересекаются. Фактическая цена может поменять порядок вариантов.")
+    shown_modes = {tuple(chosen["modes"])}
+    if alternative:
+        shown_modes.add(tuple(other["modes"]))
+    for row in rows:
+        modes = tuple(row["modes"])
+        if modes in shown_modes or len(set(modes)) != 1 or row["status"] != "feasible" or row["total_cost_rub"] is None:
+            continue
+        shown_modes.add(modes)
+        lines.append(f"{MODE_LABELS[modes[0]]} · около {price(row['total_cost_rub'], row)} "
+                     f"{VAT[request['cost_basis']]}, {duration(row)}.")
     lines.append("Сценарный прогноз использует базовые ставки проекта и индексы грузовых тарифов. "
                  "Перед отправкой уточните цену и срок у перевозчика.")
     if forecast["date_precision"] == "year":
@@ -205,13 +223,14 @@ def forecast_summary(result):
     return "\n\n".join(lines)
 
 
-def _published_summary(result):
-    coverage = result.published_coverage
+def _published_summary(result, reference=None):
+    coverage = reference["coverage"] if reference else result.published_coverage
+    candidates = reference["candidates"] if reference else result.candidates
     lines = []
     road = coverage["truck_path"]
     if road["status"] == "found":
         lines.append(f"Грузовой путь по дорожному графу — {number(road['distance_km'])} км.")
-    for row in result.candidates[:3]:
+    for row in candidates[:3]:
         rate = row["published_rate"]
         tax = "с НДС" if rate["vat"] == "included" else "НДС в источнике не указан"
         entry = f"{rate['origin']} → {rate['destination']}, {rate['equipment']}: {number(rate['published_amount_rub'])} ₽ за единицу ({tax})."
@@ -220,7 +239,7 @@ def _published_summary(result):
         if row["known_cost_subtotal_rub"] is not None:
             entry += f" Частичная смета — {number(row['known_cost_subtotal_rub'])} ₽ {VAT[result.request['cost_basis']]}."
         lines.append(entry)
-    if not result.candidates:
+    if not candidates:
         lines.append("Опубликованная ставка для выбранных условий в каталоге не найдена.")
     lines.append("Полная цена и доступность перевозки требуют котировки перевозчика. "
                  "Для этого направления нет фактического ряда объёмов. В отчёте доступна статистика по России.")
@@ -230,12 +249,93 @@ def _published_summary(result):
 def engine_summary(result):
     if isinstance(result, ForecastResponse):
         reply = forecast_summary(result)
+        if market := result.land_market:
+            if (not market.get("unpriced_rail") and result.road_market_estimate and len(market["routes"]) == 1
+                    and len(market["routes"][0]["legs"]) == 1
+                    and market["routes"][0]["legs"][0]["mode"] == "road"
+                    and market["routes"][0]["movement_rub"] == result.road_market_estimate["forecast_road_rub"]):
+                market = None
+        if market:
+            variants = []
+            has_bulk_budget = any(row.get("scenario_note") for row in market["routes"])
+            for route in market["routes"][:4 if has_bulk_budget else 3]:
+                parts = route["legs"]
+                scheme = " → ".join(MODE_LABELS[leg["mode"]] for leg in parts)
+                if route.get("scenario_note"):
+                    path = [parts[0]["origin"], *(leg["destination"] for leg in parts if leg["origin"] != leg["destination"])]
+                    equipment = next((leg["equipment"] for leg in parts if leg["mode"] == "rail"), None)
+                    scheme = f"{scheme} · {' → '.join(path)}"
+                    if equipment:
+                        scheme += f" · {equipment}"
+                if route.get("rail_transfer"):
+                    scheme += f" через {route['rail_transfer']}, стыковка по согласованию"
+                if len(parts) == 1:
+                    scheme += f" ({parts[0]['equipment']})"
+                    if parts[0].get("distance_source") in {"market_distance_chain", "regional_carrier_reference"}:
+                        leg = parts[0]
+                        scheme += f" · {leg['origin']} → {leg['destination']} · машин: {leg['units']}"
+                    if parts[0].get("scope") == "door_to_door":
+                        scheme += " от двери до двери по условиям прайса"
+                    elif parts[0].get("scope") == "warehouse_to_station":
+                        scheme += " от склада до станции"
+                amount = route["movement_rub"]
+                if amount is None:
+                    amount_text = "по плечам: " + " + ".join(f"{number(leg['forecast_rub'])} ₽" for leg in parts)
+                else:
+                    tax = {"included": "с НДС", "excluded": "без НДС", "unknown": "НДС не указан",
+                           "mixed": "часть ставок без разбивки НДС"}
+                    amount_text = f"{number(amount)} ₽ ({tax[route['vat']]})"
+                basis = "с модельной ставкой" if any(leg["kind"] == "model" for leg in parts) else "по опубликованным ставкам"
+                variants.append(f"• {scheme}: {amount_text}, {basis}.")
+                if any(leg.get("distance_source") in {"market_distance_chain", "regional_carrier_reference"}
+                       for leg in parts):
+                    variants.append("  Километраж справочный, проезд и срок требуют проверки.")
+            if has_bulk_budget:
+                variants.append("Суммы служат ориентиром по учтённым плечам. График, вместимость и условия стыковки уточняются.")
+            if variants:
+                reply += "\n\nПрогноз по вариантам перевозки:\n" + "\n".join(variants)
+            elif any(market["legs"]):
+                reply += "\n\nВ разделе рыночных оценок есть цены отдельных плеч. Для остальных нужна котировка."
+            for leg in market.get("unpriced_rail", [])[:3]:
+                reply += f"\n\nЖ/д {leg['origin']} → {leg['destination']}: оператор публикует контейнерный сервис. Для оценки цены нужна котировка."
         if estimate := result.road_market_estimate:
             reply += (f"\n\nСценарная оценка основного автоплеча на {estimate['target_year']} год — "
                       f"{number(estimate['forecast_road_rub'])} ₽. Количество машин — {estimate['trucks']}, "
                       f"до {estimate['tonnes_per_truck']} т и {estimate['assumed_m3_per_truck']} м³ на машину. "
                       f"Прогноз ставки — {number(estimate['forecast_unit_rub'])} ₽ за машину. "
                       "НДС не указан. Подтвердите раскладку и цену всей партии у перевозчика.")
+        if air := result.air_market:
+            if air["routes"]:
+                variants = []
+                for option in air["routes"][:3]:
+                    legs = option["legs"]
+                    path = " → ".join([f"{legs[0]['origin']} ({legs[0]['departure']})",
+                                       *(point for leg in legs for point in (*leg["via"], leg["destination"] +
+                                         (f" ({leg['arrival']})" if leg["arrival"] else "")))])
+                    tax = "с НДС" if option["vat"] == "included" else "без НДС"
+                    split = [f"{leg['shipment_count']} × {number(round(leg['paid_kg_per_shipment'], 2))} кг"
+                             for leg in legs if leg["shipment_count"] > 1]
+                    detail = f" Сценарное деление по платному весу: {', '.join(split)}." if split else ""
+                    if option["transfer_count"]:
+                        detail += " Стыковку отдельных перевозок нужно согласовать."
+                    variants.append(f"• {path} — {number(option['forecast_rub'])} ₽ ({tax}).{detail}")
+                reply += (f"\n\nАвиа · прогноз на {air['target_year']} год по опубликованным ставкам:\n"
+                          + "\n".join(variants))
+                if any(leg["shipment_count"] > 1 for option in air["routes"][:3] for leg in option["legs"]):
+                    cargo = result.request["cargoes"][0]
+                    reply += (f"\n\nОбъём партии в расчёте — {number(cargo['volume_m3'])} м³. "
+                              "Платный вес берётся по большей из двух величин, массе и объёмному весу. "
+                              "Для отправки согласуйте раскладку по грузовым местам и запросите ставку на всю партию.")
+                reply += " Подвоз, довоз и доступность рейсов уточняются."
+            elif any(air["segments"]):
+                reply += "\n\nВ авиационных прайсах найдены ставки на отдельные плечи. Для всего маршрута нужна котировка."
+            if not air["routes"] and (limit := next((item for item in air["weight_limits"] if item), None)):
+                reply += (f"\n\nАвиатариф найден. Платный вес всей партии на этом плече — "
+                          f"{number(limit['paid_kg'])} кг. Для расчёта одной отправки по общей ставке нужен "
+                          f"платный вес менее {number(limit['threshold_kg'])} кг. "
+                          "Уточните объём или запросите у перевозчика ставку на всю партию и допуск грузовых мест.")
+        if result.published_reference and result.published_reference["candidates"]:
+            reply += "\n\n" + _published_summary(result, result.published_reference)
         return reply
     if isinstance(result, RussiaResponse) and result.published_coverage is not None:
         return _published_summary(result)

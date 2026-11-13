@@ -6,7 +6,8 @@ import { setWorkerUrl } from "maplibre-gl";
 import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { candidateName } from "./model";
-import type { Candidate, Settlement } from "./networkApi";
+import type { Settlement } from "./networkApi";
+import type { MapRoute } from "./RouteMap";
 
 setWorkerUrl(workerUrl);
 
@@ -36,7 +37,7 @@ function routeLine(map: L.Map, stops: L.LatLng[], offset: number) {
 }
 
 export function StreetRouteMap({ candidates, settlements, recommendation, opened, onOpen }: {
-  candidates: Candidate[];
+  candidates: MapRoute[];
   settlements: Settlement[];
   recommendation: string | null;
   opened: string | null;
@@ -111,7 +112,7 @@ export function StreetRouteMap({ candidates, settlements, recommendation, opened
           className: "route-street-line",
         }).addTo(map);
         const label = document.createElement("span");
-        label.textContent = `Вариант ${index + 1} · ${candidateName(candidate)}`;
+        label.textContent = `Вариант ${index + 1} · ${candidate.estimateLabel ?? candidateName(candidate)}`;
         line.bindTooltip(label).on("click", () => click.current(candidate.id));
         currentLines.set(candidate.id, line);
       }

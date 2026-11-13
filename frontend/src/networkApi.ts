@@ -239,6 +239,9 @@ export interface Candidate {
     observed_on: string;
     valid_from?: string;
     vat: string;
+    scope?: string;
+    origin_station?: string | null;
+    destination_station?: string | null;
     source_url: string;
     distance_km?: number;
     transit_days?: number[];
@@ -326,6 +329,27 @@ export interface Calculation {
       observations: { year: number; mode: Mode; geography: string; indicator: string; unit: string; value: number }[];
     };
   } | null;
+  land_market?: {
+    version: string;
+    target_year: number;
+    routes: { legs: LandMarketLeg[]; movement_rub: number | null; vat: string | null; transfer_count: number;
+      rail_transfer?: string; rail_transfer_url?: string; scenario_note?: string }[];
+    legs: LandMarketLeg[][];
+    unpriced_rail?: { origin: string; destination: string; days: number | null;
+      source: { name: string; url: string } }[];
+    terminal_references?: {
+      station: string; destination: string; size_ft: number; receive_rub: number; outbound_rub: number;
+      vat: string; source: { name: string; url: string };
+    }[];
+  } | null;
+  published_reference?: { coverage: NonNullable<Calculation["published_coverage"]>; candidates: Candidate[] } | null;
+  air_market?: {
+    version: string;
+    target_year: number;
+    routes: { legs: AirMarketLeg[]; forecast_rub: number; vat: string; transfer_count: number }[];
+    segments: (AirMarketLeg | null)[];
+    weight_limits?: ({ paid_kg: number; threshold_kg: number; source: { name: string; url: string } } | null)[];
+  } | null;
   road_market_estimate?: {
     version: string;
     origin: string;
@@ -351,4 +375,51 @@ export interface Calculation {
     alternative: { id: string; difference_rub: number; difference_hours: number; ranges_overlap: boolean | null } | null;
     assumptions: string[];
   };
+}
+
+export interface LandMarketLeg {
+  origin_id?: string;
+  destination_id?: string;
+  mode: "road" | "rail" | "air";
+  origin: string;
+  destination: string;
+  equipment: string;
+  kind: "model" | "published_base";
+  units: number;
+  base_year: number;
+  base_unit_rub: number;
+  forecast_rub: number;
+  vat: string;
+  confidence: "exploratory" | null;
+  distance_km: number | null;
+  distance_source: string | null;
+  sources: { name: string; url: string }[];
+  scope?: string | null;
+  origin_station?: string | null;
+  destination_station?: string | null;
+  service?: { days: number | null; source: { name: string; url: string } } | null;
+}
+
+export interface AirMarketLeg {
+  origin_id?: string;
+  destination_id?: string;
+  via_points?: { code: string; name: string; id: string | null }[];
+  origin: string;
+  destination: string;
+  departure: string;
+  arrival: string | null;
+  via: string[];
+  vat: string;
+  base_year: number;
+  paid_kg: number;
+  paid_kg_per_shipment: number;
+  shipment_count: number;
+  volume_m3_per_shipment: number;
+  published_rub_per_kg: number;
+  base_rate_rub_per_kg: number;
+  fixed_rub: number;
+  variable_fees_rub_per_kg: number;
+  base_rub: number;
+  forecast_rub: number;
+  source: { name: string; url: string; base_date: string; valid_until?: string; rules_url?: string; fuel_url?: string };
 }

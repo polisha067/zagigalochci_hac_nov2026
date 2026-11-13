@@ -1,5 +1,5 @@
 import { hours, modeNames, money, num } from "./model";
-import type { Calculation } from "./networkApi";
+import type { AirMarketLeg, Calculation, LandMarketLeg } from "./networkApi";
 
 const roadStatus: Record<string, string> = {
   router_unavailable: "Грузовой дорожный граф недоступен.",
@@ -8,11 +8,129 @@ const roadStatus: Record<string, string> = {
   ferry_required: "Найденный путь включает паром. Нужна проверка переправы.",
 };
 
-export function RoadMarketEstimate({ result }: { result: Calculation }) {
+const marketVat: Record<string, string> = {
+  included: "с НДС", excluded: "без НДС", unknown: "НДС не указан",
+  mixed: "часть ставок без разбивки НДС",
+};
+
+const railScopes: Record<string, string> = {
+  door_to_door: "от двери до двери по условиям прайса",
+  warehouse_to_station: "от склада до станции",
+  warehouse_to_warehouse: "от склада до склада по условиям прайса",
+  station_to_station: "от станции до станции",
+};
+
+function AirLeg({ leg }: { leg: AirMarketLeg }) {
+  return <p>
+    {leg.origin} ({leg.departure}) → {leg.destination}{leg.arrival && ` (${leg.arrival})`}
+    {!!leg.via.length && ` · через ${leg.via.join(", ")} по тарифу перевозчика`}.
+    {" "}Платный вес {num(leg.paid_kg, 2)} кг. Прогноз <b>{money(leg.forecast_rub)}</b> ({marketVat[leg.vat]}).
+    {leg.shipment_count > 1 && ` Сценарий: ${leg.shipment_count} отправок по ${num(leg.volume_m3_per_shipment, 2)} м³
+      и ${num(leg.paid_kg_per_shipment, 2)} кг платного веса. Укладку и доступность подтвердит перевозчик.`}
+    {" "}База {leg.base_year} года · {money(leg.base_rate_rub_per_kg)}/кг
+    {leg.variable_fees_rub_per_kg > 0 && ` + ${money(leg.variable_fees_rub_per_kg)}/кг сборы`}
+    {leg.fixed_rub > 0 && ` + ${money(leg.fixed_rub)} за отправку`} · {money(leg.base_rub)}.
+    {" "}<a href={leg.source.url}>{leg.source.name}</a> · {leg.source.base_date}
+    {leg.source.valid_until && ` · дата окончания ${leg.source.valid_until}`}
+    {leg.source.rules_url && <>{" · "}<a href={leg.source.rules_url}>Правила расчёта</a></>}
+    {leg.source.fuel_url && <>{" · "}<a href={leg.source.fuel_url}>Топливный сбор</a></>}
+  </p>;
+}
+
+export function AirMarketOptions({ result, compact = false }: { result: Calculation; compact?: boolean }) {
+  const market = result.air_market;
+  if (!market) return null;
+  return <section className="notice">
+    <h2>Оценка авиаперевозки · {market.target_year}</h2>
+    {market.routes.length ? <>
+      <p>Цена между аэропортами по опубликованным ставкам. Подвоз, довоз, дополнительные сборы,
+        доступность мест и габариты упаковки уточняет перевозчик.</p>
+      {market.routes.slice(0, compact ? 2 : undefined).map((option, i) => <div className="source-item" id={compact ? undefined : `market-air-${i}`} key={i}>
+        <b>{option.transfer_count ? "Сумма отдельных авиаплеч" : "Оценка по тарифу перевозчика"}
+          {" · "}{money(option.forecast_rub)} ({marketVat[option.vat]})</b>
+        {option.legs.map((leg, j) => <AirLeg key={j} leg={leg} />)}
+        {!!option.transfer_count && <p>Перегрузку и стыковку рейсов нужно согласовать отдельно.</p>}
+      </div>)}
+    </> : market.segments.some(Boolean) ?
+      market.segments.map((leg, i) => leg ? <AirLeg key={i} leg={leg} /> :
+        !market.weight_limits?.[i] && <p key={i}>Для авиаплеча {i + 1} нужна котировка.</p>) :
+      !market.weight_limits?.some(Boolean) &&
+        <p>Для этих пунктов и условий в загруженных прайсах нет применимой ставки. Для отправки нужна котировка.</p>}
+    {!market.routes.length && market.weight_limits?.map((limit, i) => limit && <p key={i}>
+      Авиаплечо {i + 1} · платный вес всей партии {num(limit.paid_kg, 2)} кг.
+      Для расчёта одной отправки по общей ставке нужен платный вес менее {num(limit.threshold_kg, 0)} кг.
+      {" "}<a href={limit.source.url}>{limit.source.name}</a> · запросите котировку на всю партию.
+    </p>)}
+  </section>;
+}
+
+function MarketLeg({ leg }: { leg: LandMarketLeg }) {
+  const sources = leg.sources.slice(0, 3);
+  return <p>
+    {leg.origin} → {leg.destination} · {leg.equipment} × {leg.units} · <b>{money(leg.forecast_rub)}</b>{" "}
+    ({marketVat[leg.vat]}) · {leg.kind === "model" ? "модельная ставка" : "прогноз по опубликованной ставке"}.
+    {leg.scope && railScopes[leg.scope] && ` Состав услуги: ${railScopes[leg.scope]}.`}
+    {(leg.origin_station || leg.destination_station) &&
+      ` Станции: ${leg.origin_station ?? "по согласованию"} → ${leg.destination_station ?? "по согласованию"}.`}
+    {leg.confidence === "exploratory" && " Ограниченная выборка для проверки цены."}
+    {leg.distance_source === "observation" && " Расстояние из наблюдений о связности."}
+    {leg.distance_source === "truck_graph" && " Расстояние по грузовому графу."}
+    {leg.distance_source === "market_distance_chain" && " Километраж оценён по цепочке рыночных направлений. Проезд и срок требуют проверки."}
+    {leg.distance_source === "regional_carrier_reference" && " Километраж взят из справочного расчёта перевозчика."}
+    {sources.map((source, i) => <span key={source.url}>{" "}
+      <a href={source.url} title={source.name}>{sources.length > 1 ? `Прайс ${i + 1}` : source.name}</a>
+    </span>)}
+    {leg.service && <>{" "}<a href={leg.service.source.url}>Грузовой сервис</a>
+      {leg.service.days != null && ` · ориентир оператора ${leg.service.days} сут.`}</>}
+  </p>;
+}
+
+export function LandMarketOptions({ result, compact = false }: { result: Calculation; compact?: boolean }) {
+  const market = result.land_market;
+  if (!market) return null;
+  if (!market.unpriced_rail?.length && result.road_market_estimate && market.routes.length === 1 && market.routes[0].legs.length === 1 &&
+      market.routes[0].legs[0].mode === "road" &&
+      market.routes[0].legs[0].forecast_rub === result.road_market_estimate.forecast_road_rub) return null;
+  return <section className="notice">
+    <h2>Оценка транспортных плеч · {market.target_year}</h2>
+    <p>Подвоз, довоз и терминальные операции учитываются только в пределах состава исходной ставки.
+      Доступность оборудования и сквозной рейс уточняются у перевозчика.</p>
+    {market.routes.length ? market.routes.slice(0, compact ? (market.routes.some(row => row.scenario_note) ? 4 : 3) : undefined).map((option, i) =>
+      <div className="source-item" id={compact ? undefined : `market-land-${i}`} key={i}>
+        <b>{option.legs.map(leg => modeNames[leg.mode]).join(" → ")}
+          {option.movement_rub != null && option.vat && ` · ${money(option.movement_rub)} (${marketVat[option.vat]})`}</b>
+        {option.legs.map((leg, j) => <MarketLeg key={j} leg={leg} />)}
+        {option.scenario_note ? <p>{option.scenario_note}</p> : option.rail_transfer ? <p>Передача контейнера в узле <a href={option.rail_transfer_url}>{option.rail_transfer}</a>. Терминалы, сроки
+          и стоимость стыковки нужно подтвердить отдельно.</p> :
+          option.transfer_count > 0 && <p>Стоимость и условия передачи груза между видами транспорта требуют подтверждения.</p>}
+      </div>
+    ) : market.legs.map((legs, i) => <div key={i}>
+      {legs.length ? legs.map((leg, j) => <MarketLeg key={j} leg={leg} />)
+        : <p>Плечо {i + 1} · нужна котировка.</p>}
+    </div>)}
+    {market.unpriced_rail?.map(row => <p key={row.origin + ":" + row.destination}>
+      {row.origin} → {row.destination} · <a href={row.source.url}>Контейнерный ж/д сервис</a>.
+      {row.days != null && ` Ориентир оператора ${row.days} сут.`}
+      {" "}Для этого груза нужна котировка ж/д оператора.
+    </p>)}
+    {!!market.terminal_references?.length && <details>
+      <summary>Ориентиры по приёму и вывозу контейнера</summary>
+      <p>Ставки за контейнер применимы при прибытии на указанную станцию.
+        В смету их можно включить после проверки станции и состава ж/д тарифа.</p>
+      {market.terminal_references.map(ref => <p key={`${ref.station}:${ref.destination}:${ref.size_ft}`}>
+        {ref.station} → {ref.destination} · {ref.size_ft} фут. · приём {money(ref.receive_rub)},
+        {" "}контейнеровоз {money(ref.outbound_rub)} ({marketVat[ref.vat]}).
+        {" "}<a href={ref.source.url}>{ref.source.name}</a>
+      </p>)}
+    </details>}
+  </section>;
+}
+
+export function RoadMarketEstimate({ result, anchor }: { result: Calculation; anchor?: string }) {
   const estimate = result.road_market_estimate;
   if (!estimate) return null;
   return (
-    <section className="notice">
+    <section className="notice" id={anchor}>
       <h2>Сценарная оценка автоплеча</h2>
       <p>{estimate.origin} → {estimate.destination} · {estimate.target_year} год ·{" "}
         <b>{money(estimate.forecast_road_rub)}</b>. НДС в источнике не указан.</p>
@@ -29,11 +147,12 @@ export function RoadMarketEstimate({ result }: { result: Calculation }) {
 }
 
 export function PublishedCoverage({ result, compact = false }: { result: Calculation; compact?: boolean }) {
-  const coverage = result.published_coverage;
+  const coverage = result.published_coverage ?? result.published_reference?.coverage;
   if (!coverage) return null;
   const road = coverage.truck_path;
   const vat = result.request.cost_basis === "including_vat" ? "с НДС" : "без НДС";
-  const rows = compact ? result.candidates.slice(0, 3) : result.candidates;
+  const candidates = result.published_reference?.candidates ?? result.candidates;
+  const rows = compact ? candidates.slice(0, 3) : candidates;
   return (
     <section className="notice">
       <h2>Опубликованные данные</h2>
@@ -41,7 +160,7 @@ export function PublishedCoverage({ result, compact = false }: { result: Calcula
         <p>Путь по грузовому графу · {num(road.distance_km, 1)} км · {hours(road.navigation_hours)} в движении.
           {" "}<a href="https://www.openstreetmap.org/copyright">© OpenStreetMap</a></p>
       ) : roadStatus[road.status] && <p>{roadStatus[road.status]}</p>}
-      {!rows.length && <p>Для выбранных условий опубликованная ставка в каталоге не найдена. Запросите котировку у перевозчика.</p>}
+      {!rows.length && <p>В наземных прайсах нет ставки для выбранных условий.</p>}
       {coverage.terminals?.map((terminal) => (
         <p key={terminal.id + terminal.operation}>
           {terminal.operation === "pickup" ? "Подвоз" : "Довоз"} · {terminal.name}, ст. {terminal.station}.{" "}
@@ -61,6 +180,8 @@ export function PublishedCoverage({ result, compact = false }: { result: Calcula
               <a href={rate.source_url} target="_blank" rel="noreferrer">Источник · сверено {rate.observed_on}</a>
               {rate.valid_from ? ` · опубликовано начало действия ${rate.valid_from}` : " · период действия не указан"}</p>
             {rate.forecast_amount_rub != null && <p>Прогноз по опубликованной базе на {rate.forecast_year} · {money(rate.forecast_amount_rub)} за единицу ({tax})</p>}
+            {rate.scope && railScopes[rate.scope] && <p>Состав услуги · {railScopes[rate.scope]}</p>}
+            {(rate.origin_station || rate.destination_station) && <p>Станции · {rate.origin_station ?? "по согласованию"} → {rate.destination_station ?? "по согласованию"}</p>}
             {candidate.known_cost_subtotal_rub != null && <p>Частичная смета · {money(candidate.known_cost_subtotal_rub)} {vat}</p>}
             {rate.distance_km != null && <p>Расстояние из прайса · {num(rate.distance_km, 1)} км</p>}
             {rate.transit_days?.length ? <p>Ориентир из прайса · {rate.transit_days.join("–")} сут.</p> : null}

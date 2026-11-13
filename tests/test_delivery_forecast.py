@@ -2,6 +2,7 @@ import json
 import unittest
 from copy import deepcopy
 from decimal import Decimal
+from backend.app.assistant.results import engine_summary
 
 from backend.network.delivery_forecast import (ForecastRequest, calculate_forecast,
     SavedPriceSeriesRequest, saved_price_series)
@@ -21,6 +22,75 @@ def recommended(result):
 
 
 class ForecastModelTests(unittest.TestCase):
+    def test_regional_air_market_prices_both_legs_at_the_requested_stop(self):
+        payload = shipment(origin="Новосибирск", destination="Иркутск", allowed_modes=["air"],
+                           stops=[{"settlement": "Красноярск", "action": "visit", "dwell_hours": 2}])
+        payload["cargoes"][0].update(name="Мука", weight_tonnes=10, volume_m3=20,
+                                    packaging="bags", splittable=True, max_piece_tonnes=None,
+                                    max_piece_dimensions_m=None)
+        result = calculate_forecast(ForecastRequest.model_validate(payload))
+        option = next(row for row in result.air_market["routes"]
+                      if [leg["published_rub_per_kg"] for leg in row["legs"]] == [229, 111])
+        self.assertEqual([(leg["departure"], leg["arrival"]) for leg in option["legs"]],
+                         [("OVB", "KJA"), ("KJA", "IKT")])
+        self.assertTrue(all(leg["shipment_count"] == 21 for leg in option["legs"]))
+        self.assertAlmostEqual(option["forecast_rub"], sum(leg["forecast_rub"] for leg in option["legs"]))
+
+    def test_road_market_estimates_izhevsk_ivanovo_without_truck_router(self):
+        from unittest.mock import patch
+
+        payload = shipment(origin="Ижевск", destination="Иваново", allowed_modes=["road", "rail", "air"])
+        payload["cargoes"][0].update(name="Книги", cargo_type=None, weight_tonnes=100,
+                                    volume_m3=20, packaging="boxes", splittable=True,
+                                    max_piece_tonnes=None, max_piece_dimensions_m=None)
+        with patch("backend.network.land_market.truck_path", return_value={"status": "router_unavailable"}):
+            result = calculate_forecast(ForecastRequest.model_validate(payload))
+        route = result.land_market["routes"][0]
+        leg = route["legs"][0]
+        self.assertEqual((leg["kind"], leg["distance_source"], leg["units"]),
+                         ("model", "regional_carrier_reference", 5))
+        self.assertGreater(route["movement_rub"], 0)
+        self.assertIn("Иваново", engine_summary(result))
+
+    def test_regional_bulk_road_and_air_use_independent_rates(self):
+        for origin, city, expected in (
+            ("Москва", "Владивосток", {"road": 4_751_250, "air": 20_800_000}),
+            ("Чебоксары", "Красноярск", {"road": 2_801_250, "air": 18_900_000}),
+            ("Москва", "Магадан", {"air": 41_200_000}),
+        ):
+            with self.subTest(origin=origin, city=city):
+                payload = shipment(origin=origin, destination=city, allowed_modes=["road", "rail", "air"])
+                payload["cargoes"][0].update(name="Книги", cargo_type=None, weight_tonnes=100,
+                                            volume_m3=20, packaging="boxes", splittable=True,
+                                            max_piece_tonnes=None, max_piece_dimensions_m=None)
+                result = calculate_forecast(ForecastRequest.model_validate(payload))
+                routes = [row for row in result.land_market["routes"] if row.get("scenario_note")]
+                self.assertEqual({row["legs"][-1]["mode"]: row["legs"][-1]["base_unit_rub"]
+                                  for row in routes}, expected)
+                self.assertTrue(all(len(row["legs"]) == (1 if origin == "Москва" else 3) for row in routes))
+
+    def test_yakutsk_bulk_budget_uses_separate_price_components(self):
+        payload = shipment(origin="Чебоксары", destination="Якутск", allowed_modes=["road", "rail", "air"])
+        payload["cargoes"][0].update(name="Книги", cargo_type=None, weight_tonnes=100, volume_m3=20,
+                                    packaging="boxes", splittable=True, max_piece_tonnes=None,
+                                    max_piece_dimensions_m=None)
+        request = ForecastRequest.model_validate(payload)
+        result = calculate_forecast(request)
+        routes = [row for row in result.land_market["routes"] if row.get("scenario_note")]
+        self.assertEqual(len(routes), 4)
+        cheapest = routes[0]
+        self.assertEqual([leg["units"] for leg in cheapest["legs"]], [5, 5, 6, 6])
+        self.assertEqual(cheapest["legs"][-1]["origin"], "Нижний Бестях")
+        self.assertEqual(cheapest["vat"], "mixed")
+        self.assertAlmostEqual(cheapest["movement_rub"], sum(leg["forecast_rub"] for leg in cheapest["legs"]))
+        self.assertEqual(routes[-1]["legs"][-1]["base_unit_rub"], 47_000_000)
+        reply = engine_summary(result)
+        self.assertIn("Нижний Бестях", reply)
+        self.assertIn("авиа", reply)
+        self.assertNotIn("не удалось рассчитать полную стоимость", reply)
+        verified = calculate_forecast(request.model_copy(update={"data_policy": "verified_only"}))
+        self.assertIsNone(verified.land_market)
+
     def calculate(self, indices=None, **changes):
         return calculate_forecast(ForecastRequest.model_validate(shipment(**changes)), indices=indices)
 
@@ -238,6 +308,78 @@ class ForecastApiTests(unittest.TestCase):
         form = self.client.post("/network/russia/forecasts", json=payload)
         self.assertEqual(form.status_code, 200, form.text)
         self.assertEqual(chat["calculation"], form.json())
+
+    def test_expanded_air_forecast_from_regional_airport_agrees_in_chat_and_guest_form(self):
+        payload = shipment(origin="Красноярск", destination="Калининград", allowed_modes=["air"])
+        cargo = payload["cargoes"][0]
+        cargo.update(weight_tonnes=.1, volume_m3=.25)
+        self.case.connect_ollama(self.case.domain_reply(
+            "estimate_future_delivery_cost", origin=payload["origin"], destination=payload["destination"],
+            target_year=2030, allowed_modes=["air"], cargoes=[cargo],
+        ))
+        response = self.client.post("/assistant/chat", json={
+            "message": "Новый расчёт. Из Красноярска в Калининград в 2030 году только авиа. "
+                       "100 кг муки в мешках по 25 кг, 0,25 м³, делимая партия. "
+                       "Размер одного мешка 0,5 × 0,4 × 0,2 м.",
+        })
+        self.assertEqual(response.status_code, 200, response.text)
+        chat = response.json()
+        self.assertEqual(chat["kind"], "calculation", chat)
+        self.assertIn("KJA", chat["reply"])
+        self.client.cookies.clear()
+        form = self.client.post("/network/russia/forecasts", json=payload)
+        self.assertEqual(form.status_code, 200, form.text)
+        routes = form.json()["air_market"]["routes"]
+        self.assertEqual(chat["calculation"]["air_market"]["routes"], routes)
+        self.assertEqual(routes[0]["legs"][0]["arrival"], "KGD")
+        self.assertEqual(routes[0]["legs"][0]["paid_kg"], 100)
+
+    def test_bulky_divisible_cargo_returns_air_options_after_chat_clarification(self):
+        payload = shipment(origin="Красноярск", destination="Калининград", allowed_modes=["air"])
+        cargo = payload["cargoes"][0]
+        cargo.update(weight_tonnes=.1, volume_m3=40, splittable=True)
+        cargo.pop("max_piece_tonnes", None)
+        cargo.pop("max_piece_dimensions_m", None)
+        tool = "estimate_future_delivery_cost"
+        self.case.connect_ollama(
+            self.case.domain_reply(tool, origin=payload["origin"], destination=payload["destination"],
+                                   target_year=2030, allowed_modes=["air"],
+                                   cargoes=[{key: cargo[key] for key in ("id", "name", "weight_tonnes")}]),
+            self.case.domain_reply(tool, cargoes=[cargo], continue_previous=True),
+        )
+        first = self.client.post("/assistant/chat", json={
+            "message": "100 кг муки в 2030 году авиа из Красноярска в Калининград",
+        }).json()
+        self.assertEqual(first["kind"], "clarification", first)
+        response = self.client.post("/assistant/chat", json={
+            "message": "Груз упакован в мешки, партию можно разделить, 40 м³.",
+            "pending": first["pending"],
+        })
+        self.assertEqual(response.status_code, 200, response.text)
+        chat = response.json()
+        self.assertEqual(chat["kind"], "calculation", chat)
+        self.assertIn("14 × 476,5 кг", chat["reply"])
+        self.assertIn("Санкт-Петербург (LED)", chat["reply"])
+        self.assertIn("Москва (VKO)", chat["reply"])
+        self.client.cookies.clear()
+        form = self.client.post("/network/russia/forecasts", json=payload)
+        self.assertEqual(form.status_code, 200, form.text)
+        market = form.json()["air_market"]
+        self.assertEqual(chat["calculation"]["air_market"], market)
+        direct = market["routes"][0]["legs"][0]
+        self.assertEqual(direct["shipment_count"], 14)
+        self.assertLess(direct["paid_kg_per_shipment"], 500)
+        self.assertAlmostEqual(direct["base_rub"], 14 * (476.5 * (153 + 18) + 370))
+        for policy, split in (("verified_only", True), ("allow_assumptions", False)):
+            with self.subTest(policy=policy, split=split):
+                response = self.client.post("/network/russia/forecasts", json={
+                    **payload, "data_policy": policy, "cargoes": [{**cargo, "splittable": split}],
+                })
+                self.assertEqual(response.status_code, 200, response.text)
+                result = response.json()
+                self.assertEqual(result["status"], "not_confirmed")
+                self.assertEqual(result["air_market"]["routes"], [])
+                self.assertEqual(result["air_market"]["weight_limits"][0]["paid_kg"], 6667)
 
     def test_chat_clarifies_and_then_matches_guest_form_calculation(self):
         payload = shipment(destination="Владивосток")

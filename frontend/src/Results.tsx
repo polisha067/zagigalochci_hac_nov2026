@@ -9,10 +9,10 @@ import {
   type CSSProperties,
   type ReactNode,
 } from "react";
-import { RouteMap } from "./RouteMap";
+import { RouteMap, type MapRoute } from "./RouteMap";
 import { ConnectionPilot } from "./ConnectionPilot";
 import { ForecastOverview } from "./ForecastOverview";
-import { PublishedCoverage, RoadMarketEstimate } from "./PublishedCoverage";
+import { AirMarketOptions, LandMarketOptions, PublishedCoverage, RoadMarketEstimate } from "./PublishedCoverage";
 import { Results as LegacyResults } from "./LegacyResults";
 import type { Calculation, Candidate, Source } from "./networkApi";
 import {
@@ -736,6 +736,11 @@ function NetworkResults({
   const [opened, setOpened] = useState<string | null>(initialCandidate ?? null);
   const [reportNavigation, setReportNavigation] = useState(0);
   function openFromMap(id: string) {
+    if (id.startsWith("market-")) {
+      setOpened(id);
+      document.getElementById(id)?.scrollIntoView({ block: "center" });
+      return;
+    }
     if (!candidates.some((candidate) => candidate.id === id)) setFilter("all");
     setOpened(id);
     setReportNavigation((count) => count + 1);
@@ -785,6 +790,41 @@ function NetworkResults({
   const ranked = useMemo(() => [...r.candidates].sort(
     (a, b) => Number(b.id === r.recommendation) - Number(a.id === r.recommendation),
   ), [r.candidates, r.recommendation]);
+  const mapRoutes = useMemo(() => {
+    function hub(name: string, id?: string | null): MapRoute["route_hubs"][number] {
+      const requested = [r.request.origin, ...r.request.stops.map((stop) => stop.settlement), r.request.destination];
+      const index = requested.findIndex((point) => point === name);
+      const settlement = id ?? r.settlements[index] ?? null;
+      return { id: settlement ?? name, settlement_id: settlement, name, identity_status: "settlement" };
+    }
+    function estimate(id: string, modes: MapRoute["modes"], route_hubs: MapRoute["route_hubs"],
+                      estimateLabel: string, estimatePrice: number | null): MapRoute {
+      return { id, modes, route_hubs, estimateLabel, estimatePrice, steps: [], issues: [], complete: false,
+        multimodal: new Set(modes).size > 1, known_cost_subtotal_rub: null, total_cost_rub: null, max_delivery_hours: null };
+    }
+    const air = (r.air_market?.routes ?? []).map((route, i) => {
+      const first = route.legs[0];
+      const points = [hub(first.origin, first.origin_id), ...route.legs.flatMap((leg) => [
+        ...(leg.via_points ?? []).map((point) => hub(point.name, point.id)),
+        hub(leg.destination, leg.destination_id),
+      ])];
+      return estimate(`market-air-${i}`, ["air"], points, `Авиа · ${points.map((point) => point.name).join(" → ")}`, route.forecast_rub);
+    });
+    const land = (r.land_market?.routes ?? []).flatMap((route, i) => {
+      if (r.road_market_estimate && r.land_market?.routes.length === 1 && route.legs.length === 1 &&
+          route.legs[0].mode === "road" && route.movement_rub === r.road_market_estimate.forecast_road_rub &&
+          !r.land_market.unpriced_rail?.length) return [];
+      const first = route.legs[0];
+      const points = [hub(first.origin, first.origin_id), ...route.legs.map((leg) => hub(leg.destination, leg.destination_id))];
+      const modes = route.legs.map((leg) => leg.mode);
+      return [estimate(`market-land-${i}`, modes, points,
+        `${modes.map((mode) => modeNames[mode]).join(" → ")} · ${points.map((point) => point.name).join(" → ")}`, route.movement_rub)];
+    });
+    const road = r.road_market_estimate;
+    return [...ranked, ...air, ...land, ...(road && !land.some((route) => route.modes.every((mode) => mode === "road"))
+      ? [estimate("market-road", ["road"], [hub(road.origin, r.settlements[0]), hub(road.destination, r.settlements.at(-1))],
+        "Авто · основное плечо", road.forecast_road_rub)] : [])];
+  }, [r, ranked]);
   const candidates = ranked.filter(
     (c) =>
       filter === "all" ||
@@ -907,7 +947,7 @@ function NetworkResults({
           <h1>{r.forecast ? "Прогноз грузоперевозок" : saved ? "Сохранённый расчёт" : "Результат расчёта"}</h1>
           <p className="muted">
             {saved ? date(snapshot.createdAt, true) + " · " : ""}
-            {r.forecast ? `Сценарный прогноз · ${r.forecast.target_year} год` : "Сценарный расчёт"} ·{" "}
+            {r.forecast ? `Прогноз стоимости · ${r.forecast.target_year} год` : "Расчёт перевозки"} ·{" "}
             {r.request.cost_basis === "including_vat" ? "с НДС" : "без НДС"}
           </p>
         </div>
@@ -937,8 +977,8 @@ function NetworkResults({
         <summary>Изменить условия перевозки</summary>{editor}
       </details>}
       <Conditions snapshot={snapshot} />
-      {r.candidates.length > 0 && (
-        <RouteMap candidates={ranked} recommendation={r.recommendation}
+      {mapRoutes.length > 0 && (
+        <RouteMap candidates={mapRoutes} recommendation={r.recommendation}
           opened={opened} onOpen={openFromMap} />
       )}
       <section className="route-comparison" aria-labelledby="comparison">
@@ -966,13 +1006,18 @@ function NetworkResults({
           </p>
         </div>
       )}
-      <RoadMarketEstimate result={r} />
-      {r.published_coverage ? <PublishedCoverage result={r} /> : r.candidates.length === 0 ? (
+      <RoadMarketEstimate result={r} anchor="market-road" />
+      <LandMarketOptions result={r} />
+      <AirMarketOptions result={r} />
+      {r.published_reference && <PublishedCoverage result={r} />}
+      {r.published_coverage ? <PublishedCoverage result={r} /> : r.candidates.length === 0 ? (mapRoutes.length ? null :
         <section className="empty-state perforated">
-          <h2>В загруженной сети вариант не найден</h2>
+          <h2>{r.air_market?.weight_limits?.some(Boolean) ? "Для этой партии нужна котировка" :
+            r.land_market || r.air_market?.routes.length ? "Для оценки срока нужна информация перевозчика" : "В загруженной сети вариант не найден"}</h2>
           <p>
-            При выбранных условиях и ограничениях поиска подходящих цепочек нет.
-            Это не означает, что перевозка между этими пунктами невозможна.
+            {r.air_market?.routes.length || r.air_market?.weight_limits?.some(Boolean)
+              ? "Проверьте габариты отдельных мест и согласуйте условия отправки с перевозчиком."
+              : "Для подтверждения маршрута и срока нужны сведения перевозчика."}
           </p>
           <button className="outline-button" onClick={onEdit}>
             Изменить условия

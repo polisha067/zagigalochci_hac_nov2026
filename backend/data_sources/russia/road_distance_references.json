@@ -1,0 +1,16 @@
+[
+  {
+    "origin": "Ижевск",
+    "destination": "Иваново",
+    "distance_km": 1052,
+    "name": "Клевер Логистик · ориентир до Ивановской области",
+    "url": "https://clever-logistics.ru/route/to/izhevsk/ivanov-obl/"
+  },
+  {
+    "origin": "Иваново",
+    "destination": "Ижевск",
+    "distance_km": 1082,
+    "name": "EastLines · ориентир Иваново → Ижевск",
+    "url": "https://ivanovo.eastlines.ru/gruzoperevozki/po-rossii/ivanovo-izhevsk/"
+  }
+]

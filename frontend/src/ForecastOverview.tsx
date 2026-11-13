@@ -29,16 +29,35 @@ export function ForecastOverview({
   const candidate = result?.candidates.find(
     (item) => item.id === result.recommendation,
   );
+  const air = result?.air_market?.routes[0];
+  const land = result?.land_market?.routes.find((route) => route.movement_rub != null);
+  const road = result?.road_market_estimate;
+  const airBaseYear = air?.legs[0]?.base_year;
+  const landBaseYear = land?.legs[0]?.base_year;
+  const fallback = air ? {
+    price: air.forecast_rub, label: "Авиаперевозка между аэропортами",
+    year: airBaseYear, base: air.legs.every((leg) => leg.base_year === airBaseYear)
+      ? air.legs.reduce((sum, leg) => sum + leg.base_rub, 0) : null,
+  } : land ? {
+    price: land.movement_rub, label: "Оценка по учтённым транспортным плечам",
+    year: landBaseYear, base: land.legs.every((leg) => leg.base_year === landBaseYear)
+      ? land.legs.reduce((sum, leg) => sum + leg.base_unit_rub * leg.units, 0) : null,
+  } : road ? {
+    price: road.forecast_road_rub, label: "Оценка основного автоплеча",
+    year: road.base_year, base: road.base_unit_rub * road.trucks,
+  } : undefined;
+  const complete = candidate?.complete && candidate.status === "feasible";
+  const displayedEstimate = complete ? undefined : fallback;
   const price =
-    candidate?.complete && candidate.status === "feasible"
+    complete
       ? candidate.total_cost_rub
-      : null;
-  const budget = candidate?.forecast_price;
+      : displayedEstimate?.price;
+  const budget = complete ? candidate.forecast_price : undefined;
   const annual = useAnnualPrices(candidate, forecast);
-  const base = budget?.base_rub;
+  const base = budget?.base_rub ?? displayedEstimate?.base;
   const comparable = forecast && price != null && base != null && base > 0;
   const change = comparable ? (price / base - 1) * 100 : null;
-  const baseYear = budget?.base_year ?? forecast?.base_year;
+  const baseYear = budget?.base_year ?? displayedEstimate?.year ?? forecast?.base_year;
   const hasRange =
     price != null && budget?.lower_rub != null && budget.upper_rub != null;
   const charges =
@@ -66,7 +85,7 @@ export function ForecastOverview({
     (sum, value) => sum + value,
     0,
   );
-  const reconciled = price != null && Math.abs(chargeSum - price) < 0.011;
+  const reconciled = complete && price != null && Math.abs(chargeSum - price) < 0.011;
 
   return (
     <section className="forecast-overview" aria-label="Прогноз">
@@ -126,6 +145,7 @@ export function ForecastOverview({
                   ? "Расчёт по заданной дате и условиям"
                   : "Выберите год, направление и груз. Здесь появятся стоимость и сравнение с базовым годом."}
             </p>
+            {displayedEstimate && <p>{displayedEstimate.label}. Состав цены и условия указаны в вариантах перевозки.</p>}
           </div>
           <div className="forecast-metrics" aria-live="polite">
             <div>
@@ -207,7 +227,7 @@ export function ForecastOverview({
                 Вертикальная отметка показывает диапазон оценки.
                 {annual.series?.length
                   ? " Наведите на столбец или нажмите на него, чтобы увидеть точную сумму."
-                  : " В этом сохранённом расчёте есть только крайние годы. Выполните прогноз заново, чтобы получить полный ряд."}
+                  : displayedEstimate ? "" : " В этом сохранённом расчёте есть только крайние годы. Выполните прогноз заново, чтобы получить полный ряд."}
               </p>
             )}
             {annual.error && <p role="alert" className="forecast-chart-note">Не удалось восстановить промежуточные годы: {annual.error}</p>}

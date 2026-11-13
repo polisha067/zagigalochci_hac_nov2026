@@ -4,6 +4,8 @@
 [готовый промпт для выполнения](RUSSIA_COVERAGE_PROMPT.md).
 [Отчёт о расширении покрытия](RUSSIA_COVERAGE_REPORT.md).
 [Источники и правила сценарных рыночных оценок](RUSSIA_MARKET_ASSUMPTIONS.md).
+[Калибровка и покрытие модели авто и ж/д](RUSSIA_LAND_MARKET_REPORT.md).
+[Расширение ж/д и авиа и проверка направлений](RUSSIA_RAIL_AIR_REPORT.md).
 
 Снимки JSON в [`backend/data_sources`](../../backend/data_sources) — исходные версии для запуска и воспроизводимости.
 Их нельзя удалять только из-за большого числа строк: сервер использует их без

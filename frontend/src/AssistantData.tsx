@@ -1,6 +1,6 @@
 import { dashboardResult, type AssistantReply } from "./assistantApi";
 import { candidateName, money, num } from "./model";
-import { PublishedCoverage, RoadMarketEstimate } from "./PublishedCoverage";
+import { AirMarketOptions, LandMarketOptions, PublishedCoverage, RoadMarketEstimate } from "./PublishedCoverage";
 
 const statusNames = {
   feasible: "Допустим",
@@ -13,6 +13,8 @@ export function AssistantData({ response }: { response: AssistantReply }) {
   if (!calculation) return null;
   if (calculation.published_coverage) return <>
     <RoadMarketEstimate result={calculation} />
+    <LandMarketOptions result={calculation} compact />
+    <AirMarketOptions result={calculation} compact />
     <PublishedCoverage result={calculation} compact />
   </>;
   const { candidates, request } = calculation;
@@ -24,7 +26,10 @@ export function AssistantData({ response }: { response: AssistantReply }) {
     ?? byMode.find((candidate) => candidate.modes.includes("air"));
   const preview = byMode.slice(0, 4);
   if (air && !preview.includes(air)) preview[preview.length - 1] = air;
-  return <><RoadMarketEstimate result={calculation} />{preview.map((candidate) => (
+  return <><RoadMarketEstimate result={calculation} /><LandMarketOptions result={calculation} compact />
+    <AirMarketOptions result={calculation} compact />
+    {calculation.published_reference && <PublishedCoverage result={calculation} compact />}
+    {preview.map((candidate) => (
     <dl className="assistant-data" key={candidate.id}>
       <div><dt>Вариант</dt><dd>{candidateName(candidate)}</dd></div>
       <div><dt>Срок</dt><dd>{candidate.status === "feasible" && candidate.max_delivery_hours !== null

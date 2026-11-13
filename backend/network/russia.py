@@ -172,6 +172,8 @@ class RussiaNetwork:
             ('rice', 'Рис', [], 'dry_food', ['bags', 'boxes']),
             ('pasta', 'Макароны', ['макаронные изделия'], 'dry_food', ['bags', 'boxes']),
             ('paper', 'Бумага', ['офисная бумага'], 'dry_general', ['boxes']),
+            ('books', 'Книги', ['книга', 'книг'], 'dry_general', ['boxes']),
+            ('pencils', 'Карандаши', ['карандаш', 'карандашей', 'простые карандаши', 'цветные карандаши'], 'dry_general', ['boxes']),
             ('condoms', 'Презервативы', ['презерватив'], 'dry_general', ['boxes']),
             ('ceramic_vases', 'Керамические вазы', ['керамическая ваза'], 'dry_general', ['boxes']),
         ]:

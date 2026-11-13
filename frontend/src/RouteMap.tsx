@@ -6,6 +6,11 @@ import { airForecastFlightHours, candidateName, forecastMoney, hours, money } fr
 import type { Candidate, Settlement } from "./networkApi";
 
 type Hub = Candidate["route_hubs"][number];
+export type MapRoute = Pick<Candidate, "id" | "modes" | "route_hubs" | "forecast_price" | "steps" |
+  "multimodal" | "known_cost_subtotal_rub" | "total_cost_rub" | "issues" | "complete" | "max_delivery_hours"> & {
+    estimateLabel?: string;
+    estimatePrice?: number | null;
+  };
 type Point = { x: number; y: number };
 const width = 900;
 const height = 360;
@@ -93,7 +98,7 @@ function routePath(points: Point[], offset: number) {
 }
 
 export function RouteMap({ candidates, recommendation, opened, onOpen }: {
-  candidates: Candidate[];
+  candidates: MapRoute[];
   recommendation: string | null;
   opened: string | null;
   onOpen: (id: string) => void;
@@ -164,7 +169,7 @@ export function RouteMap({ candidates, recommendation, opened, onOpen }: {
             return <g key={candidate.id}
               className={`route-map-line${candidate.id === active ? " active" : ""}`}
               onClick={() => onOpen(candidate.id)}>
-              <title>Вариант {index + 1} · {candidateName(candidate)}</title>
+              <title>Вариант {index + 1} · {candidate.estimateLabel ?? candidateName(candidate)}</title>
               <path className="route-map-hit" d={path} />
               <path className="route-map-stroke" d={path} />
             </g>;
@@ -182,11 +187,12 @@ export function RouteMap({ candidates, recommendation, opened, onOpen }: {
       <div className="route-map-options" aria-label="Варианты на карте">
         {routes.map(({ candidate, index }) => (
           <button type="button" key={candidate.id} onClick={() => onOpen(candidate.id)}
-            aria-pressed={opened === candidate.id}
+            aria-pressed={active === candidate.id}
             className={candidate.id === active ? "map-selected" : undefined}>
-            <b><span className="route-option-number">{index + 1}</span>{candidateName(candidate)}</b>
+            <b><span className="route-option-number">{index + 1}</span>{candidate.estimateLabel ?? candidateName(candidate)}</b>
             {candidate.id === recommendation && <small>Рекомендуем</small>}
-            <span>{candidate.total_cost_rub == null && candidate.forecast_price?.air_median_rub != null
+            <span>{candidate.estimateLabel ? (candidate.estimatePrice == null ? "Смета по отдельным плечам" : money(candidate.estimatePrice))
+              : candidate.total_cost_rub == null && candidate.forecast_price?.air_median_rub != null
               ? <>{candidate.multimodal && candidate.known_cost_subtotal_rub != null
                   ? `${money(candidate.known_cost_subtotal_rub)} · учтённые этапы`
                   : `${money(candidate.forecast_price.air_median_rub)} · перелёт и авианакладная`}

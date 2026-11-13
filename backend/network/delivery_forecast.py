@@ -12,11 +12,15 @@ from pydantic import BaseModel, Field, model_validator
 
 from backend.calculation_models import Hours, OnceSchedule, Schedule
 from backend.network.air_tariff import YAKUTSK
+from backend.network.air_market import air_options
 from backend.network.connection_pilot import ConnectionConditions, connection_pilot
 from backend.network.forecast_indices import load_indices
+from backend.network.land_market import land_options
 from backend.network.market_assumptions import road_budget
 from backend.network.provider_tariffs import AIR_SOURCE, FORECAST_BASE_SOURCES
+from backend.network.published_land import calculate_published
 from backend.network.russia import END, SCENARIO, START, RussiaRequest, RussiaResponse, load_russia
+from backend.network.yakutsk_bulk_market import bulk_market_routes
 from backend.schedule import build_schedule
 from backend.transport_calculator import money
 
@@ -50,6 +54,9 @@ class ForecastRequest(RussiaRequest):
 class ForecastResponse(RussiaResponse):
     forecast: dict
     road_market_estimate: dict | None = None
+    land_market: dict | None = None
+    air_market: dict | None = None
+    published_reference: dict | None = None
 
 
 def forecast_options():
@@ -446,6 +453,32 @@ def calculate_forecast(request, network=None, indices=None):
                                include_dated=request.schedule is not None,
                                published_forecast_year=request.target_year, indices=indices)
     result["request"] = _normalized_request(request, network, result["settlements"])
+    result["land_market"] = land_options(network, result, request, indices)
+    bulk_routes = bulk_market_routes(network, result, request, indices)
+    if bulk_routes:
+        market = result["land_market"] or {
+            "version": "bulk-market-2026-11", "target_year": request.target_year, "routes": [], "legs": [],
+        }
+        market["routes"] = (bulk_routes + market["routes"])[:request.max_candidates]
+        result["land_market"] = market
+    result["air_market"] = air_options(network, result, request, indices)
+    if not strict_land and result.get("published_coverage") is None and network.registry and (
+        {"road", "rail"}.intersection(request.allowed_modes) and not result["clarifications"]
+    ):
+        published = calculate_published(network, {"settlements": result["settlements"], "clarifications": []},
+                                        simulation.model_copy(update={"max_candidates": request.max_candidates}),
+                                        events, request.target_year, indices)
+        result["published_reference"] = {"coverage": published["published_coverage"],
+                                         "candidates": published["candidates"]}
+        source_ids = {source["id"] for source in result["sources"]}
+        result["sources"].extend(source for source in published["sources"] if source["id"] not in source_ids)
+    air_market = result["air_market"] or {}
+    has_air_market_price = any(air_market.get("segments", ())) or bool(air_market.get("routes"))
+    has_land_market_price = bool(bulk_routes) or any((result["land_market"] or {}).get("legs", ()))
+    if result["status"] == "no_route_in_dataset" and (
+        has_air_market_price or has_land_market_price or any(air_market.get("weight_limits", ()))
+    ):
+        result["status"] = "not_confirmed"
     market = road_budget(network, result, request, indices)
     result["road_market_estimate"] = market
     if market:
@@ -461,7 +494,7 @@ def calculate_forecast(request, network=None, indices=None):
             "target_year": request.target_year, "base_year": BASE_YEAR, "indices_version": indices.version,
             "model_version": MODEL_VERSION, "date_precision": "date" if request.schedule else "year",
             "schedule_status": "unconfirmed", "alternative": None,
-            "coverage_status": "partial" if result["candidates"] else "insufficient_data",
+            "coverage_status": "partial" if result["candidates"] or has_air_market_price or has_land_market_price else "insufficient_data",
             "assumptions": ["Для прогноза используются применимые опубликованные ставки. Срок и доступность рейса требуют подтверждения."],
         }
         return ForecastResponse.model_validate(result)
@@ -513,7 +546,8 @@ def calculate_forecast(request, network=None, indices=None):
     result["forecast"] = dict(target_year=request.target_year, base_year=BASE_YEAR,
                               date_precision="date" if request.schedule else "year",
                               schedule_status="scenario" if request.schedule is None or best and best["schedule_status"] == "scenario" else "snapshot",
-                              coverage_status="estimated" if best else ("partial" if has_air_forecast or continuous and any(
+                              coverage_status="estimated" if best else ("partial" if has_air_forecast
+                                  or has_air_market_price or has_land_market_price or continuous and any(
                                   row["known_cost_subtotal_rub"] is not None for row in visible) else "insufficient_data"),
                               indices_version=indices.version, model_version=MODEL_VERSION,
                               alternative=alternative, assumptions=assumptions)
