@@ -2,34 +2,37 @@ import re
 
 from backend.a1_forecast import MAX_FORECAST_YEAR, MIN_FORECAST_YEAR, forecast_options
 
-from .dialog_planner import clean, name_in_quote
+from .dialog_planner import VOLUME, clean, name_in_quote
 from .schemas import ToolState
 
 
 TOOL = "calculate_corridor_forecast"
 VOLUME_INTENT = re.compile(
-    r"грузопоток|грузооборот|(?:объем\w*|тоннаж\w*)\s+(?:груз\w*|перевоз\w*|постав\w*)"
+    r"грузопоток|грузооборот|(?:объем\w*|тоннаж\w*)\s+(?:грузоперевоз\w*|перевоз\w*|постав\w*)"
     r"|(?:прогноз\w*|спрогнозиру\w*)[^.!?]{0,60}(?:объем\w*|тоннаж\w*)"
 )
 DELIVERY_INTENT = re.compile(r"стоимост|сколько\s+стоит|цен[ауые]\b|тариф|достав\w*\s+\d")
 FOLLOWUP = re.compile(
-    r"(?:а\s+если|а\s+(?:на|в|за|с)|теперь|по\s+(?:месяц|квартал|год)|"
+    r"(?:а\s+если|а\s+(?:на|в|за|с)\s|(?:а\s+)?теперь\b|по\s+(?:месяц|квартал|год)|"
     r"(?:на\s+|в\s+|за\s+|с\s+)?\d{4}\b)"
 )
+SHORT_VOLUME_INTENT = re.compile(r"\b(?:объем\w*|тоннаж\w*)\s+грузов\b")
 YEAR = re.compile(r"(?<!\d)\d{4}(?!\d)")
 
 
 def volume_turn(message, previous):
     text = clean(message)
-    explicit = VOLUME_INTENT.search(text)
-    if DELIVERY_INTENT.search(text) or not (
+    explicit = VOLUME_INTENT.search(text) or (
+        SHORT_VOLUME_INTENT.search(text) and YEAR.search(text)
+    )
+    if VOLUME.search(text) or DELIVERY_INTENT.search(text) or not (
         explicit or previous and (FOLLOWUP.match(text) or "origin" in previous.missing_fields)
     ):
         return None
 
     options = forecast_options()
     routes = options["routes"]
-    parts = re.split(r"\s*(?:→|->|[–—]|(?<=[а-я])-(?=[а-я]))\s*|\s+(?:в|до|на|по|-|и)\s+", text)
+    parts = re.split(r"\s*(?:→|->|[–—]|(?<=[а-я])-(?=[а-я]))\s*|\s+", text)
     matches = [
         (route["origin"], route["destination"])
         for route in routes
@@ -60,7 +63,7 @@ def volume_turn(message, previous):
     if "origin" not in values:
         fields.extend(("origin", "destination"))
         prompts.append(
-            f"Укажите одно из {len(routes)} направлений из вкладки «Объём», например Челябинск → Омск."
+            f"Укажите одно из {len(routes)} направлений из вкладки «Объём», например Челябинск → Омск. Для других направлений прогноз объёма пока недоступен."
         )
     start, end = values.get("start_year"), values.get("end_year")
     if start is None or not MIN_FORECAST_YEAR <= start <= end <= MAX_FORECAST_YEAR:

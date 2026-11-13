@@ -9,6 +9,8 @@ from unittest.mock import Mock, patch
 
 from fastapi.testclient import TestClient
 
+from backend.a1_forecast import forecast_options
+from backend.app.database import Database
 from backend.app.assistant.dialog_models import DialogRequest
 from backend.app.assistant.dialog_store import dialog_turn
 from backend.app.assistant.ollama_client import OllamaMessage
@@ -90,6 +92,22 @@ class AssistantDialogTests(unittest.TestCase):
         calculation = answer["calculation"]
         self.assertEqual(calculation["request"]["allowed_modes"], ["rail", "road"])
         self.assertTrue(any(row.get("connection_pilot") for row in calculation["candidates"]))
+    def test_cubic_metres_followup_stays_in_delivery_draft(self):
+        self.send(
+            "Нужно перевезти 10 тонн муки из Москвы в Красноярск через Екатеринбург в 2030 году, срок до 5 дней",
+            "new", {"origin": "Москва", "destination": "Красноярск", "target_year": 2030,
+                    "cargoes": [{"name": "Мука", "weight_tonnes": 10}]},
+        )
+        answer = self.send(
+            "в мешках, партию делим, объем груза 21 метр куб", "update",
+            {"cargoes": [{"packaging": "bags", "splittable": True, "volume_m3": 21}]},
+        )["answer"]
+        cargo, = answer["calculation"]["request"]["cargoes"]
+        self.assertEqual(cargo["volume_m3"], 21)
+        self.assertEqual(cargo["weight_tonnes"], 10)
+        self.assertEqual(answer["calculation"]["request"]["stops"][0]["settlement"], "Екатеринбург")
+        self.assertEqual(answer["calculation"]["request"]["max_delivery_hours"], 120)
+
     def test_volume_forecast_uses_same_model_as_volume_screen(self):
         answer = self.send(
             "Построй прогноз объёма грузоперевозок из Челябинска в Омск на 2027–2035 годы."
@@ -107,10 +125,55 @@ class AssistantDialogTests(unittest.TestCase):
         self.assertEqual(updated["result"]["rows"][0]["period"], "2030-01")
         self.model.chat.assert_not_called()
 
+    @patch.object(Database, "consume_attempt", return_value=None)
+    def test_volume_forecast_all_directions_and_granularities(self, _rate_limit):
+        for route in forecast_options()["routes"]:
+            with self.subTest(route=route["route_id"]):
+                origin, destination = route["origin"], route["destination"]
+                for message, granularity, count in (
+                    (f"Спрогнозируй объём перевозок {origin} {destination} с 2030 по 2031 год по годам", "year", 2),
+                    ("А теперь покажи прогноз на 2030 год по месяцам.", "month", 12),
+                    ("А теперь покажи прогноз на 2030 год по кварталам.", "quarter", 4),
+                ):
+                    answer = self.send(message)["answer"]
+                    self.assertEqual(answer["tool"], "calculate_corridor_forecast", answer)
+                    result = answer["result"]
+                    self.assertEqual(result["details"]["route_id"], route["route_id"])
+                    self.assertEqual(result["details"]["granularity"], granularity)
+                    self.assertEqual(len(result["rows"]), count)
+                    expected = self.client.get("/network/forecast", params={
+                        "route_id": route["route_id"], "start_year": 2030,
+                        "end_year": 2031 if granularity == "year" else 2030,
+                        "granularity": granularity,
+                    })
+                    self.assertEqual(expected.status_code, 200, expected.text)
+                    self.assertEqual(result["rows"], expected.json()["periods"])
+        self.model.chat.assert_not_called()
+
+    def test_short_volume_request_switches_from_pending_delivery(self):
+        self.send(
+            "Нужно перевезти 10 тонн муки из Москвы в Красноярск в 2030 году",
+            "new", {"origin": "Москва", "destination": "Красноярск", "target_year": 2030,
+                    "cargoes": [{"name": "Мука", "weight_tonnes": 10}]},
+        )
+        calls = self.model.chat.call_count
+        unsupported = self.send("Скажи объем грузов в 2030 по направлению Москва Челябинск")
+        self.assertIn("12 направлений", unsupported["answer"]["reply"])
+        self.assertEqual(unsupported["known"], [])
+        answer = self.send("Скажи объем грузов в 2030 по направлению Челябинск Омск")["answer"]
+        self.assertEqual(answer["result"]["details"]["forecast_tonnes"], 1269.0)
+        self.assertEqual(self.model.chat.call_count, calls)
+
+    def test_volume_forecast_recognizes_cities_separated_by_space(self):
+        answer = self.send("Прогнозируй объем с 2030 по 2035 года Челябинск Омск")["answer"]
+        self.assertEqual(answer["tool"], "calculate_corridor_forecast")
+        self.assertEqual(len(answer["result"]["rows"]), 6)
+        self.model.chat.assert_not_called()
+
     def test_volume_forecast_clarifies_route_and_does_not_reverse_it(self):
         answer = self.send("Прогноз объёма Омск → Челябинск на 2030 год")["answer"]
         self.assertEqual(answer["kind"], "clarification")
-        answer = self.send("Челябинск → Омск")["answer"]
+        answer = self.send("Челябинск Омск")["answer"]
         self.assertEqual(answer["result"]["details"]["forecast_tonnes"], 1269.0)
 
     def test_air_forecast_matches_main_form(self):

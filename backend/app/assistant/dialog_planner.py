@@ -70,7 +70,7 @@ ENDPOINT_LABELS = {
 }
 NUMBER = r"(\d+(?:[ \u00a0\u202f]\d{3})*(?:[.,]\d+)?)"
 MASS = re.compile(rf"(?<!\d)(?P<piece>по\s+)?{NUMBER}\s*(?P<unit>кг|килограмм\w*|т|тон\w*)\b", re.IGNORECASE)
-VOLUME = re.compile(rf"(?<!\d){NUMBER}\s*(?:м[³3]|куб(?:а|ов|ометр\w*|ич\w*\s+метр\w*)?)\b", re.IGNORECASE)
+VOLUME = re.compile(rf"(?<!\d){NUMBER}\s*(?:м\s*[³3]|метр\w*\s+куб\w*|куб(?:а|ов|ометр\w*|ич\w*\s+метр\w*)?)\b", re.IGNORECASE)
 HOURS = re.compile(rf"(?<!\d){NUMBER}\s*(ч(?:ас\w*)?|д(?:ень|н[яией]\w*)|сут\w*|недел\w*|мин\w*)\b", re.IGNORECASE)
 TEMPERATURE = re.compile(r"([+−-]?\d+(?:[.,]\d+)?)\s*(?:°\s*[cс])?\s*(?:до|…|–|—|-)\s*([+−-]?\d+(?:[.,]\d+)?)\s*°\s*[cс]?", re.IGNORECASE)
 DIMENSIONS = re.compile(rf"{NUMBER}\s*[×хx*]\s*{NUMBER}\s*[×хx*]\s*{NUMBER}\s*(мм|см|м)\b", re.IGNORECASE)
@@ -638,6 +638,13 @@ def plan_turn(planner, message, draft):
     raw_cargo = raw.pop("cargoes", None)
     raw_stops = raw.pop("stops", None)
     changes = _ground(raw, evidence, "", now)
+    if deadline := re.search(
+        r"\b(?:максимальный\s+)?срок(?:\s+доставки)?\s*[:—-]?\s*(?:до\s+|не\s+более\s+)?(\d+(?:[.,]\d+)?\s*\w+)",
+        text,
+    ):
+        hours = hour_values(deadline[1])
+        if len(hours) == 1 and 0 < hours[0] <= 87600:
+            changes.setdefault("max_delivery_hours", hours[0])
     if modes := changes.get("allowed_modes"):
         changes["allowed_modes"] = list(dict.fromkeys(modes))
     # A whole phrase can confirm the operation of a stop whose city is cited separately.

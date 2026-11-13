@@ -4594,6 +4594,10 @@ header.auth-header {
 .forecast-intake .assistant-embedded .availability { display: none; }
 .forecast-intake .assistant-embedded .assistant-content { padding-top: 20px; padding-bottom: 24px; min-height: 320px; max-height: 650px; color: #fff; scrollbar-color: #ffffff80 transparent; }
 .forecast-intake .assistant-embedded .assistant-content h3 { font-family: "Bounded", Arial, sans-serif; color: #fff; font-size: 29px; font-weight: 800; line-height: 1.08; margin: 0 0 8px; letter-spacing: normal; }
+.forecast-intake .assistant-embedded .assistant-content .assistant-turn-note {
+  color: #fff;
+  line-height: 1.55;
+}
 .forecast-intake .assistant-embedded .assistant-content > p { color: #d8eaff; font-size: 15px; line-height: 1.55; margin-top: 6px; }
 .assistant-example-block { display: grid; gap: 8px; justify-items: end; margin: 25px 0 20px; }
 .assistant-example-block > span { font-size: 10px; color: #d3e5ff; }
@@ -4607,6 +4611,13 @@ header.auth-header {
 .forecast-intake .assistant-embedded .assistant-context { background: #64a5ff; color: #fff; padding: 12px 16px; border-radius: 17px 17px 4px 17px; margin-left: 20px; font-size: 14px; }
 .forecast-intake .assistant-embedded .assistant-reply { background: #fff; color: #263c57; border-radius: 17px 17px 17px 4px; padding: 15px; font: 14px/1.65 "Bounded", Arial, sans-serif; }
 .forecast-intake .assistant-embedded .assistant-data, .forecast-intake .assistant-embedded .assistant-scenario { background: #f4f8ff; color: #254263; border-radius: 14px; }
+.forecast-intake .assistant-embedded .assistant-content article > .notice {
+  background: #f4f8ff;
+  color: #263c57;
+  border-radius: 14px;
+}
+.forecast-intake .assistant-embedded .assistant-content article > .notice p { color: #354d69; }
+.forecast-intake .assistant-embedded .assistant-content article > .notice a { color: #004cb8; }
 .forecast-intake .assistant-embedded .assistant-sources a, .forecast-intake .assistant-embedded .assistant-sources > summary { color: #d8eaff; }
 .forecast-intake .assistant-embedded .assistant-data a, .forecast-intake .assistant-embedded .assistant-scenario a { color: #0054d9; }
 .forecast-intake .assistant-embedded .assistant-compose { border: 0; background: #fff; padding: 8px 10px 8px 16px; border-radius: 18px; align-items: center; margin-top: auto; }

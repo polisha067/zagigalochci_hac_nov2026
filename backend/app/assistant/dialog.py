@@ -549,7 +549,7 @@ def process_dialog(planner, message, state, revision, run_tool):
         forecast, prompt = volume
         state.volume_forecast = forecast
         answer = question(prompt, forecast.missing_fields) if prompt else run_tool(forecast, message)
-        return _reply(current, revision, answer)
+        return _reply(DialogSnapshot(), revision, answer)
     state.volume_forecast = None
     draft = _active(current)
     previous = known_conditions(current)

@@ -290,8 +290,8 @@ export function Assistant({ onResult, onVolumeResult, onSaveResult, hidden, embe
               <article key={index}>
                 <p className="assistant-context">{message}</p>
                 <p className="assistant-reply" ref={index === turns.length - 1 ? latestReply : null}>{response.reply}</p>
-                {dialog.changes.length > 0 && <p>Обновлено — {dialog.changes.join(" · ")}</p>}
-                {response.kind === "clarification" && dialog.known.length > 0 && <p>Уже учёл — {dialog.known.join(" · ")}</p>}
+                {dialog.changes.length > 0 && <p className="assistant-turn-note">Обновлено — {dialog.changes.join(" · ")}</p>}
+                {response.kind === "clarification" && dialog.known.length > 0 && <p className="assistant-turn-note">Уже учёл — {dialog.known.join(" · ")}</p>}
                 {scenarioCards(dialog.scenarios, dialog.settlement_names)}
                 <AssistantData response={response} />
                 {savePrompt(response, dialog.settlement_names)}

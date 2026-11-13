@@ -13,7 +13,7 @@ import { Auth } from "./Auth";
 import { ConditionsForm } from "./ConditionsForm";
 import { History, Results } from "./Results";
 import { Assistant } from "./Assistant";
-import { ForecastOverview } from "./ForecastOverview";
+import { VolumeForecast } from "./VolumeForecast";
 import { assistantSnapshot } from "./assistantSnapshot";
 import type { DashboardCalculation, VolumeForecastSelection } from "./assistantApi";
 import { Brand } from "./ui";
@@ -104,6 +104,8 @@ function Workspace({
     window.addEventListener("storage", sync);
     return () => window.removeEventListener("storage", sync);
   }, [userId]);
+  const volumeHash = "#calculation/volume";
+  const inVolume = hash === volumeHash;
   const inHistory = hash.startsWith("#history");
   const needsAuth = !user && (inHistory || hash === "#login");
   useEffect(() => {
@@ -225,15 +227,14 @@ function Workspace({
         <div className="header-controls">
           <nav aria-label="Разделы">
             <button
-              aria-current={!inHistory && !showing ? "page" : undefined}
+              aria-current={!inHistory && !showing && !inVolume ? "page" : undefined}
               onClick={() => navigate("#calculation")}
             >
               Условия
             </button>
             <button
-              aria-current={!inHistory && !!showing ? "page" : undefined}
-              disabled={!current}
-              onClick={() => navigate(calculationHash)}
+              aria-current={!inHistory && (showing || inVolume) ? "page" : undefined}
+              onClick={() => navigate(assistantVolume || !current ? volumeHash : calculationHash)}
             >
               Прогноз
             </button>
@@ -316,6 +317,20 @@ function Workspace({
               onOpen={(s) => navigate("#history/" + s.id)}
             />
           </>
+        ) : inVolume ? (
+          <section className="forecast-overview" aria-label="Прогноз объёма">
+            <div className="forecast-view-switch" role="group" aria-label="Показатель прогноза">
+              <button type="button" onClick={() => navigate(calculationHash)}>Стоимость</button>
+              <button type="button" aria-pressed="true">Объём</button>
+            </div>
+            <VolumeForecast
+              key={assistantVolume?.revision}
+              selection={assistantVolume?.selection}
+              origin={draft.origin?.name}
+              destination={draft.destination?.name}
+              targetYear={Number(draft.forecastYear) || undefined}
+            />
+          </section>
         ) : options ? (
           <>
             <div className="forecast-page-heading intake-heading">
@@ -341,8 +356,6 @@ function Workspace({
               />
               <div ref={setAssistantSlot} />
             </div>
-            {assistantVolume && <ForecastOverview key={assistantVolume.revision} draft={draft}
-              volumeSelection={assistantVolume.selection} />}
           </>
         ) : (
           <section className="empty-state perforated">
@@ -371,7 +384,7 @@ function Workspace({
         onResult={showAssistantResult}
         onVolumeResult={(selection) => {
           setAssistantVolume((previous) => ({ selection, revision: (previous?.revision ?? 0) + 1 }));
-          navigate("#calculation");
+          navigate(volumeHash);
         }}
         onSaveResult={user ? undefined : saveGuestAssistantResult}
         hidden={needsAuth}
