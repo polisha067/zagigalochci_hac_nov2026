@@ -59,11 +59,11 @@ COMPARE_YEARS = re.compile(
 )
 YEAR_TOKEN = re.compile(r"(?<!\d)(?:19|20|21)\d{2}(?!\d)")
 ISO_MOMENT = re.compile(r"\b\d{4}-\d{2}-\d{2}[tT]\d{2}:\d{2}(?::\d{2})?(?:[+-]\d{2}:\d{2}|[zZ])?")
-ROUTE_QUOTE = re.compile(r"\bиз\s+([^.!?]{2,70}?)\s+(?:в|до)\s+([а-яё][^.!?]{0,90})", re.IGNORECASE)
+ROUTE_QUOTE = re.compile(r"\bиз\s+([^.!?]{2,70}?)\s+(?:во?|до)\s+([а-яё][^.!?]{0,90})", re.IGNORECASE)
 ROUTE_PREPOSITION_TYPO = re.compile(r"\bиз\s+([^.!?]{2,70}?)\s+ы\s+([а-яё][^.!?]{0,90})", re.IGNORECASE)
 SAME_ROUTE = re.compile(r"\b(?:тот\s+же\s+маршрут|тем\s+же\s+маршрутом|по\s+тому\s+же\s+маршруту)\b")
 NEW_SHIPMENT = re.compile(r"\b(?:нов\w+\s+(?:перевозк\w*|партия|парти[юи]|расч[её]т)|а\s+теперь|начн[её]м\s+заново)\b")
-PRICE_REQUEST = re.compile(r"\b(?:скольк?о\b[^.!?]{0,30}\bсто\w*|рассчитай\w*\s+стоимость)\b")
+PRICE_REQUEST = re.compile(r"\b(?:скольк?о\b[^.!?]{0,30}\bсто\w*|рассчитай\w*\s+стоимость|как\s+дешевле)\b")
 ENDPOINT_LABELS = {
     "origin": r"город\s+отправления|начальная\s+точка(?:\s+маршрута)?",
     "destination": r"город\s+назначения|конечная\s+точка(?:\s+маршрута)?",
@@ -236,10 +236,10 @@ def _explicit_route(message, *, preserve_unknown=False):
         origin, destination = (_city_prefix(phrase) for phrase in pair.groups())
         if origin and destination:
             return origin, destination, []
-        if preserve_unknown and (origin or destination):
-            unresolved = _point_phrase(pair[1] if not origin else pair[2])
-            if re.fullmatch(r"[а-яё-]+(?:\s+[а-яё-]+){0,3}", unresolved, re.I):
-                return origin or unresolved, destination or unresolved, []
+        if preserve_unknown:
+            # Keep an unresolved endpoint in the new draft so settlement
+            # validation asks for it instead of retaining the old route.
+            return origin or _point_phrase(pair[1]), destination or _point_phrase(pair[2]), []
     if "→" in message:
         parts = re.split(r"\s*→\s*", message)
         # A route can start after a sentence or a label such as «Новый расчёт:».
@@ -609,7 +609,7 @@ def plan_turn(planner, message, draft):
     masses = mass_values(message, False)
     explicit_new = bool(NEW_SHIPMENT.search(text))
     price_request = bool(PRICE_REQUEST.search(text))
-    route = _explicit_route(message, preserve_unknown=bool(masses and (explicit_new or price_request)))
+    route = _explicit_route(message, preserve_unknown=bool(masses or explicit_new or price_request))
     mass_name = _name_after_mass(message) if len(masses) == 1 else None
     clear_new_quote = bool(route and mass_name and (explicit_new or price_request))
     explicit_cargo = {}

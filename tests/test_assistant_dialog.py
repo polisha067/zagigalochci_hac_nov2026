@@ -69,6 +69,14 @@ class AssistantDialogTests(unittest.TestCase):
                                  "splittable": True, "packaging": "bags"}]},
         )
 
+    def test_cheapest_new_route_with_typos_replaces_previous_route(self):
+        self.flour()
+        result = self.send("как дешевле перевзти 100 тонн муки из москвы во владисовток?",
+                           "update", {"cargoes": [{"weight_tonnes": 100}]})
+        self.assertIn("Москва → Владивосток", result["known"])
+        self.assertNotIn("2030 год", result["known"])
+        self.assertEqual(result["answer"]["kind"], "clarification")
+
     def test_new_forecast_compares_modes_even_when_planner_repeats_modes(self):
         dialog = self.send(
             "Новый расчёт. Сколько будет стоить перевезти 10 тонн муки из Москвы в Красноярск в 2030 году? "
